@@ -4,6 +4,7 @@
 #define APPLICATION_H
 
 #include "Graphics.h"
+#include "Shader.h"
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
@@ -26,6 +27,7 @@ private:
 
 private:
 	Graphics* m_Graphics;
+	Shader* m_Shader;
 
 };
 

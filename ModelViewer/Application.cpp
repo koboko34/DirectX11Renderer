@@ -1,8 +1,11 @@
 #include "Application.h"
 
+#include "MyMacros.h"
+
 Application::Application()
 {
 	m_Graphics = 0;
+	m_Shader = 0;
 }
 
 Application::Application(const Application& Other)
@@ -22,6 +25,15 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	{
 		ShowCursor(true);
 		MessageBox(hWnd, L"Could not initialise Graphics object!", L"Error", MB_OK);
+		return false;
+	}
+
+	m_Shader = new Shader();
+	Result = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
+	if (!Result)
+	{
+		ShowCursor(true);
+		MessageBox(hWnd, L"Could not initialise Shader object!", L"Error", MB_OK);
 		return false;
 	}
 	
@@ -56,10 +68,15 @@ bool Application::Render()
 
 	m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
 	m_Graphics->GetWorldMatrix(WorldMatrix);
+	ViewMatrix = DirectX::XMMatrixIdentity();
+	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
 	// load model
 
+	unsigned int IndexCount = 3;
+
 	// render using shader
+	FALSE_IF_FAILED(m_Shader->Render(m_Graphics->GetDeviceContext(), IndexCount, WorldMatrix, ViewMatrix, ProjectionMatrix));
 	
 	m_Graphics->EndScene();
 

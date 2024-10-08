@@ -99,6 +99,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SwapChainDesc.BufferDesc.Width = ScreenWidth;
 	SwapChainDesc.BufferDesc.Height = ScreenHeight;
 	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	SwapChainDesc.BufferCount = 2;
 
 	if (m_VSync_Enabled)
 	{
@@ -129,12 +130,25 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	SwapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	SwapChainDesc.Flags = 0;
 
 	FeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-	HFALSE_IF_FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &FeatureLevel, 1, D3D11_SDK_VERSION, &SwapChainDesc, &m_SwapChain, &m_Device, NULL, &m_DeviceContext));
+	HFALSE_IF_FAILED(D3D11CreateDeviceAndSwapChain(
+		NULL,
+		D3D_DRIVER_TYPE_HARDWARE,
+		NULL,
+		D3D11_CREATE_DEVICE_DEBUG,
+		&FeatureLevel,
+		1,
+		D3D11_SDK_VERSION,
+		&SwapChainDesc,
+		&m_SwapChain,
+		&m_Device,
+		NULL,
+		&m_DeviceContext)
+	);
 	HFALSE_IF_FAILED(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBufferPtr));
 	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_RenderTargetView));
 
