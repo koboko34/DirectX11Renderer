@@ -99,7 +99,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SwapChainDesc.BufferDesc.Width = ScreenWidth;
 	SwapChainDesc.BufferDesc.Height = ScreenHeight;
 	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	SwapChainDesc.BufferCount = 2;
+	SwapChainDesc.BufferCount = 1; // create a second buffer and change swapchain swap effect
 
 	if (m_VSync_Enabled)
 	{
@@ -130,7 +130,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	SwapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD; // swap to DXGI_SWAP_FLIP_DISCARD when added a second buffer
 	SwapChainDesc.Flags = 0;
 
 	FeatureLevel = D3D_FEATURE_LEVEL_11_0;

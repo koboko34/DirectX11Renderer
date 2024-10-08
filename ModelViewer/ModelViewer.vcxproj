@@ -23,6 +23,7 @@
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="InputClass.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SystemClass.cpp" />
   </ItemGroup>
@@ -30,6 +31,7 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="InputClass.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="MyMacros.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SystemClass.h" />
