@@ -159,7 +159,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthBufferDesc.Height = ScreenHeight;
 	DepthBufferDesc.MipLevels = 1;
 	DepthBufferDesc.ArraySize = 1;
-	DepthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	DepthBufferDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	DepthBufferDesc.SampleDesc.Count = 1;
 	DepthBufferDesc.SampleDesc.Quality = 0;
 	DepthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -191,7 +191,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
 
-	DepthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	DepthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	DepthStencilViewDesc.Texture2D.MipSlice = 0;
 

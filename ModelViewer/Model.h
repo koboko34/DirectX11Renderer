@@ -15,8 +15,9 @@ class Model
 private:
 	struct Vertex
 	{
-		DirectX::XMFLOAT3 Pos;
-		float Padding;
+		DirectX::XMFLOAT4 Pos;
+		DirectX::XMFLOAT2 TexCoord;
+		DirectX::XMFLOAT4 Normal;
 	};
 
 public:
@@ -42,8 +43,8 @@ private:
 	ID3D11Buffer* m_VertexBuffer;
 	ID3D11Buffer* m_IndexBuffer;
 	unsigned int m_VertexCount, m_IndexCount;
-	Vertex* m_Vertices;
-	unsigned int* m_Indices;
+	std::vector<Vertex> m_Vertices;
+	std::vector<unsigned int> m_Indices;
 };
 
 #endif

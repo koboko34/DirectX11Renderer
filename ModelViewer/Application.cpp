@@ -7,6 +7,7 @@ Application::Application()
 	m_Graphics = 0;
 	m_Shader = 0;
 	m_Model = 0;
+	m_Camera = 0;
 }
 
 Application::Application(const Application& Other)
@@ -22,7 +23,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	char ModelFilename[128];
 	
 	m_Graphics = new Graphics();
-
 	bool Result = m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
 	if (!Result)
 	{
@@ -30,6 +30,10 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		MessageBox(hWnd, L"Failed to initialise Graphics object!", L"Error", MB_OK);
 		return false;
 	}
+
+	m_Camera = new Camera();
+	m_Camera->SetPosition(0.f, 0.f, 0.f);
+	m_Camera->SetRotation(0.f, 0.f, 0.f);
 
 	m_Shader = new Shader();
 	Result = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
@@ -40,7 +44,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
-	strcpy_s(ModelFilename, "Models/plane.txt");
+	strcpy_s(ModelFilename, "Models/sphere.txt");
 
 	m_Model = new Model();
 	Result = m_Model->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename);
@@ -56,11 +60,31 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 void Application::Shutdown()
 {
+	if (m_Model)
+	{
+		m_Model->Shutdown();
+		delete m_Model;
+		m_Model = 0;
+	}
+
+	if (m_Shader)
+	{
+		m_Shader->Shutdown();
+		delete m_Shader;
+		m_Shader = 0;
+	}
+	
 	if (m_Graphics)
 	{
 		m_Graphics->Shutdown();
 		delete m_Graphics;
 		m_Graphics = 0;
+	}
+
+	if (m_Camera)
+	{
+		delete m_Camera;
+		m_Camera = 0;
 	}
 }
 
@@ -80,10 +104,13 @@ bool Application::Render()
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
-	//m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
-	m_Graphics->BeginScene(0.f, 0.f, 0.f, 1.f);
+	m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
+
+	m_Camera->Render();
+
 	m_Graphics->GetWorldMatrix(WorldMatrix);
-	ViewMatrix = DirectX::XMMatrixIdentity();
+	WorldMatrix *= DirectX::XMMatrixTranslation(0.f, 0.f, 5.f);
+	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
 	m_Model->Render(m_Graphics->GetDeviceContext());
@@ -97,7 +124,7 @@ bool Application::Render()
 			ProjectionMatrix
 		)
 	);
-	
+
 	m_Graphics->EndScene();
 
 	return true;

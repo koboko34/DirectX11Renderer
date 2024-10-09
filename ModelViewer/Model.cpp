@@ -8,8 +8,6 @@ Model::Model()
 {
 	m_VertexBuffer = 0;
 	m_IndexBuffer = 0;
-	m_Vertices = 0;
-	m_Indices = 0;
 	m_VertexCount = 0;
 	m_IndexCount = 0;
 }
@@ -55,7 +53,7 @@ bool Model::InitialiseBuffers(ID3D11Device* Device)
 	vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;
 	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-	VertexData.pSysMem = m_Vertices;
+	VertexData.pSysMem = m_Vertices.data();
 	
 	HFALSE_IF_FAILED(Device->CreateBuffer(&vbDesc, &VertexData, &m_VertexBuffer));
 
@@ -63,7 +61,7 @@ bool Model::InitialiseBuffers(ID3D11Device* Device)
 	ibDesc.ByteWidth = sizeof(unsigned int) * m_IndexCount;
 	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
-	IndexData.pSysMem = m_Indices;
+	IndexData.pSysMem = m_Indices.data();
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&ibDesc, &IndexData, &m_IndexBuffer));
 	
@@ -98,27 +96,78 @@ void Model::RenderBuffers(ID3D11DeviceContext* DeviceContext)
 
 bool Model::LoadModel(char* ModelFilename)
 {
+	
+	Assimp::Importer Importer;
+	auto Model = Importer.ReadFile("Models/suzanne.obj",
+		aiProcess_Triangulate |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_ConvertToLeftHanded
+	);
+
+	if (!Model)
+	{
+		return false;
+	}
+
+	const auto Mesh = Model->mMeshes[0];
+	
+	m_VertexCount = Mesh->mNumVertices;
+	m_Vertices.resize(m_VertexCount);
+	for (unsigned int i = 0; i < m_VertexCount; i++)
+	{
+		Vertex v;
+		v.Pos.x = Mesh->mVertices[i].x;
+		v.Pos.y = Mesh->mVertices[i].y;
+		v.Pos.z = Mesh->mVertices[i].z;
+		v.Pos.w = 1.f;
+
+		if (Mesh->HasNormals())
+		{
+			v.Normal.x = Mesh->mNormals[i].x;
+			v.Normal.y = Mesh->mNormals[i].y;
+			v.Normal.z = Mesh->mNormals[i].z;
+			v.Normal.w = 1.f;
+		}
+
+		m_Vertices[i] = v;
+	}
+
+	m_IndexCount = Mesh->mNumFaces * 3;
+	m_Indices.resize(m_IndexCount);
+	for (unsigned int i = 0; i < Mesh->mNumFaces; i++)
+	{
+		const auto& Face = Mesh->mFaces[i];
+		assert(Face.mNumIndices == 3);
+		m_Indices[i]	 = Face.mIndices[0];
+		m_Indices[i + 1] = Face.mIndices[1];
+		m_Indices[i + 2] = Face.mIndices[2];
+	}
+
+	return true;
+	
+	
+	/*
 	// temporary, convert to loading with assimp later
 	
 	m_VertexCount = 3;
 	m_IndexCount = 3;
 
-	m_Vertices = new Vertex[m_VertexCount];
-	m_Indices = new unsigned int[m_IndexCount];
+	m_Vertices.resize(m_VertexCount);
+	m_Indices.resize(m_IndexCount);
 
-	m_Vertices[0].Pos = DirectX::XMFLOAT3(-1.f, -1.f, 0.f);
-	m_Vertices[0].Padding = 0.f;
-	m_Vertices[1].Pos = DirectX::XMFLOAT3( 0.f,  1.f, 0.f);
-	m_Vertices[1].Padding = 0.f;
-	m_Vertices[2].Pos = DirectX::XMFLOAT3( 1.f, -1.f, 0.f);
-	m_Vertices[2].Padding = 0.f;
+	m_Vertices[0].Pos   = DirectX::XMFLOAT4(-1.f, -1.f, 0.f, 1.f);
+	m_Vertices[0].Color = DirectX::XMFLOAT4( 1.f,  0.f, 0.f, 1.f);
+	m_Vertices[1].Pos   = DirectX::XMFLOAT4( 0.f,  1.f, 0.f, 1.f);
+	m_Vertices[1].Color = DirectX::XMFLOAT4( 0.f,  1.f, 0.f, 1.f);
+	m_Vertices[2].Pos   = DirectX::XMFLOAT4( 1.f, -1.f, 0.f, 1.f);
+	m_Vertices[2].Color = DirectX::XMFLOAT4( 0.f,  0.f, 1.f, 1.f);
 
 	m_Indices[0] = 0;
 	m_Indices[1] = 1;
 	m_Indices[2] = 2;
 
 	return true;
-
+	*/
 	// ==============================================
 	/*
 	std::ifstream fin;
@@ -141,8 +190,8 @@ bool Model::LoadModel(char* ModelFilename)
 
 	m_IndexCount = m_VertexCount;
 
-	// m_Vertices = new Vertex[m_VertexCount];
-	// m_Indices = new unsigned int[m_IndexCount];
+	m_Vertices.resize(m_VertexCount);
+	m_Indices.resize(m_IndexCount);
 
 	fin.get(Input);
 	while (Input != ':')
@@ -155,6 +204,9 @@ bool Model::LoadModel(char* ModelFilename)
 	for (i = 0; i < m_VertexCount; i++)
 	{
 		fin >> m_Vertices[i].Pos.x >> m_Vertices[i].Pos.y >> m_Vertices[i].Pos.z;
+		fin >> m_Vertices[i].TexCoord.x >> m_Vertices[i].TexCoord.y;
+		fin >> m_Vertices[i].Normal.x >> m_Vertices[i].Normal.y >> m_Vertices[i].Normal.z;
+
 		m_Indices[i] = i;
 	}
 
@@ -166,15 +218,8 @@ bool Model::LoadModel(char* ModelFilename)
 
 void Model::ReleaseModel()
 {
-	if (m_Vertices)
-	{
-		delete[] m_Vertices;
-		m_Vertices = 0;
-	}
-
-	if (m_Indices)
-	{
-		delete[] m_Indices;
-		m_Indices = 0;
-	}
+	m_Vertices.resize(0);
+	m_Indices.resize(0);
+	m_VertexCount = 0;
+	m_IndexCount = 0;
 }
