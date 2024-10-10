@@ -59,6 +59,10 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		MessageBox(hWnd, L"Failed to initialise Model object!", L"Error", MB_OK);
 		return false;
 	}
+
+	m_Light = new Light();
+	m_Light->SetPosition(10.f, 7.f, -5.f);
+	m_Light->SetSpecularPower(20.f);
 	
 	return true;
 }
@@ -120,7 +124,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
 
 	m_Camera->Render();
-
+	
 	m_Graphics->GetWorldMatrix(WorldMatrix);
 	WorldMatrix *= DirectX::XMMatrixRotationY(RotationAngle);
 	WorldMatrix *= DirectX::XMMatrixTranslation(0.f, 0.f, 5.f);
@@ -135,7 +139,32 @@ bool Application::Render(double DeltaTime)
 			m_Model->GetIndexCount(),
 			WorldMatrix,
 			ViewMatrix,
-			ProjectionMatrix
+			ProjectionMatrix,
+			m_Camera->GetPosition(),
+			m_Light->GetPosition(),
+			m_Light->GetSpecularPower()
+		)
+	);
+	
+	m_Graphics->GetWorldMatrix(WorldMatrix);
+	auto LightPos = m_Light->GetPosition();
+	WorldMatrix *= DirectX::XMMatrixScaling(0.2f, 0.2f, 0.2f);
+	WorldMatrix *= DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z);
+	m_Camera->GetViewMatrix(ViewMatrix);
+	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
+
+	m_Model->Render(m_Graphics->GetDeviceContext());
+
+	FALSE_IF_FAILED(
+		m_Shader->Render(
+			m_Graphics->GetDeviceContext(),
+			m_Model->GetIndexCount(),
+			WorldMatrix,
+			ViewMatrix,
+			ProjectionMatrix,
+			m_Camera->GetPosition(),
+			m_Light->GetPosition(),
+			m_Light->GetSpecularPower()
 		)
 	);
 

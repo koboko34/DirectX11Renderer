@@ -100,6 +100,7 @@ bool Model::LoadModel(char* ModelFilename)
 	auto Model = Importer.ReadFile("Models/suzanne.obj",
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
+		aiProcess_GenSmoothNormals |
 		aiProcess_ConvertToLeftHanded
 	);
 

@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "Model.h"
 #include "Camera.h"
+#include "Light.h"
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
@@ -34,6 +35,7 @@ private:
 	Shader* m_Shader;
 	Model* m_Model;
 	Camera* m_Camera;
+	Light* m_Light;
 
 	std::chrono::steady_clock::time_point LastUpdate;
 	double AppTime;

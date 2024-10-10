@@ -52,10 +52,11 @@ void Shader::Shutdown()
 	ShutdownShader();
 }
 
-bool Shader::Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection)
+bool Shader::Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
+					DirectX::XMFLOAT3 CameraPos, DirectX::XMFLOAT3 LightPos, float SpecularPower)
 {
 	bool Result;
-	FALSE_IF_FAILED(SetShaderParameters(DeviceContext, World, View, Projection));
+	FALSE_IF_FAILED(SetShaderParameters(DeviceContext, World, View, Projection, CameraPos, LightPos, SpecularPower));
 
 	RenderShader(DeviceContext, IndexCount);
 
@@ -69,10 +70,12 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	ID3D10Blob* vsBuffer;
 	ID3D10Blob* psBuffer;
 	D3D11_BUFFER_DESC MatrixBufferDesc = {};
+	D3D11_BUFFER_DESC LightBufferDesc = {};
 	D3D11_INPUT_ELEMENT_DESC VertexLayout[3] = {};
 	unsigned int NumElements;
-
-	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vsBuffer, &ErrorMessage);
+	
+	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
 	if (FAILED(hResult))
 	{
 		if (ErrorMessage)
@@ -87,7 +90,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 		return false;
 	}
 
-	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &psBuffer, &ErrorMessage);
+	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
 	if (FAILED(hResult))
 	{
 		if (ErrorMessage)
@@ -142,6 +145,13 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	MatrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&MatrixBufferDesc, NULL, &m_MatrixBuffer));
+
+	LightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	LightBufferDesc.ByteWidth = sizeof(LightingBuffer);
+	LightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	LightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	HFALSE_IF_FAILED(Device->CreateBuffer(&LightBufferDesc, NULL, &m_LightingBuffer));
 
 	return true;
 }
@@ -218,12 +228,15 @@ void Shader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR
 	delete[] CombinedWstr;
 }
 
-bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection)
+bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
+	DirectX::XMFLOAT3 CameraPos, DirectX::XMFLOAT3 LightPos, float SpecularPower)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
 	MatrixBuffer* MatrixDataPtr;
+	LightingBuffer* LightingDataPtr;
 	unsigned int vsBufferSlot = 0u;
+	unsigned int psBufferSlot = 0u;
 	
 	// remember to transpose from row major before sending to shaders
 	World = DirectX::XMMatrixTranspose(World);
@@ -239,6 +252,17 @@ bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XM
 
 	DeviceContext->VSSetConstantBuffers(vsBufferSlot, 1u, &m_MatrixBuffer);
 	vsBufferSlot++;
+
+	HFALSE_IF_FAILED(DeviceContext->Map(m_LightingBuffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
+	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
+	LightingDataPtr->CameraPos = CameraPos;
+	LightingDataPtr->LightPos = LightPos;
+	LightingDataPtr->SpecularPower = SpecularPower;
+	LightingDataPtr->Padding = 0.f;
+	DeviceContext->Unmap(m_LightingBuffer, 0u);
+
+	DeviceContext->PSSetConstantBuffers(psBufferSlot, 1u, &m_LightingBuffer);
+	psBufferSlot++;
 
 	return true;
 }
