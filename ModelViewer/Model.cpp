@@ -97,7 +97,7 @@ void Model::RenderBuffers(ID3D11DeviceContext* DeviceContext)
 bool Model::LoadModel(char* ModelFilename)
 {
 	Assimp::Importer Importer;
-	auto Model = Importer.ReadFile("Models/suzanne.obj",
+	auto Model = Importer.ReadFile(ModelFilename,
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |

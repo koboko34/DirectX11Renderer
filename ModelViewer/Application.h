@@ -4,6 +4,7 @@
 #define APPLICATION_H
 
 #include <chrono>
+#include <vector>
 
 #include "Graphics.h"
 #include "Shader.h"
@@ -28,14 +29,18 @@ public:
 	bool Frame();
 
 private:
+	bool AddModel(HWND hWnd, const char* ModelFilename);
 	bool Render(double DeltaTime);
+	bool RenderPhysicalLight();
 
 private:
 	Graphics* m_Graphics;
 	Shader* m_Shader;
-	Model* m_Model;
 	Camera* m_Camera;
 	Light* m_Light;
+
+	Model* m_SceneLight;
+	std::vector<Model*> m_Models;
 
 	std::chrono::steady_clock::time_point LastUpdate;
 	double AppTime;

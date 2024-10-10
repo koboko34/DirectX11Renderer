@@ -18,7 +18,7 @@ float4 main(PS_In p) : SV_TARGET
 {
 	float4 Color = float4(1.f, 1.f, 1.f, 1.f);
 	
-	float AmbientFactor = 0.05f;
+	float AmbientFactor = 0.1f;
 	float4 Ambient = float4(Color.rgb * AmbientFactor, 1.f);
 	
 	//float3 PixelToCam = normalize(CameraPos - p.WorldPos.xyz);
