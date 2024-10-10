@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include <iostream>
+
 #include "MyMacros.h"
 
 Application::Application()
@@ -8,6 +10,9 @@ Application::Application()
 	m_Shader = 0;
 	m_Model = 0;
 	m_Camera = 0;
+
+	LastUpdate = std::chrono::steady_clock::now();
+	AppTime = 0.0;
 }
 
 Application::Application(const Application& Other)
@@ -89,8 +94,14 @@ void Application::Shutdown()
 }
 
 bool Application::Frame()
-{
-	bool Result = Render();
+{	
+	double DeltaTime;
+	auto Now = std::chrono::steady_clock::now();
+	DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - LastUpdate).count() / 1000000.0;
+	LastUpdate = Now;
+	AppTime += DeltaTime;
+	
+	bool Result = Render(DeltaTime);
 	if (!Result)
 	{
 		return false;
@@ -99,8 +110,10 @@ bool Application::Frame()
 	return true;
 }
 
-bool Application::Render()
-{
+bool Application::Render(double DeltaTime)
+{		
+	float RotationAngle = fmod(AppTime, 360.f);
+	
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
@@ -109,6 +122,7 @@ bool Application::Render()
 	m_Camera->Render();
 
 	m_Graphics->GetWorldMatrix(WorldMatrix);
+	WorldMatrix *= DirectX::XMMatrixRotationY(RotationAngle);
 	WorldMatrix *= DirectX::XMMatrixTranslation(0.f, 0.f, 5.f);
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);

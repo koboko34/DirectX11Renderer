@@ -3,6 +3,8 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <chrono>
+
 #include "Graphics.h"
 #include "Shader.h"
 #include "Model.h"
@@ -25,13 +27,16 @@ public:
 	bool Frame();
 
 private:
-	bool Render();
+	bool Render(double DeltaTime);
 
 private:
 	Graphics* m_Graphics;
 	Shader* m_Shader;
 	Model* m_Model;
 	Camera* m_Camera;
+
+	std::chrono::steady_clock::time_point LastUpdate;
+	double AppTime;
 };
 
 #endif
