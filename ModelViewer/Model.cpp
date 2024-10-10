@@ -96,7 +96,6 @@ void Model::RenderBuffers(ID3D11DeviceContext* DeviceContext)
 
 bool Model::LoadModel(char* ModelFilename)
 {
-	
 	Assimp::Importer Importer;
 	auto Model = Importer.ReadFile("Models/suzanne.obj",
 		aiProcess_Triangulate |
@@ -138,82 +137,12 @@ bool Model::LoadModel(char* ModelFilename)
 	{
 		const auto& Face = Mesh->mFaces[i];
 		assert(Face.mNumIndices == 3);
-		m_Indices[i]	 = Face.mIndices[0];
-		m_Indices[i + 1] = Face.mIndices[1];
-		m_Indices[i + 2] = Face.mIndices[2];
+		m_Indices[i * 3]	 = Face.mIndices[0];
+		m_Indices[i * 3 + 1] = Face.mIndices[1];
+		m_Indices[i * 3 + 2] = Face.mIndices[2];
 	}
 
 	return true;
-	
-	
-	/*
-	// temporary, convert to loading with assimp later
-	
-	m_VertexCount = 3;
-	m_IndexCount = 3;
-
-	m_Vertices.resize(m_VertexCount);
-	m_Indices.resize(m_IndexCount);
-
-	m_Vertices[0].Pos   = DirectX::XMFLOAT4(-1.f, -1.f, 0.f, 1.f);
-	m_Vertices[0].Color = DirectX::XMFLOAT4( 1.f,  0.f, 0.f, 1.f);
-	m_Vertices[1].Pos   = DirectX::XMFLOAT4( 0.f,  1.f, 0.f, 1.f);
-	m_Vertices[1].Color = DirectX::XMFLOAT4( 0.f,  1.f, 0.f, 1.f);
-	m_Vertices[2].Pos   = DirectX::XMFLOAT4( 1.f, -1.f, 0.f, 1.f);
-	m_Vertices[2].Color = DirectX::XMFLOAT4( 0.f,  0.f, 1.f, 1.f);
-
-	m_Indices[0] = 0;
-	m_Indices[1] = 1;
-	m_Indices[2] = 2;
-
-	return true;
-	*/
-	// ==============================================
-	/*
-	std::ifstream fin;
-	char Input;
-	int i;
-
-	fin.open(ModelFilename);
-	if (fin.fail())
-	{
-		return false;
-	}
-
-	fin.get(Input);
-	while (Input != ':')
-	{
-		fin.get(Input);
-	}
-
-	fin >> m_VertexCount;
-
-	m_IndexCount = m_VertexCount;
-
-	m_Vertices.resize(m_VertexCount);
-	m_Indices.resize(m_IndexCount);
-
-	fin.get(Input);
-	while (Input != ':')
-	{
-		fin.get(Input);
-	}
-	fin.get(Input);
-	fin.get(Input);
-
-	for (i = 0; i < m_VertexCount; i++)
-	{
-		fin >> m_Vertices[i].Pos.x >> m_Vertices[i].Pos.y >> m_Vertices[i].Pos.z;
-		fin >> m_Vertices[i].TexCoord.x >> m_Vertices[i].TexCoord.y;
-		fin >> m_Vertices[i].Normal.x >> m_Vertices[i].Normal.y >> m_Vertices[i].Normal.z;
-
-		m_Indices[i] = i;
-	}
-
-	fin.close();
-
-	return true;
-	*/
 }
 
 void Model::ReleaseModel()
