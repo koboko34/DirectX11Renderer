@@ -44,6 +44,10 @@ private:
 
 	HWND m_hWnd;
 
+	DirectX::XMFLOAT3 m_ModelPos;
+	DirectX::XMFLOAT3 m_ModelRot;
+	DirectX::XMFLOAT3 m_ModelScale;
+
 	const char* m_ModelLoadSuccessMessage = "";
 
 	std::chrono::steady_clock::time_point m_LastUpdate;

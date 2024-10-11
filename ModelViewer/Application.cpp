@@ -16,6 +16,10 @@ Application::Application()
 	m_Light = 0;
 	m_Model = 0;
 
+	m_ModelPos   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+	m_ModelRot   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+	m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+
 	m_LastUpdate = std::chrono::steady_clock::now();
 	m_AppTime = 0.0;
 }
@@ -42,7 +46,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	}
 
 	m_Camera = new Camera();
-	m_Camera->SetPosition(0.f, 0.f, 0.f);
+	m_Camera->SetPosition(0.f, 0.f, -2.f);
 	m_Camera->SetRotation(0.f, 0.f, 0.f);
 
 	m_Shader = new Shader();
@@ -66,10 +70,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
-	//FALSE_IF_FAILED(AddModel(hWnd, "Models/stanford-bunny.obj"));
-
 	m_Light = new Light();
-	m_Light->SetPosition(1.f, 0.5f, 2.f);
+	m_Light->SetPosition(1.f, 0.5f, -0.5f);
 	m_Light->SetSpecularPower(20.f);
 	
 	return true;
@@ -163,10 +165,9 @@ bool Application::Render(double DeltaTime)
 	if (m_Model)
 	{
 		m_Graphics->GetWorldMatrix(WorldMatrix);
-		WorldMatrix *= DirectX::XMMatrixTranslation(0.02f, -0.1f, 0.f);
-		WorldMatrix *= DirectX::XMMatrixScaling(5.f, 5.f, 5.f);
 		WorldMatrix *= DirectX::XMMatrixRotationY(RotationAngle);
-		WorldMatrix *= DirectX::XMMatrixTranslation(0.f, 0.f, 3.f);
+		WorldMatrix *= DirectX::XMMatrixScaling(m_ModelScale.x, m_ModelScale.y, m_ModelScale.z);
+		WorldMatrix *= DirectX::XMMatrixTranslation(m_ModelPos.x, m_ModelPos.y, m_ModelPos.z);
 		m_Camera->GetViewMatrix(ViewMatrix);
 		m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
@@ -197,13 +198,42 @@ bool Application::Render(double DeltaTime)
 		ImGui::ShowDemoWindow(&ShowDemoWindow);
 	}
 
-	if (ImGui::Begin("Test Window"))
+	assert(m_Light || "Must have a light in the scene before spawning light window!");
+	if (ImGui::Begin("Light"))
 	{
-		ImGui::SliderFloat("Light x", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -5.f, 5.f);
-		ImGui::SliderFloat("Light y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -5.f, 5.f);
-		ImGui::SliderFloat("Light z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -5.f, 5.f);
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -5.f, 5.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -5.f, 5.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -5.f, 5.f);
 		
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	}
+	ImGui::End();
+
+	if (ImGui::Begin("Model"))
+	{
+		ImGui::PushID(0);
+		ImGui::Text("Position");
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -50.f, 50.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -50.f, 50.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -50.f, 50.f);
+		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 2.f));
+
+		ImGui::PushID(1);
+		ImGui::Text("Scale");
+		ImGui::SliderFloat("XYZ", reinterpret_cast<float*>(&m_ModelScale), 0.f, 5.f);
+		m_ModelScale.y = m_ModelScale.x;
+		m_ModelScale.z = m_ModelScale.x;
+		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 20.f));
+
+		if (ImGui::Button("Restore Defaults"))
+		{
+			m_ModelPos = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+			m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+		}
 	}
 	ImGui::End();
 
@@ -236,12 +266,7 @@ bool Application::Render(double DeltaTime)
 			}
 		}
 		
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
+		ImGui::Dummy(ImVec2(0.f, 20.f));
 
 		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
 		if (ImGui::Button("Load model from file"))
