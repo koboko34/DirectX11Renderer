@@ -16,6 +16,7 @@ public:
 	void SetSpecularPower(float Power);
 
 	DirectX::XMFLOAT3 GetPosition() const { return m_Position; }
+	DirectX::XMFLOAT3* GetPositionPtr() { return &m_Position; }
 	float GetSpecularPower() const { return m_SpecularPower; }
 
 private:

@@ -29,7 +29,7 @@ public:
 	bool Frame();
 
 private:
-	bool AddModel(HWND hWnd, const char* ModelFilename);
+	bool LoadModel(const char* ModelFilename);
 	bool Render(double DeltaTime);
 	bool RenderPhysicalLight();
 
@@ -40,10 +40,14 @@ private:
 	Light* m_Light;
 
 	Model* m_SceneLight;
-	std::vector<Model*> m_Models;
+	Model* m_Model;
 
-	std::chrono::steady_clock::time_point LastUpdate;
-	double AppTime;
+	HWND m_hWnd;
+
+	const char* m_ModelLoadSuccessMessage = "";
+
+	std::chrono::steady_clock::time_point m_LastUpdate;
+	double m_AppTime;
 };
 
 #endif

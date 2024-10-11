@@ -13,10 +13,11 @@ Application::Application()
 	m_Graphics = 0;
 	m_Shader = 0;
 	m_Camera = 0;
+	m_Light = 0;
+	m_Model = 0;
 
-	m_Models = std::vector<Model*>();
-	LastUpdate = std::chrono::steady_clock::now();
-	AppTime = 0.0;
+	m_LastUpdate = std::chrono::steady_clock::now();
+	m_AppTime = 0.0;
 }
 
 Application::Application(const Application& Other)
@@ -29,6 +30,8 @@ Application::~Application()
 
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 {
+	m_hWnd = hWnd;
+	
 	m_Graphics = new Graphics();
 	bool Result = m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
 	if (!Result)
@@ -63,7 +66,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
-	FALSE_IF_FAILED(AddModel(hWnd, "Models/stanford-bunny.obj"));
+	//FALSE_IF_FAILED(AddModel(hWnd, "Models/stanford-bunny.obj"));
 
 	m_Light = new Light();
 	m_Light->SetPosition(1.f, 0.5f, 2.f);
@@ -74,15 +77,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 void Application::Shutdown()
 {
-	for (Model* m : m_Models)
+	if (m_Model)
 	{
-		if (m)
-		{
-			m->Shutdown();
-			delete m;
-		}
+		m_Model->Shutdown();
+		delete m_Model;
+		m_Model = 0;
 	}
-	m_Models.clear();
 
 	if (m_Light)
 	{
@@ -115,9 +115,9 @@ bool Application::Frame()
 {	
 	double DeltaTime;
 	auto Now = std::chrono::steady_clock::now();
-	DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - LastUpdate).count() / 1000000.0;
-	LastUpdate = Now;
-	AppTime += DeltaTime;
+	DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - m_LastUpdate).count() / 1000000.0;
+	m_LastUpdate = Now;
+	m_AppTime += DeltaTime;
 	
 	bool Result = Render(DeltaTime);
 	if (!Result)
@@ -128,39 +128,39 @@ bool Application::Frame()
 	return true;
 }
 
-bool Application::AddModel(HWND hWnd, const char* ModelFilename)
+bool Application::LoadModel(const char* ModelFilename)
 {
+	if (m_Model)
+	{
+		m_Model->Shutdown();
+		delete m_Model;
+	}
+	
 	bool Result;
 	char Filename[128];
 	
 	strcpy_s(Filename, ModelFilename);
 
-	Model* TheModel = new Model();
-	Result = TheModel->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), Filename);
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise Model object!", L"Error", MB_OK);
-		return false;
-	}
-	m_Models.push_back(TheModel);
-	
+	m_Model = new Model();
+	FALSE_IF_FAILED(m_Model->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), Filename));
+		
 	return true;
 }
 
 bool Application::Render(double DeltaTime)
 {		
-	float RotationAngle = fmod(AppTime, 360.f);
+	float RotationAngle = fmod(m_AppTime, 360.f);
 	
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
 	m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
+	
 	m_Camera->Render();
 	
 	RenderPhysicalLight();
 	
-	if (m_Models.size() >= 0)
+	if (m_Model)
 	{
 		m_Graphics->GetWorldMatrix(WorldMatrix);
 		WorldMatrix *= DirectX::XMMatrixTranslation(0.02f, -0.1f, 0.f);
@@ -170,12 +170,12 @@ bool Application::Render(double DeltaTime)
 		m_Camera->GetViewMatrix(ViewMatrix);
 		m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
-		m_Models[0]->Render(m_Graphics->GetDeviceContext());
+		m_Model->Render(m_Graphics->GetDeviceContext());
 
 		FALSE_IF_FAILED(
 			m_Shader->Render(
 				m_Graphics->GetDeviceContext(),
-				m_Models[0]->GetIndexCount(),
+				m_Model->GetIndexCount(),
 				WorldMatrix,
 				ViewMatrix,
 				ProjectionMatrix,
@@ -185,7 +185,7 @@ bool Application::Render(double DeltaTime)
 			)
 		);
 	}
-
+	
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -196,6 +196,69 @@ bool Application::Render(double DeltaTime)
 	{
 		ImGui::ShowDemoWindow(&ShowDemoWindow);
 	}
+
+	if (ImGui::Begin("Test Window"))
+	{
+		ImGui::SliderFloat("Light x", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -5.f, 5.f);
+		ImGui::SliderFloat("Light y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -5.f, 5.f);
+		ImGui::SliderFloat("Light z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -5.f, 5.f);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		
+	}
+	ImGui::End();
+
+	static char ModelLocationBuffer[1024];
+	if (ImGui::Begin("Load Models"))
+	{
+		if (ImGui::Button("Load Stanford Bunny"))
+		{
+			strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+		
+		if (ImGui::Button("Load Suzanne"))
+		{
+			strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+		
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
+		if (ImGui::Button("Load model from file"))
+		{
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+		ImGui::Text(m_ModelLoadSuccessMessage);
+	}
+	ImGui::End();
+
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
