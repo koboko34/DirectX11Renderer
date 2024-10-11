@@ -1,5 +1,9 @@
 #include "SystemClass.h"
 
+#include "ImGui/imgui_impl_win32.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 SystemClass::SystemClass()
 {
 	m_Input = nullptr;
@@ -52,6 +56,8 @@ void SystemClass::Shutdown()
 		delete m_Input;
 		m_Input = nullptr;
 	}
+
+	ImGui_ImplWin32_Shutdown();
 
 	ShutdownWindows();
 }
@@ -109,6 +115,11 @@ bool SystemClass::Frame()
 
 LRESULT SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hwnd, umsg, wparam, lparam))
+	{
+		return true;
+	}
+	
 	switch (umsg)
 	{
 	case WM_KEYDOWN:
@@ -199,6 +210,8 @@ void SystemClass::InitialiseWindows(int& ScreenWidth, int& ScreenHeight)
 	ShowWindow(m_hwnd, SW_SHOW);
 	SetForegroundWindow(m_hwnd);
 	SetFocus(m_hwnd);
+
+	ImGui_ImplWin32_Init(m_hwnd);
 
 	ShowCursor(false);
 }

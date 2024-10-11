@@ -1,5 +1,7 @@
 #include "Graphics.h"
 
+#include "ImGui\imgui_impl_dx11.h"
+
 #include "MyMacros.h"
 
 Graphics::Graphics()
@@ -230,6 +232,8 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_WorldMatrix = DirectX::XMMatrixIdentity();
 	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)ScreenWidth, (float)ScreenHeight, ScreenNear, ScreenDepth);
 
+	ImGui_ImplDX11_Init(m_Device, m_DeviceContext);
+
 	return true;
 }
 
@@ -287,6 +291,8 @@ void Graphics::Shutdown()
 		m_SwapChain->Release();
 		m_SwapChain = 0;
 	}
+
+	ImGui_ImplDX11_Shutdown();
 }
 
 void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)

@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_win32.h"
+#include "ImGui/imgui_impl_dx11.h"
+
 #include "MyMacros.h"
 
 Application::Application()
@@ -79,6 +83,32 @@ void Application::Shutdown()
 		}
 	}
 	m_Models.clear();
+
+	if (m_Light)
+	{
+		delete m_Light;
+		m_Light = 0;
+	}
+
+	if (m_Shader)
+	{
+		m_Shader->Shutdown();
+		delete m_Shader;
+		m_Shader = 0;
+	}
+
+	if (m_Camera)
+	{
+		delete m_Camera;
+		m_Camera = 0;
+	}
+
+	if (m_Graphics)
+	{
+		m_Graphics->Shutdown();
+		delete m_Graphics;
+		m_Graphics = 0;
+	}
 }
 
 bool Application::Frame()
@@ -129,7 +159,7 @@ bool Application::Render(double DeltaTime)
 	m_Camera->Render();
 	
 	RenderPhysicalLight();
-
+	
 	if (m_Models.size() >= 0)
 	{
 		m_Graphics->GetWorldMatrix(WorldMatrix);
@@ -155,6 +185,20 @@ bool Application::Render(double DeltaTime)
 			)
 		);
 	}
+
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	ShowCursor(true);
+	static bool ShowDemoWindow = true;
+	if (ShowDemoWindow)
+	{
+		ImGui::ShowDemoWindow(&ShowDemoWindow);
+	}
+	ImGui::EndFrame();
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	m_Graphics->EndScene();
 
