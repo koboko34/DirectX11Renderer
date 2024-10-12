@@ -53,10 +53,10 @@ void Shader::Shutdown()
 }
 
 bool Shader::Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-					DirectX::XMFLOAT3 CameraPos, DirectX::XMFLOAT3 LightPos, float SpecularPower)
+					DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, float SpecularPower)
 {
 	bool Result;
-	FALSE_IF_FAILED(SetShaderParameters(DeviceContext, World, View, Projection, CameraPos, LightPos, SpecularPower));
+	FALSE_IF_FAILED(SetShaderParameters(DeviceContext, World, View, Projection, CameraPos, Radius, LightPos, SpecularPower));
 
 	RenderShader(DeviceContext, IndexCount);
 
@@ -229,7 +229,7 @@ void Shader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR
 }
 
 bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-	DirectX::XMFLOAT3 CameraPos, DirectX::XMFLOAT3 LightPos, float SpecularPower)
+	DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, float SpecularPower)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -256,9 +256,9 @@ bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XM
 	HFALSE_IF_FAILED(DeviceContext->Map(m_LightingBuffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
+	LightingDataPtr->Radius = Radius;
 	LightingDataPtr->LightPos = LightPos;
 	LightingDataPtr->SpecularPower = SpecularPower;
-	LightingDataPtr->Padding = 0.f;
 	DeviceContext->Unmap(m_LightingBuffer, 0u);
 
 	DeviceContext->PSSetConstantBuffers(psBufferSlot, 1u, &m_LightingBuffer);

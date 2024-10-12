@@ -82,8 +82,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	}
 
 	m_Light = new Light();
-	m_Light->SetPosition(1.f, 1.5f, -0.5f);
+	m_Light->SetPosition(1.f, 1.f, -0.5f);
 	m_Light->SetSpecularPower(20.f);
+	m_Light->SetRadius(5.f);
 	
 	return true;
 }
@@ -199,6 +200,7 @@ bool Application::Render(double DeltaTime)
 				ViewMatrix,
 				ProjectionMatrix,
 				m_Camera->GetPosition(),
+				m_Light->GetRadius(),
 				m_Light->GetPosition(),
 				m_Light->GetSpecularPower()
 			)
@@ -219,9 +221,9 @@ bool Application::Render(double DeltaTime)
 	assert(m_Light || "Must have a light in the scene before spawning light window!");
 	if (ImGui::Begin("Light"))
 	{
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -5.f, 5.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -5.f, 5.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -5.f, 5.f);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -10.f, 10.f);
 		
 		ImGui::Dummy(ImVec2(0.f, 10.f));
 
@@ -341,6 +343,7 @@ bool Application::RenderPhysicalLight()
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
+			0.f,
 			m_Light->GetPosition(),
 			m_Light->GetSpecularPower()
 		)
@@ -369,6 +372,7 @@ bool Application::RenderPlane()
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
+			m_Light->GetRadius(),
 			m_Light->GetPosition(),
 			m_Light->GetSpecularPower()
 		)

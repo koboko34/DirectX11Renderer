@@ -21,3 +21,8 @@ void Light::SetSpecularPower(float Power)
 {
 	m_SpecularPower = Power;
 }
+
+void Light::SetRadius(float Radius)
+{
+	m_Radius = Radius;
+}
