@@ -32,6 +32,7 @@ private:
 	bool LoadModel(const char* ModelFilename);
 	bool Render(double DeltaTime);
 	bool RenderPhysicalLight();
+	bool RenderPlane();
 
 private:
 	Graphics* m_Graphics;
@@ -40,6 +41,7 @@ private:
 	Light* m_Light;
 
 	Model* m_SceneLight;
+	Model* m_Plane;
 	Model* m_Model;
 
 	HWND m_hWnd;
@@ -49,6 +51,8 @@ private:
 	DirectX::XMFLOAT3 m_ModelScale;
 
 	const char* m_ModelLoadSuccessMessage = "";
+	bool m_ShouldRenderLight = true;
+	bool m_ShouldRenderPlane = true;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;

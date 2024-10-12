@@ -46,7 +46,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	}
 
 	m_Camera = new Camera();
-	m_Camera->SetPosition(0.f, 0.f, -2.f);
+	m_Camera->SetPosition(0.f, 1.f, -2.f);
 	m_Camera->SetRotation(0.f, 0.f, 0.f);
 
 	m_Shader = new Shader();
@@ -70,8 +70,19 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
+	strcpy_s(ModelFilename, "Models/plane.obj");
+
+	m_Plane = new Model();
+	Result = m_Plane->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename);
+	if (!Result)
+	{
+		ShowCursor(true);
+		MessageBox(hWnd, L"Failed to initialise plane object!", L"Error", MB_OK);
+		return false;
+	}
+
 	m_Light = new Light();
-	m_Light->SetPosition(1.f, 0.5f, -0.5f);
+	m_Light->SetPosition(1.f, 1.5f, -0.5f);
 	m_Light->SetSpecularPower(20.f);
 	
 	return true;
@@ -160,7 +171,14 @@ bool Application::Render(double DeltaTime)
 	
 	m_Camera->Render();
 	
-	RenderPhysicalLight();
+	if (m_ShouldRenderPlane && m_Plane)
+	{
+		RenderPlane();
+	}
+	if (m_ShouldRenderLight && m_Light)
+	{
+		RenderPhysicalLight();
+	}
 	
 	if (m_Model)
 	{
@@ -205,6 +223,10 @@ bool Application::Render(double DeltaTime)
 		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -5.f, 5.f);
 		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -5.f, 5.f);
 		
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+
+		ImGui::Checkbox("Render scene light?", &m_ShouldRenderLight);
+
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}
 	ImGui::End();
@@ -213,9 +235,9 @@ bool Application::Render(double DeltaTime)
 	{
 		ImGui::PushID(0);
 		ImGui::Text("Position");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -50.f, 50.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -50.f, 50.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -50.f, 50.f);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
 		ImGui::PopID();
 
 		ImGui::Dummy(ImVec2(0.f, 2.f));
@@ -226,6 +248,10 @@ bool Application::Render(double DeltaTime)
 		m_ModelScale.y = m_ModelScale.x;
 		m_ModelScale.z = m_ModelScale.x;
 		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+
+		ImGui::Checkbox("Render plane?", &m_ShouldRenderPlane);
 
 		ImGui::Dummy(ImVec2(0.f, 20.f));
 
@@ -300,12 +326,40 @@ bool Application::RenderPhysicalLight()
 
 	m_Graphics->GetWorldMatrix(WorldMatrix);
 	auto LightPos = m_Light->GetPosition();
-	WorldMatrix *= DirectX::XMMatrixScaling(0.2f, 0.2f, 0.2f);
+	WorldMatrix *= DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
 	WorldMatrix *= DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z);
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
 	m_SceneLight->Render(m_Graphics->GetDeviceContext());
+
+	FALSE_IF_FAILED(
+		m_Shader->Render(
+			m_Graphics->GetDeviceContext(),
+			m_SceneLight->GetIndexCount(),
+			WorldMatrix,
+			ViewMatrix,
+			ProjectionMatrix,
+			m_Camera->GetPosition(),
+			m_Light->GetPosition(),
+			m_Light->GetSpecularPower()
+		)
+	);
+	
+	return true;
+}
+
+bool Application::RenderPlane()
+{
+	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+	bool Result;
+
+	m_Graphics->GetWorldMatrix(WorldMatrix);
+	WorldMatrix *= DirectX::XMMatrixScaling(20.f, 1.f, 20.f);
+	m_Camera->GetViewMatrix(ViewMatrix);
+	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
+
+	m_Plane->Render(m_Graphics->GetDeviceContext());
 
 	FALSE_IF_FAILED(
 		m_Shader->Render(
