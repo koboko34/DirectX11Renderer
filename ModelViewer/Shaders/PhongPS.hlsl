@@ -4,6 +4,8 @@ cbuffer LightingBuffer
 	float Radius;
 	float3 LightPos;
 	float SpecularPower;
+	float3 DiffuseColor;
+	float Padding;
 };
 
 struct PS_In
@@ -29,11 +31,11 @@ float4 main(PS_In p) : SV_TARGET
 	
 	float3 PixelToLight = normalize(LightPos - p.WorldPos);
 	float DiffuseFactor = saturate(dot(PixelToLight, p.Normal));	
-	float4 Diffuse = float4(Color.rgb * DiffuseFactor, 1.f);
+	float4 Diffuse = float4(DiffuseColor.rgb * DiffuseFactor, 1.f);
 	
 	//float3 PixelToCam = normalize(CameraPos - p.WorldPos);
 	
-	float Attenuation = saturate(1.0 - Distance * Distance / (Radius * Radius));
+	float Attenuation = saturate(1.0 - (Distance * Distance) / (Radius * Radius));
 	Diffuse *= Attenuation;
 	
 	return saturate(Ambient + Diffuse);

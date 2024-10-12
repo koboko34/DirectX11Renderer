@@ -23,6 +23,8 @@ private:
 		float Radius;
 		DirectX::XMFLOAT3 LightPos;
 		float SpecularPower;
+		DirectX::XMFLOAT3 DiffuseColor;
+		float Padding;
 	};
 
 public:
@@ -33,7 +35,7 @@ public:
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
 	void Shutdown();
 	bool Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-				DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, float SpecularPower);
+				DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
 
 private:
 	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
@@ -41,7 +43,7 @@ private:
 	void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 
 	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-								DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, float SpecularPower);
+								DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
 	void RenderShader(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount);
 
 private:
