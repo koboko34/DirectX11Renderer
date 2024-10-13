@@ -7,6 +7,8 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 
+#include <wrl.h>
+
 class Shader
 {
 private:
@@ -47,11 +49,11 @@ private:
 	void RenderShader(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount);
 
 private:
-	ID3D11VertexShader* m_VertexShader;
-	ID3D11PixelShader* m_PixelShader;
-	ID3D11InputLayout* m_InputLayout;
-	ID3D11Buffer* m_MatrixBuffer;
-	ID3D11Buffer* m_LightingBuffer;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_MatrixBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LightingBuffer;
 };
 
 #endif

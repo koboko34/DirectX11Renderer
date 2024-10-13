@@ -6,14 +6,6 @@
 
 Graphics::Graphics()
 {
-	m_SwapChain = 0;
-	m_Device = 0;
-	m_DeviceContext = 0;
-	m_RenderTargetView = 0;
-	m_DepthStencilBuffer = 0;
-	m_DepthStencilState = 0;
-	m_DepthStencilView = 0;
-	m_RasterState = 0;
 }
 
 Graphics::Graphics(const Graphics& Other)
@@ -50,9 +42,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	HFALSE_IF_FAILED(Factory->EnumAdapters(0, &Adapter));
 	HFALSE_IF_FAILED(Adapter->EnumOutputs(0, &AdapterOutput));
 
-	// get the number of modes that fir the DXGI_FORMAT_R8G8B8A8_UNORM display format for the adapter output (monitor)
 	HFALSE_IF_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, NULL));
-
 
 	// create a list to hold all the possible display modes for this monitor/video card combination
 	DisplayModeList = new DXGI_MODE_DESC[NumModes];
@@ -191,15 +181,15 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilState));
 
-	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
+	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState.Get(), 1);
 
 	DepthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	DepthStencilViewDesc.Texture2D.MipSlice = 0;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer, &DepthStencilViewDesc, &m_DepthStencilView));
+	HFALSE_IF_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
 
-	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	m_DeviceContext->OMSetRenderTargets(1, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
 
 	RasterDesc.AntialiasedLineEnable = false;
 	RasterDesc.CullMode = D3D11_CULL_BACK;
@@ -214,7 +204,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterState));
 
-	m_DeviceContext->RSSetState(m_RasterState);
+	m_DeviceContext->RSSetState(m_RasterState.Get());
 
 	m_Viewport.Width = (float)ScreenWidth;
 	m_Viewport.Height = (float)ScreenHeight;
@@ -232,7 +222,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_WorldMatrix = DirectX::XMMatrixIdentity();
 	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)ScreenWidth, (float)ScreenHeight, ScreenNear, ScreenDepth);
 
-	ImGui_ImplDX11_Init(m_Device, m_DeviceContext);
+	ImGui_ImplDX11_Init(m_Device.Get(), m_DeviceContext.Get());
 
 	return true;
 }
@@ -242,54 +232,6 @@ void Graphics::Shutdown()
 	if (m_SwapChain)
 	{
 		m_SwapChain->SetFullscreenState(false, NULL);
-	}
-
-	if (m_RasterState)
-	{
-		m_RasterState->Release();
-		m_RasterState = 0;
-	}
-
-	if (m_DepthStencilView)
-	{
-		m_DepthStencilView->Release();
-		m_DepthStencilView = 0;
-	}
-
-	if (m_DepthStencilState)
-	{
-		m_DepthStencilState->Release();
-		m_DepthStencilState = 0;
-	}
-
-	if (m_DepthStencilBuffer)
-	{
-		m_DepthStencilBuffer->Release();
-		m_DepthStencilBuffer = 0;
-	}
-
-	if (m_RenderTargetView)
-	{
-		m_RenderTargetView->Release();
-		m_RenderTargetView = 0;
-	}
-
-	if (m_DeviceContext)
-	{
-		m_DeviceContext->Release();
-		m_DeviceContext = 0;
-	}
-
-	if (m_Device)
-	{
-		m_Device->Release();
-		m_Device = 0;
-	}
-
-	if (m_SwapChain)
-	{
-		m_SwapChain->Release();
-		m_SwapChain = 0;
 	}
 
 	ImGui_ImplDX11_Shutdown();
@@ -304,8 +246,8 @@ void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)
 	Color[2] = Blue;
 	Color[3] = Alpha;
 
-	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView, Color);
-	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.f, 0u);
+	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView.Get(), Color);
+	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.f, 0u);
 }
 
 void Graphics::EndScene()
@@ -328,7 +270,7 @@ void Graphics::GetVideoCardInfo(char* CardName, int& Memory)
 
 void Graphics::SetBackBufferRenderTarget()
 {
-	m_DeviceContext->OMSetRenderTargets(1u, &m_RenderTargetView, m_DepthStencilView);
+	m_DeviceContext->OMSetRenderTargets(1u, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
 }
 
 void Graphics::ResetViewport()

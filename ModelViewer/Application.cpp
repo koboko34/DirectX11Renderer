@@ -263,7 +263,7 @@ bool Application::RenderPlane()
 	FALSE_IF_FAILED(
 		m_Shader->Render(
 			m_Graphics->GetDeviceContext(),
-			m_SceneLight->GetIndexCount(),
+			m_Plane->GetIndexCount(),
 			WorldMatrix,
 			ViewMatrix,
 			ProjectionMatrix,

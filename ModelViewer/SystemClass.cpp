@@ -149,7 +149,7 @@ void SystemClass::InitialiseWindows(int& ScreenWidth, int& ScreenHeight)
 
 	m_hInstance = GetModuleHandle(NULL);
 
-	m_ApplicationName = L"Engine";
+	m_ApplicationName = L"Model Viewer";
 
 	// setup the windows class with default settings
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;

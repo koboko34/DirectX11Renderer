@@ -6,8 +6,6 @@
 
 Model::Model()
 {
-	m_VertexBuffer = 0;
-	m_IndexBuffer = 0;
 	m_VertexCount = 0;
 	m_IndexCount = 0;
 }
@@ -70,17 +68,6 @@ bool Model::InitialiseBuffers(ID3D11Device* Device)
 
 void Model::ShutdownBuffers()
 {
-	if (m_IndexBuffer)
-	{
-		m_IndexBuffer->Release();
-		m_IndexBuffer = 0;
-	}
-
-	if (m_VertexBuffer)
-	{
-		m_VertexBuffer->Release();
-		m_VertexBuffer = 0;
-	}
 }
 
 void Model::RenderBuffers(ID3D11DeviceContext* DeviceContext)
@@ -89,8 +76,8 @@ void Model::RenderBuffers(ID3D11DeviceContext* DeviceContext)
 	Stride = sizeof(Vertex);
 	Offset = 0u;
 
-	DeviceContext->IASetVertexBuffers(0u, 1u, &m_VertexBuffer, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0u);
+	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 

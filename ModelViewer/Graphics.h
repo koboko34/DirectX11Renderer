@@ -12,6 +12,8 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
+#include <wrl.h>
+
 class Graphics
 {
 public:
@@ -34,22 +36,22 @@ private:
 	bool m_VSync_Enabled;
 	int m_VideoCardMemory;
 	char m_VideoCardDescription[128];
-	IDXGISwapChain* m_SwapChain;
-	ID3D11Device* m_Device;
-	ID3D11DeviceContext* m_DeviceContext;
-	ID3D11RenderTargetView* m_RenderTargetView;
-	ID3D11Texture2D* m_DepthStencilBuffer;
-	ID3D11DepthStencilState* m_DepthStencilState;
-	ID3D11DepthStencilView* m_DepthStencilView;
-	ID3D11RasterizerState* m_RasterState;
+	Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
+	Microsoft::WRL::ComPtr<ID3D11Device> m_Device;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_DepthStencilBuffer;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilState;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterState;
 	DirectX::XMMATRIX m_ProjectionMatrix;
 	DirectX::XMMATRIX m_WorldMatrix;
 	DirectX::XMMATRIX m_OrthoMatrix;
 	D3D11_VIEWPORT m_Viewport;
 
 public:
-	ID3D11Device* GetDevice() const { return m_Device; }
-	ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext; }
+	ID3D11Device* GetDevice() const { return m_Device.Get(); }
+	ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext.Get(); }
 
 	void GetWorldMatrix(DirectX::XMMATRIX& WorldMatrix) { WorldMatrix = m_WorldMatrix; }
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }

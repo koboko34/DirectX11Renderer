@@ -6,9 +6,12 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
+#include <wrl.h>
+
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
+
 
 class Model
 {
@@ -40,8 +43,8 @@ private:
 	void ReleaseModel();
 
 private:
-	ID3D11Buffer* m_VertexBuffer;
-	ID3D11Buffer* m_IndexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	unsigned int m_VertexCount, m_IndexCount;
 	std::vector<Vertex> m_Vertices;
 	std::vector<unsigned int> m_Indices;
