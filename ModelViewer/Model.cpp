@@ -106,14 +106,12 @@ bool Model::LoadModel(char* ModelFilename)
 		v.Pos.x = Mesh->mVertices[i].x;
 		v.Pos.y = Mesh->mVertices[i].y;
 		v.Pos.z = Mesh->mVertices[i].z;
-		v.Pos.w = 1.f;
 
 		if (Mesh->HasNormals())
 		{
 			v.Normal.x = Mesh->mNormals[i].x;
 			v.Normal.y = Mesh->mNormals[i].y;
 			v.Normal.z = Mesh->mNormals[i].z;
-			v.Normal.w = 1.f;
 		}
 
 		m_Vertices[i] = v;

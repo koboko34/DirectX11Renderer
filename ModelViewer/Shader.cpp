@@ -104,7 +104,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
 	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
 
-	VertexLayout[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	VertexLayout[0].SemanticName = "POSITION";
 	VertexLayout[0].SemanticIndex = 0;
 	VertexLayout[0].InputSlot = 0;
@@ -120,7 +120,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	VertexLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	VertexLayout[1].InstanceDataStepRate = 0;
 
-	VertexLayout[2].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	VertexLayout[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	VertexLayout[2].SemanticName = "NORMAL";
 	VertexLayout[2].SemanticIndex = 0;
 	VertexLayout[2].InputSlot = 0;

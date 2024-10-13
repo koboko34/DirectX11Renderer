@@ -7,9 +7,9 @@ cbuffer MatrixBuffer
 
 struct VS_In
 {
-	float4 Pos : POSITION;
+	float3 Pos : POSITION;
 	float2 TexCoord : TEXCOORD0;
-	float4 Normal : NORMAL;
+	float3 Normal : NORMAL;
 };
 
 struct VS_Out
@@ -23,13 +23,10 @@ struct VS_Out
 VS_Out main(VS_In v)
 {
 	VS_Out o;
-	
-	v.Pos.w = 1.f;
-	v.Normal.w = 1.f;
-	
+		
 	o.WorldPos = mul(v.Pos.xyz, (float3x3)WorldMatrix);
 	
-	o.Pos = mul(v.Pos, WorldMatrix);
+    o.Pos = mul(float4(v.Pos, 1.f), WorldMatrix);
 	o.Pos = mul(o.Pos, ViewMatrix);
 	o.Pos = mul(o.Pos, ProjectionMatrix);
 	

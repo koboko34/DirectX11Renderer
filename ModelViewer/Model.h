@@ -18,9 +18,9 @@ class Model
 private:
 	struct Vertex
 	{
-		DirectX::XMFLOAT4 Pos;
+		DirectX::XMFLOAT3 Pos;
 		DirectX::XMFLOAT2 TexCoord;
-		DirectX::XMFLOAT4 Normal;
+		DirectX::XMFLOAT3 Normal;
 	};
 
 public:
