@@ -33,6 +33,7 @@ private:
 	bool Render(double DeltaTime);
 	bool RenderPhysicalLight();
 	bool RenderPlane();
+	void RenderImGui();
 
 private:
 	Graphics* m_Graphics;

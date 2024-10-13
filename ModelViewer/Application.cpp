@@ -83,7 +83,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_Light = new Light();
 	m_Light->SetPosition(1.f, 1.f, -0.5f);
-	m_Light->SetSpecularPower(20.f);
+	m_Light->SetSpecularPower(32.f);
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 0.f, 0.f);
 	
@@ -209,114 +209,7 @@ bool Application::Render(double DeltaTime)
 		);
 	}
 	
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	ShowCursor(true);
-	static bool ShowDemoWindow = true;
-	if (ShowDemoWindow)
-	{
-		ImGui::ShowDemoWindow(&ShowDemoWindow);
-	}
-
-	assert(m_Light || "Must have a light in the scene before spawning light window!");
-	if (ImGui::Begin("Light"))
-	{
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -10.f, 10.f);
-		
-		ImGui::Dummy(ImVec2(0.f, 10.f));
-
-		ImGui::Checkbox("Render scene light?", &m_ShouldRenderLight);
-
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	}
-	ImGui::End();
-
-	if (ImGui::Begin("Model"))
-	{
-		ImGui::PushID(0);
-		ImGui::Text("Position");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
-		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 2.f));
-
-		ImGui::PushID(1);
-		ImGui::Text("Scale");
-		ImGui::SliderFloat("XYZ", reinterpret_cast<float*>(&m_ModelScale), 0.f, 5.f);
-		m_ModelScale.y = m_ModelScale.x;
-		m_ModelScale.z = m_ModelScale.x;
-		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 10.f));
-
-		ImGui::Checkbox("Render plane?", &m_ShouldRenderPlane);
-
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-
-		if (ImGui::Button("Restore Defaults"))
-		{
-			m_ModelPos = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
-			m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
-		}
-	}
-	ImGui::End();
-
-	static char ModelLocationBuffer[1024];
-	if (ImGui::Begin("Load Models"))
-	{
-		if (ImGui::Button("Load Stanford Bunny"))
-		{
-			strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
-			if (LoadModel(ModelLocationBuffer))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-		
-		if (ImGui::Button("Load Suzanne"))
-		{
-			strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
-			if (LoadModel(ModelLocationBuffer))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-		
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-
-		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
-		if (ImGui::Button("Load model from file"))
-		{
-			if (LoadModel(ModelLocationBuffer))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-		ImGui::Text(m_ModelLoadSuccessMessage);
-	}
-	ImGui::End();
-
-	ImGui::EndFrame();
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -383,4 +276,116 @@ bool Application::RenderPlane()
 	);
 	
 	return true;
+}
+
+void Application::RenderImGui()
+{
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	ShowCursor(true);
+	static bool ShowDemoWindow = false;
+	if (ShowDemoWindow)
+	{
+		ImGui::ShowDemoWindow(&ShowDemoWindow);
+	}
+
+	assert(m_Light || "Must have a light in the scene before spawning light window!");
+	if (ImGui::Begin("Light"))
+	{
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -10.f, 10.f);
+
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+
+		ImGui::Checkbox("Render scene light?", &m_ShouldRenderLight);
+
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	}
+	ImGui::End();
+
+	if (ImGui::Begin("Model"))
+	{
+		ImGui::PushID(0);
+		ImGui::Text("Position");
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
+		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 2.f));
+
+		ImGui::PushID(1);
+		ImGui::Text("Scale");
+		ImGui::SliderFloat("XYZ", reinterpret_cast<float*>(&m_ModelScale), 0.f, 5.f);
+		m_ModelScale.y = m_ModelScale.x;
+		m_ModelScale.z = m_ModelScale.x;
+		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+
+		ImGui::Checkbox("Render plane?", &m_ShouldRenderPlane);
+
+		ImGui::Dummy(ImVec2(0.f, 20.f));
+
+		if (ImGui::Button("Restore Defaults"))
+		{
+			m_ModelPos = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+			m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+		}
+	}
+	ImGui::End();
+
+	static char ModelLocationBuffer[1024];
+	if (ImGui::Begin("Load Models"))
+	{
+		if (ImGui::Button("Load Stanford Bunny"))
+		{
+			strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+
+		if (ImGui::Button("Load Suzanne"))
+		{
+			strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+
+		ImGui::Dummy(ImVec2(0.f, 20.f));
+
+		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
+		if (ImGui::Button("Load model from file"))
+		{
+			if (LoadModel(ModelLocationBuffer))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
+		}
+		ImGui::Text(m_ModelLoadSuccessMessage);
+	}
+	ImGui::End();
+
+	ImGui::EndFrame();
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
