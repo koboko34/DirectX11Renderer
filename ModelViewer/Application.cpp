@@ -86,6 +86,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetSpecularPower(32.f);
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 0.f, 0.f);
+
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(5));
 	
 	return true;
 }
@@ -169,7 +172,7 @@ bool Application::Render(double DeltaTime)
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
-	m_Graphics->BeginScene(0.3f, 0.6f, 0.8f, 1.f);
+	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
 	
 	m_Camera->Render();
 	
@@ -209,6 +212,8 @@ bool Application::Render(double DeltaTime)
 		);
 	}
 	
+	ApplyPostProcesses();
+
 	RenderImGui();
 
 	m_Graphics->EndScene();
@@ -388,4 +393,12 @@ void Application::RenderImGui()
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Application::ApplyPostProcesses()
+{
+	for (const auto& Process : m_PostProcesses)
+	{
+		Process->ApplyPostProcess();
+	}
 }

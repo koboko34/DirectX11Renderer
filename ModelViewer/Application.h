@@ -11,6 +11,7 @@
 #include "Model.h"
 #include "Camera.h"
 #include "Light.h"
+#include "PostProcess.h"
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
@@ -34,6 +35,7 @@ private:
 	bool RenderPhysicalLight();
 	bool RenderPlane();
 	void RenderImGui();
+	void ApplyPostProcesses();
 
 private:
 	Graphics* m_Graphics;
@@ -57,6 +59,8 @@ private:
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
+
+	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 };
 
 #endif

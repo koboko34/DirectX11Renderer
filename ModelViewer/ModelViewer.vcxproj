@@ -54,6 +54,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="MyMacros.h" />
+    <ClInclude Include="PostProcess.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SystemClass.h" />
   </ItemGroup>
