@@ -1,7 +1,7 @@
 #include "PostProcess.h"
 
-Microsoft::WRL::ComPtr<ID3D11VertexShader> PostProcess::m_QuadVertexShader;
-Microsoft::WRL::ComPtr<ID3D11InputLayout> PostProcess::m_QuadInputLayout;
-Microsoft::WRL::ComPtr<ID3D11Buffer> PostProcess::m_QuadVertexBuffer;
-Microsoft::WRL::ComPtr<ID3D11Buffer> PostProcess::m_QuadIndexBuffer;
-bool PostProcess::Initialised = false;
+Microsoft::WRL::ComPtr<ID3D11VertexShader> PostProcess::ms_QuadVertexShader;
+Microsoft::WRL::ComPtr<ID3D11InputLayout> PostProcess::ms_QuadInputLayout;
+Microsoft::WRL::ComPtr<ID3D11Buffer> PostProcess::ms_QuadVertexBuffer;
+Microsoft::WRL::ComPtr<ID3D11Buffer> PostProcess::ms_QuadIndexBuffer;
+bool PostProcess::ms_bInitialised = false;

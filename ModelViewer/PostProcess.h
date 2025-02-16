@@ -25,35 +25,35 @@ public:
 
 	static Microsoft::WRL::ComPtr<ID3D11VertexShader> GetQuadVertexShader(ID3D11Device* Device)
 	{
-		if (Initialised)
+		if (ms_bInitialised)
 		{
-			return PostProcess::m_QuadVertexShader;
+			return PostProcess::ms_QuadVertexShader;
 		}
 
 		InitialiseShaderResources(Device);
-		return PostProcess::m_QuadVertexShader;
+		return PostProcess::ms_QuadVertexShader;
 	}
 
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadVertexBuffer(ID3D11Device* Device)
 	{
-		if (Initialised)
+		if (ms_bInitialised)
 		{
-			return PostProcess::m_QuadVertexBuffer;
+			return PostProcess::ms_QuadVertexBuffer;
 		}
 
 		InitialiseShaderResources(Device);
-		return PostProcess::m_QuadVertexBuffer;
+		return PostProcess::ms_QuadVertexBuffer;
 	}
 
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadIndexBuffer(ID3D11Device* Device)
 	{
-		if (Initialised)
+		if (ms_bInitialised)
 		{
-			return PostProcess::m_QuadIndexBuffer;
+			return PostProcess::ms_QuadIndexBuffer;
 		}
 
 		InitialiseShaderResources(Device);
-		return PostProcess::m_QuadIndexBuffer;
+		return PostProcess::ms_QuadIndexBuffer;
 	}
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
@@ -93,7 +93,7 @@ private:
 			return;
 		}
 
-		hResult = Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_QuadVertexShader);
+		hResult = Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &ms_QuadVertexShader);
 		if (FAILED(hResult))
 		{
 			return;
@@ -124,7 +124,7 @@ private:
 		VertexLayout[2].InstanceDataStepRate = 0;
 
 		NumElements = sizeof(VertexLayout) / sizeof(VertexLayout[0]);
-		hResult = Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_QuadInputLayout);
+		hResult = Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &ms_QuadInputLayout);
 		if (FAILED(hResult))
 		{
 			return;
@@ -146,7 +146,7 @@ private:
 		D3D11_SUBRESOURCE_DATA InitData = {};
 		InitData.pSysMem = QuadVertices;
 
-		hResult = Device->CreateBuffer(&BufferDesc, &InitData, &m_QuadVertexBuffer);
+		hResult = Device->CreateBuffer(&BufferDesc, &InitData, &ms_QuadVertexBuffer);
 		if (FAILED(hResult))
 		{
 			return;
@@ -166,23 +166,24 @@ private:
 		InitData = {};
 		InitData.pSysMem = QuadIndices;
 
-		hResult = Device->CreateBuffer(&BufferDesc, &InitData, &m_QuadIndexBuffer);
+		hResult = Device->CreateBuffer(&BufferDesc, &InitData, &ms_QuadIndexBuffer);
 		if (FAILED(hResult))
 		{
 			return;
 		}
 
-		Initialised = true;
+		ms_bInitialised = true;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11VertexShader> m_QuadVertexShader;
-	static Microsoft::WRL::ComPtr<ID3D11InputLayout> m_QuadInputLayout;
-	static Microsoft::WRL::ComPtr<ID3D11Buffer> m_QuadVertexBuffer;
-	static Microsoft::WRL::ComPtr<ID3D11Buffer> m_QuadIndexBuffer;
-	static bool Initialised;
+	static Microsoft::WRL::ComPtr<ID3D11VertexShader> ms_QuadVertexShader;
+	static Microsoft::WRL::ComPtr<ID3D11InputLayout> ms_QuadInputLayout;
+	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadVertexBuffer;
+	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadIndexBuffer;
+	static bool ms_bInitialised;
 };
 
 
+/////////////////////////////////////////////////////////////////////////////////
 
 
 class PostProcessFog : public PostProcess
@@ -196,6 +197,8 @@ public:
 		std::cout << "Applying fog..." << std::endl;
 	}
 };
+
+/////////////////////////////////////////////////////////////////////////////////
 
 class PostProcessBlur : public PostProcess
 {
@@ -211,6 +214,8 @@ public:
 private:
 	int m_BlurStrength = 5;
 };
+
+/////////////////////////////////////////////////////////////////////////////////
 
 class PostProcessEmpty : public PostProcess
 {
@@ -257,8 +262,6 @@ public:
 	void ApplyPostProcess(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 							ID3D11DepthStencilView* DSV) override
 	{
-		std::cout << "Applying empty post process..." << std::endl;
-
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
