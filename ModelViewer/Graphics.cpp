@@ -30,10 +30,14 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc = {};
 	D3D_FEATURE_LEVEL FeatureLevel;
 	ID3D11Texture2D* BackBufferPtr;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_PostProcessRTTFirst;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_PostProcessRTTSecond;
+	D3D11_TEXTURE2D_DESC PostProcessTextureDesc = {};
 	D3D11_TEXTURE2D_DESC DepthBufferDesc = {};
 	D3D11_DEPTH_STENCIL_DESC DepthStencilDesc = {};
 	D3D11_DEPTH_STENCIL_VIEW_DESC DepthStencilViewDesc = {};
 	D3D11_RASTERIZER_DESC RasterDesc = {};
+	D3D11_SAMPLER_DESC SamplerDesc = {};
 	float FieldOfView, ScreenAspect;
 
 	m_VSync_Enabled = VSync;
@@ -142,7 +146,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 		&m_DeviceContext)
 	);
 	HFALSE_IF_FAILED(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBufferPtr));
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_RenderTargetView));
+	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_BackBufferRTV));
 
 	BackBufferPtr->Release();
 	BackBufferPtr = 0;
@@ -179,9 +183,14 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	DepthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilState));
+	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteEnabled));
 
-	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState.Get(), 1);
+	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DepthStencilDesc.StencilWriteMask = 0;
+
+	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabled));
+
+	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteEnabled.Get(), 1);
 
 	DepthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -189,7 +198,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	HFALSE_IF_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
 
-	m_DeviceContext->OMSetRenderTargets(1, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
+	m_DeviceContext->OMSetRenderTargets(1, m_BackBufferRTV.GetAddressOf(), m_DepthStencilView.Get());
 
 	RasterDesc.AntialiasedLineEnable = false;
 	RasterDesc.CullMode = D3D11_CULL_BACK;
@@ -222,6 +231,36 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_WorldMatrix = DirectX::XMMatrixIdentity();
 	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)ScreenWidth, (float)ScreenHeight, ScreenNear, ScreenDepth);
 
+	// setting up render target textures, views and shader resource view for post processing
+	PostProcessTextureDesc.Width = ScreenWidth;
+	PostProcessTextureDesc.Height = ScreenHeight;
+	PostProcessTextureDesc.MipLevels = 1;
+	PostProcessTextureDesc.ArraySize = 1;
+	PostProcessTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	PostProcessTextureDesc.SampleDesc.Count = 1;
+	PostProcessTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	PostProcessTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &m_PostProcessRTTFirst));
+	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &m_PostProcessRTTSecond));
+
+	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(m_PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
+	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(m_PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
+
+	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(m_PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
+	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(m_PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
+
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	SamplerDesc.MinLOD = 0;
+	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	HFALSE_IF_FAILED(m_Device->CreateSamplerState(&SamplerDesc, &m_SamplerState));
+	m_DeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());
+
 	ImGui_ImplDX11_Init(m_Device.Get(), m_DeviceContext.Get());
 
 	return true;
@@ -246,7 +285,9 @@ void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)
 	Color[2] = Blue;
 	Color[3] = Alpha;
 
-	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView.Get(), Color);
+	m_DeviceContext->ClearRenderTargetView(m_BackBufferRTV.Get(), Color);
+	m_DeviceContext->ClearRenderTargetView(m_PostProcessRTVFirst.Get(), Color);
+	m_DeviceContext->ClearRenderTargetView(m_PostProcessRTVSecond.Get(), Color);
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.f, 0u);
 }
 
@@ -270,7 +311,17 @@ void Graphics::GetVideoCardInfo(char* CardName, int& Memory)
 
 void Graphics::SetBackBufferRenderTarget()
 {
-	m_DeviceContext->OMSetRenderTargets(1u, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
+	m_DeviceContext->OMSetRenderTargets(1u, m_BackBufferRTV.GetAddressOf(), m_DepthStencilView.Get());
+}
+
+void Graphics::EnableDepthWrite()
+{
+	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteEnabled.Get(), 1);
+}
+
+void Graphics::DisableDepthWrite()
+{
+	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteDisabled.Get(), 1);
 }
 
 void Graphics::ResetViewport()

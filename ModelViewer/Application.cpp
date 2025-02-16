@@ -85,10 +85,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetPosition(1.f, 1.f, -0.5f);
 	m_Light->SetSpecularPower(32.f);
 	m_Light->SetRadius(5.f);
-	m_Light->SetDiffuseColor(1.f, 0.f, 0.f);
+	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(5));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(5));
+
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // make sure this is always last!
 	
 	return true;
 }
@@ -166,16 +168,56 @@ bool Application::LoadModel(const char* ModelFilename)
 }
 
 bool Application::Render(double DeltaTime)
-{		
-	float RotationAngle = fmod(m_AppTime, 360.f);
-	
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+{			
 	bool Result;
+	
+	// set first post process render target here
+	bool DrawingForward = false; // true if drawing to RTV2 or from SRV1, false if drawing to RTV1 or from SRV2
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV = m_Graphics->m_PostProcessRTVFirst;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV = m_Graphics->m_PostProcessRTVSecond;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV = m_Graphics->m_PostProcessSRVFirst;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV = m_Graphics->m_PostProcessSRVSecond;
+	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
+	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data
 
+	FALSE_IF_FAILED(RenderScene());
+	
+	// apply post processes (if any) and keep track of which shader resource view is the latest
+	DrawingForward = !DrawingForward;
+	unsigned int Stride, Offset;
+	Stride = sizeof(Vertex);
+	Offset = 0u;
+	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
+	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
+	ApplyPostProcesses(CurrentRTV, SecondaryRTV, CurrentSRV, SecondarySRV, DrawingForward);
+
+	// set back buffer as render target
+	m_Graphics->SetBackBufferRenderTarget();
+
+	// use last used post process texture to draw a full screen quad
+	m_Graphics->GetDeviceContext()->PSSetShader(m_PostProcesses[m_PostProcesses.size() - 1].get()->m_PixelShader.Get(), NULL, 0u); // last post process effect will be empty post process
+	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
+	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
+
+	RenderImGui();
+
+	m_Graphics->EndScene();
+
+	return true;
+}
+
+bool Application::RenderScene()
+{
 	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
 	
-	m_Camera->Render();
+	float RotationAngle = fmod(m_AppTime, 360.f);
+
+	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+	bool Result;
 	
+	m_Camera->Render();
+
 	if (m_ShouldRenderPlane && m_Plane)
 	{
 		RenderPlane();
@@ -184,7 +226,7 @@ bool Application::Render(double DeltaTime)
 	{
 		RenderPhysicalLight();
 	}
-	
+
 	if (m_Model)
 	{
 		m_Graphics->GetWorldMatrix(WorldMatrix);
@@ -212,12 +254,6 @@ bool Application::Render(double DeltaTime)
 		);
 	}
 	
-	ApplyPostProcesses();
-
-	RenderImGui();
-
-	m_Graphics->EndScene();
-
 	return true;
 }
 
@@ -395,10 +431,17 @@ void Application::RenderImGui()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void Application::ApplyPostProcesses()
+void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
+										Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward)
 {
-	for (const auto& Process : m_PostProcesses)
+	m_Graphics->DisableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data in post processes
+	
+	// skipping last post process as that is the empty post process used to draw to back buffer render target
+	for (int i = 0; i < m_PostProcesses.size() - 1; i++)
 	{
-		Process->ApplyPostProcess();
+		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? CurrentRTV : SecondaryRTV,
+												DrawingForward ? SecondarySRV : CurrentSRV, m_Graphics->GetDepthStencilView());
+
+		DrawingForward = !DrawingForward;
 	}
 }

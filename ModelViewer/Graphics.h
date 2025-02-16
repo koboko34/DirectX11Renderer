@@ -30,6 +30,8 @@ public:
 	void GetVideoCardInfo(char* CardName, int& Memory);
 
 	void SetBackBufferRenderTarget();
+	void EnableDepthWrite();
+	void DisableDepthWrite();
 	void ResetViewport();
 
 private:
@@ -39,11 +41,14 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
 	Microsoft::WRL::ComPtr<ID3D11Device> m_Device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_BackBufferRTV;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_DepthStencilBuffer;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilState;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteEnabled;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabled;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterState;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
+
 	DirectX::XMMATRIX m_ProjectionMatrix;
 	DirectX::XMMATRIX m_WorldMatrix;
 	DirectX::XMMATRIX m_OrthoMatrix;
@@ -53,9 +58,16 @@ public:
 	ID3D11Device* GetDevice() const { return m_Device.Get(); }
 	ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext.Get(); }
 
+	ID3D11DepthStencilView* GetDepthStencilView() const { return m_DepthStencilView.Get(); }
+
 	void GetWorldMatrix(DirectX::XMMATRIX& WorldMatrix) { WorldMatrix = m_WorldMatrix; }
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }
 	void GetOrthoMatrix(DirectX::XMMATRIX& OrthoMatrix) { OrthoMatrix = m_OrthoMatrix; }
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVFirst;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVSecond;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostProcessSRVFirst;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostProcessSRVSecond;
 };
 
 #endif

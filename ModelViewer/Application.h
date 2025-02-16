@@ -32,10 +32,12 @@ public:
 private:
 	bool LoadModel(const char* ModelFilename);
 	bool Render(double DeltaTime);
+	bool RenderScene();
 	bool RenderPhysicalLight();
 	bool RenderPlane();
 	void RenderImGui();
-	void ApplyPostProcesses();
+	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
 
 private:
 	Graphics* m_Graphics;
