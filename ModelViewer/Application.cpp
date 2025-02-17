@@ -90,6 +90,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(5));
 
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // make sure this is always last!
 	
 	return true;
@@ -177,8 +180,11 @@ bool Application::Render(double DeltaTime)
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV = m_Graphics->m_PostProcessRTVSecond;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV = m_Graphics->m_PostProcessSRVFirst;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV = m_Graphics->m_PostProcessSRVSecond;
+	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
+
+	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, NullSRVs);
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
-	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data
+	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
 	FALSE_IF_FAILED(RenderScene());
 	
@@ -439,8 +445,12 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 	// skipping last post process as that is the empty post process used to draw to back buffer render target
 	for (int i = 0; i < m_PostProcesses.size() - 1; i++)
 	{
-		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? CurrentRTV : SecondaryRTV,
-												DrawingForward ? SecondarySRV : CurrentSRV, m_Graphics->GetDepthStencilView());
+		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
+		m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr); // can't bind the texture as a shader resource while it is still the render target
+		m_Graphics->GetDeviceContext()->OMSetDepthStencilState(m_PostProcesses[i]->GetDepthStencilState(m_Graphics->GetDevice()).Get(), 0); // binds a depth stencil state which always passes depth test
+
+		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? SecondaryRTV : CurrentRTV,
+												DrawingForward ? CurrentSRV : SecondarySRV, m_Graphics->GetDepthStencilView());
 
 		DrawingForward = !DrawingForward;
 	}
