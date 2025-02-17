@@ -10,7 +10,6 @@
 #include "ImGuiManager.h"
 
 #include "InputClass.h"
-#include "Application.h"
 
 class SystemClass
 {
@@ -36,7 +35,6 @@ private:
 	HWND m_hwnd;
 
 	InputClass* m_Input;
-	Application* m_Application;
 
 	ImGuiManager ImGui;
 };

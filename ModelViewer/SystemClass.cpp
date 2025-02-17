@@ -1,5 +1,7 @@
 #include "SystemClass.h"
 
+#include "Application.h"
+
 #include "ImGui/imgui_impl_win32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -7,7 +9,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 SystemClass::SystemClass()
 {
 	m_Input = nullptr;
-	m_Application = nullptr;
 }
 
 SystemClass::SystemClass(const SystemClass& Other)
@@ -31,9 +32,7 @@ bool SystemClass::Initialise()
 	m_Input = new InputClass();
 	m_Input->Initialise();
 
-	m_Application = new Application();
-
-	Result = m_Application->Initialise(ScreenWidth, ScreenHeight, m_hwnd);
+	Result = Application::GetSingletonPtr()->Initialise(ScreenWidth, ScreenHeight, m_hwnd);
 	if (!Result)
 	{
 		return false;
@@ -44,12 +43,7 @@ bool SystemClass::Initialise()
 
 void SystemClass::Shutdown()
 {
-	if (m_Application)
-	{
-		m_Application->Shutdown();
-		delete m_Application;
-		m_Application = nullptr;
-	}
+	Application::GetSingletonPtr()->Shutdown();
 
 	if (m_Input)
 	{
@@ -104,7 +98,7 @@ bool SystemClass::Frame()
 		return false;
 	}
 
-	Result = m_Application->Frame();
+	Result = Application::GetSingletonPtr()->Frame();
 	if (!Result)
 	{
 		return false;

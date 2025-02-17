@@ -7,6 +7,9 @@
 #include "ImGui/imgui_impl_dx11.h"
 
 #include "MyMacros.h"
+#include "PostProcess.h"
+
+Application* Application::m_Instance = nullptr;
 
 Application::Application()
 {
@@ -22,14 +25,6 @@ Application::Application()
 
 	m_LastUpdate = std::chrono::steady_clock::now();
 	m_AppTime = 0.0;
-}
-
-Application::Application(const Application& Other)
-{
-}
-
-Application::~Application()
-{
 }
 
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
@@ -88,7 +83,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(5));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(3));
 
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources

@@ -7,6 +7,7 @@
 
 #include "Shader.h"
 #include "MyMacros.h"
+#include "Application.h"
 
 struct Vertex
 {
@@ -69,6 +70,46 @@ public:
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 
+protected:
+	bool SetupPixelShader(const wchar_t* PSFilepath)
+	{		
+		wchar_t psFilename[128];
+		int Error;
+
+		Error = wcscpy_s(psFilename, 128, PSFilepath);
+		if (Error != 0)
+		{
+			return false;
+		}
+
+		HRESULT hResult;
+		Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
+		Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
+
+		UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+		hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
+		if (FAILED(hResult))
+		{
+			if (ErrorMessage.Get())
+			{
+				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), Application::GetSingletonPtr()->GetWindowHandle(), psFilename);
+			}
+			else
+			{
+				MessageBox(Application::GetSingletonPtr()->GetWindowHandle(), psFilename, L"Missing shader file!", MB_OK);
+			}
+			return false;
+		}
+
+		hResult = Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader);
+		if (FAILED(hResult))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 private:
 	static void InitialiseShaderResources(ID3D11Device* Device)
 	{
@@ -92,16 +133,14 @@ private:
 		hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
 		if (FAILED(hResult))
 		{
-			/*
 			if (ErrorMessage.Get())
 			{
-				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, vsFilename);
+				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), Application::GetSingletonPtr()->GetWindowHandle(), vsFilename);
 			}
 			else
 			{
-				MessageBox(hWnd, vsFilename, L"Missing shader file!", MB_OK);
+				MessageBox(Application::GetSingletonPtr()->GetWindowHandle(), vsFilename, L"Missing shader file!", MB_OK);
 			}
-			*/
 			return;
 		}
 
@@ -143,10 +182,10 @@ private:
 		}
 
 		Vertex QuadVertices[] = {
-			{ DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },  // Top-left
-			{ DirectX::XMFLOAT3( 1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },  // Top-right
-			{ DirectX::XMFLOAT3(-1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },  // Bottom-left
-			{ DirectX::XMFLOAT3( 1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f)  },  // Bottom-right
+			{ DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },
+			{ DirectX::XMFLOAT3( 1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },
+			{ DirectX::XMFLOAT3(-1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), },
+			{ DirectX::XMFLOAT3( 1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f)  },
 		};
 
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -236,7 +275,7 @@ public:
 	}
 
 private:
-	int m_BlurStrength = 5;
+	int m_BlurStrength;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -246,41 +285,7 @@ class PostProcessEmpty : public PostProcess
 public:
 	PostProcessEmpty(ID3D11Device* Device)
 	{
-		wchar_t psFilename[128];
-		int Error;
-
-		Error = wcscpy_s(psFilename, 128, L"Shaders/QuadPS.hlsl");
-		if (Error != 0)
-		{
-			return;
-		}
-
-		HRESULT hResult;
-		Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
-		Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
-
-		UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-		hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-		if (FAILED(hResult))
-		{
-			/*
-			if (ErrorMessage.Get())
-			{
-				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, psFilename);
-			}
-			else
-			{
-				MessageBox(hWnd, psFilename, L"Missing shader file!", MB_OK);
-			}
-			*/
-			return;
-		}
-
-		hResult = Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader);
-		if (FAILED(hResult))
-		{
-			return;
-		}
+		SetupPixelShader(L"Shaders/QuadPS.hlsl");
 	}
 
 	void ApplyPostProcess(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
