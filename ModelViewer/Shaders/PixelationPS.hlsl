@@ -1,0 +1,24 @@
+Texture2D screenTexture : register(t0);
+SamplerState samplerState : register(s0);
+
+cbuffer PixelBuffer
+{
+	float2 texelSize;
+	float blockSize;
+	float padding;
+};
+
+struct PS_In
+{
+	float4 Pos : SV_POSITION;
+	float2 TexCoord : TEXCOORD0;
+	float3 Normal : NORMAL;
+};
+
+float4 main(PS_In p) : SV_TARGET
+{
+	float2 blockTexelSize = texelSize * blockSize;
+	float2 blockUV = floor(p.TexCoord / blockTexelSize) * blockTexelSize + (blockTexelSize * 0.5f);
+	return screenTexture.Sample(samplerState, blockUV);
+	//return float4(1.0f, 1.0f, 1.0f, 1.0f);
+}

@@ -75,6 +75,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 
 protected:
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+	
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) = 0;
 
@@ -255,12 +257,35 @@ private:
 
 /////////////////////////////////////////////////////////////////////////////////
 
+class PostProcessEmpty : public PostProcess
+{
+public:
+	PostProcessEmpty()
+	{
+		SetupPixelShader(L"Shaders/QuadPS.hlsl");
+	}
+
+private:
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
+		ID3D11DepthStencilView* DSV) override
+	{
+		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
+
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+
+		DeviceContext->DrawIndexed(6u, 0u, 0);
+	}
+};
+
+/////////////////////////////////////////////////////////////////////////////////
 
 class PostProcessFog : public PostProcess
 {
 public:
 	PostProcessFog() {} // pass whatever we need into here
 	
+private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 							ID3D11DepthStencilView* DSV) override
 	{
@@ -289,6 +314,7 @@ public:
 		SetupPixelShader(L"Shaders/BoxBlurHorizontalPS.hlsl");
 	}
 
+private:
 	void UpdateConstantBuffer(ID3D11DeviceContext* DeviceContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE MappedResource = {};
@@ -321,7 +347,7 @@ public:
 
 private:
 	int m_BlurStrength;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -345,6 +371,7 @@ public:
 		SetupPixelShader(L"Shaders/BoxBlurVerticalPS.hlsl");
 	}
 
+private:
 	void UpdateConstantBuffer(ID3D11DeviceContext* DeviceContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE MappedResource = {};
@@ -377,29 +404,49 @@ public:
 
 private:
 	int m_BlurStrength;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
 
-class PostProcessEmpty : public PostProcess
+class PostProcessPixelation : public PostProcess
 {
 public:
-	PostProcessEmpty(ID3D11Device* Device)
+	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize)
 	{
-		SetupPixelShader(L"Shaders/QuadPS.hlsl");
+		D3D11_BUFFER_DESC BufferDesc = {};
+		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, m_PixelSize, 0.f);
+		D3D11_SUBRESOURCE_DATA BufferData = {};
+		BufferData.pSysMem = &Data;
+
+		if (FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer)))
+		{
+			return;
+		}
+
+		SetupPixelShader(L"Shaders/PixelationPS.hlsl");
 	}
 
+private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-							ID3D11DepthStencilView* DSV) override
-	{		
+		ID3D11DepthStencilView* DSV) override
+	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
+
+		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
+
+private:
+	float m_PixelSize;
 };
 
 #endif
