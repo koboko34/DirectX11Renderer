@@ -134,5 +134,7 @@
     <FxCompile Include="Shaders\PhongPS.hlsl" />
     <FxCompile Include="Shaders\QuadVS.hlsl" />
     <FxCompile Include="Shaders\QuadPS.hlsl" />
+    <FxCompile Include="Shaders\BoxBlurHorizontalPS.hlsl" />
+    <FxCompile Include="Shaders\BoxBlurVerticalPS.hlsl" />
   </ItemGroup>
 </Project>

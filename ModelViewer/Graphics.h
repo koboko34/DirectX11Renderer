@@ -14,6 +14,8 @@
 
 #include <wrl.h>
 
+#include <utility>
+
 class Graphics
 {
 public:
@@ -54,11 +56,15 @@ private:
 	DirectX::XMMATRIX m_OrthoMatrix;
 	D3D11_VIEWPORT m_Viewport;
 
+	std::pair<int, int> m_Dimensions;
+
 public:
 	ID3D11Device* GetDevice() const { return m_Device.Get(); }
 	ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext.Get(); }
 
 	ID3D11DepthStencilView* GetDepthStencilView() const { return m_DepthStencilView.Get(); }
+
+	std::pair<int, int> GetRenderTargetDimensions() const { return m_Dimensions; }
 
 	void GetWorldMatrix(DirectX::XMMATRIX& WorldMatrix) { WorldMatrix = m_WorldMatrix; }
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }

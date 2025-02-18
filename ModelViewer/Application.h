@@ -78,6 +78,7 @@ private:
 	double m_AppTime;
 
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
+	std::unique_ptr<PostProcess> m_EmptyPostProcess;
 };
 
 #endif

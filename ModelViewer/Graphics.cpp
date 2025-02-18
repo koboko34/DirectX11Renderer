@@ -4,6 +4,7 @@
 
 #include "MyMacros.h"
 
+
 Graphics::Graphics()
 {
 }
@@ -30,8 +31,8 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc = {};
 	D3D_FEATURE_LEVEL FeatureLevel;
 	ID3D11Texture2D* BackBufferPtr;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_PostProcessRTTFirst;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_PostProcessRTTSecond;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> PostProcessRTTFirst;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> PostProcessRTTSecond;
 	D3D11_TEXTURE2D_DESC PostProcessTextureDesc = {};
 	D3D11_TEXTURE2D_DESC DepthBufferDesc = {};
 	D3D11_DEPTH_STENCIL_DESC DepthStencilDesc = {};
@@ -41,6 +42,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	float FieldOfView, ScreenAspect;
 
 	m_VSync_Enabled = VSync;
+	m_Dimensions = std::make_pair(ScreenWidth, ScreenHeight);
 
 	HFALSE_IF_FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&Factory));
 	HFALSE_IF_FAILED(Factory->EnumAdapters(0, &Adapter));
@@ -57,7 +59,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	HFALSE_IF_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, DisplayModeList));
 
-	for (int i = 0; i < NumModes; i++)
+	for (unsigned int i = 0; i < NumModes; i++)
 	{
 		if (DisplayModeList[i].Width == (unsigned int)ScreenWidth)
 		{
@@ -241,14 +243,14 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	PostProcessTextureDesc.Usage = D3D11_USAGE_DEFAULT;
 	PostProcessTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &m_PostProcessRTTFirst));
-	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &m_PostProcessRTTSecond));
+	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTFirst));
+	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTSecond));
 
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(m_PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(m_PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
+	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
+	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
 
-	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(m_PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
-	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(m_PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
+	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
+	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -279,7 +281,6 @@ void Graphics::Shutdown()
 void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)
 {
 	float Color[4];
-
 	Color[0] = Red;
 	Color[1] = Green;
 	Color[2] = Blue;

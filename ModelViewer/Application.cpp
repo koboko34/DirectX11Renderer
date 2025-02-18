@@ -83,13 +83,11 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlur>(3));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
 
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // testing if the post process chain correctly swaps render targets and shader resources
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice())); // make sure this is always last!
-	
+	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>(m_Graphics->GetDevice());
+
 	return true;
 }
 
@@ -197,7 +195,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->SetBackBufferRenderTarget();
 
 	// use last used post process texture to draw a full screen quad
-	m_Graphics->GetDeviceContext()->PSSetShader(m_PostProcesses[m_PostProcesses.size() - 1].get()->m_PixelShader.Get(), NULL, 0u); // last post process effect will be empty post process
+	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->m_PixelShader.Get(), NULL, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
@@ -212,7 +210,7 @@ bool Application::RenderScene()
 {
 	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
 	
-	float RotationAngle = fmod(m_AppTime, 360.f);
+	float RotationAngle = (float)fmod(m_AppTime, 360.f);
 
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
@@ -437,8 +435,7 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 {
 	m_Graphics->DisableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data in post processes
 	
-	// skipping last post process as that is the empty post process used to draw to back buffer render target
-	for (int i = 0; i < m_PostProcesses.size() - 1; i++)
+	for (int i = 0; i < m_PostProcesses.size(); i++)
 	{
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
 		m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr); // can't bind the texture as a shader resource while it is still the render target
