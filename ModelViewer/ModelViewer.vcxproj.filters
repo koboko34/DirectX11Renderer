@@ -130,12 +130,12 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PhongVS.hlsl" />
-    <FxCompile Include="Shaders\PhongPS.hlsl" />
-    <FxCompile Include="Shaders\QuadVS.hlsl" />
-    <FxCompile Include="Shaders\QuadPS.hlsl" />
-    <FxCompile Include="Shaders\BoxBlurHorizontalPS.hlsl" />
-    <FxCompile Include="Shaders\BoxBlurVerticalPS.hlsl" />
-    <FxCompile Include="Shaders\PixelationPS.hlsl" />
+    <None Include="Shaders\BoxBlurPS.hlsl" />
+    <None Include="Shaders\BoxBlurVerticalPS.hlsl" />
+    <None Include="Shaders\PhongPS.hlsl" />
+    <None Include="Shaders\PhongVS.hlsl" />
+    <None Include="Shaders\PixelationPS.hlsl" />
+    <None Include="Shaders\QuadPS.hlsl" />
+    <None Include="Shaders\QuadVS.hlsl" />
   </ItemGroup>
 </Project>

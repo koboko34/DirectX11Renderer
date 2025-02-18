@@ -83,8 +83,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(6.f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();

@@ -80,7 +80,7 @@ protected:
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) = 0;
 
-	bool SetupPixelShader(const wchar_t* PSFilepath)
+	bool SetupPixelShader(const wchar_t* PSFilepath, const char* entryFunc = "main")
 	{		
 		wchar_t psFilename[128];
 		int Error;
@@ -95,8 +95,8 @@ protected:
 		Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 		Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
 
-		UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-		hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
+		UINT CompileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+		hResult = D3DCompileFromFile(psFilename, NULL, NULL, entryFunc, "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
 		if (FAILED(hResult))
 		{
 			if (ErrorMessage.Get())
@@ -311,7 +311,7 @@ public:
 			return;
 		}
 
-		SetupPixelShader(L"Shaders/BoxBlurHorizontalPS.hlsl");
+		SetupPixelShader(L"Shaders/BoxBlurPS.hlsl", "HorizontalPS");
 	}
 
 private:
@@ -368,7 +368,7 @@ public:
 			return;
 		}
 
-		SetupPixelShader(L"Shaders/BoxBlurVerticalPS.hlsl");
+		SetupPixelShader(L"Shaders/BoxBlurPS.hlsl", "VerticalPS");
 	}
 
 private:
