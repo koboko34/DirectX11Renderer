@@ -82,10 +82,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
+	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image.png");
+
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(6.f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 
@@ -180,7 +182,8 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
-	FALSE_IF_FAILED(RenderScene());
+	//FALSE_IF_FAILED(RenderScene());
+	FALSE_IF_FAILED(RenderTexture());
 	
 	// apply post processes (if any) and keep track of which shader resource view is the latest
 	DrawingForward = !DrawingForward;
@@ -190,17 +193,18 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
 	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
 	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
+	m_Graphics->DisableDepthWriteAlwaysPass(); // simpler for now but might need to refactor when wanting to use depth data in post processes
 	ApplyPostProcesses(CurrentRTV, SecondaryRTV, CurrentSRV, SecondarySRV, DrawingForward);
 
 	// set back buffer as render target
 	m_Graphics->SetBackBufferRenderTarget();
 
 	// use last used post process texture to draw a full screen quad
-	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->m_PixelShader.Get(), NULL, 0u);
+	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->GetPixelShader().Get(), NULL, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
-	RenderImGui();
+	//RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -254,6 +258,27 @@ bool Application::RenderScene()
 		);
 	}
 	
+	return true;
+}
+
+bool Application::RenderTexture()
+{
+	unsigned int Stride, Offset;
+	Stride = sizeof(Vertex);
+	Offset = 0u;
+
+	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
+	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
+	
+	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_Graphics->GetDeviceContext()->IASetInputLayout(m_Shader->GetInputLayout().Get());
+	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->GetPixelShader().Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->PSSetShaderResources(0, 1, m_TextureResourceView.GetAddressOf());
+
+	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
+	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
+
 	return true;
 }
 
@@ -433,14 +458,11 @@ void Application::RenderImGui()
 
 void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 										Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward)
-{
-	m_Graphics->DisableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data in post processes
-	
+{	
 	for (int i = 0; i < m_PostProcesses.size(); i++)
 	{
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
 		m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr); // can't bind the texture as a shader resource while it is still the render target
-		m_Graphics->GetDeviceContext()->OMSetDepthStencilState(m_PostProcesses[i]->GetDepthStencilState(m_Graphics->GetDevice()).Get(), 0); // binds a depth stencil state which always passes depth test
 
 		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? SecondaryRTV : CurrentRTV,
 												DrawingForward ? CurrentSRV : SecondarySRV, m_Graphics->GetDepthStencilView());

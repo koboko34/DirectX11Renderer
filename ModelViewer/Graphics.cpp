@@ -2,6 +2,9 @@
 
 #include "ImGui\imgui_impl_dx11.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "MyMacros.h"
 
 
@@ -187,10 +190,17 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteEnabled));
 
-	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	DepthStencilDesc.StencilWriteMask = 0;
 
 	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabled));
+
+	DepthStencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	DepthStencilDesc.StencilEnable = false;
+	DepthStencilDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	DepthStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabledAlwaysPass));
 
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteEnabled.Get(), 1);
 
@@ -325,7 +335,68 @@ void Graphics::DisableDepthWrite()
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteDisabled.Get(), 1);
 }
 
+void Graphics::DisableDepthWriteAlwaysPass()
+{
+	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteDisabledAlwaysPass.Get(), 1);
+}
+
 void Graphics::ResetViewport()
 {
 	m_DeviceContext->RSSetViewports(1u, &m_Viewport);
+}
+
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const char* Filepath)
+{	
+	int Width, Height, Channels;
+	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
+	assert(ImageData);
+	
+	unsigned char* ImageDataRgba = ImageData;
+	bool NeedsAlpha = Channels < 4;
+	if (NeedsAlpha)
+	{
+		ImageDataRgba = new unsigned char[Width * Height * 4];
+
+		for (int i = 0; i < Width * Height; i++)
+		{
+			ImageDataRgba[i * 4 + 0] = ImageData[i * 3 + 0];
+			ImageDataRgba[i * 4 + 1] = ImageData[i * 3 + 1];
+			ImageDataRgba[i * 4 + 2] = ImageData[i * 3 + 2];
+			ImageDataRgba[i * 4 + 3] = 255;
+		}
+	}
+	stbi_image_free(ImageData);
+
+	ID3D11Texture2D* Texture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
+	
+	D3D11_TEXTURE2D_DESC TexDesc = {};
+	TexDesc.Width = Width;
+	TexDesc.Height = Height;
+	TexDesc.MipLevels = 1;
+	TexDesc.ArraySize = 1;
+	TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	TexDesc.SampleDesc.Count = 1;
+	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = ImageDataRgba;
+	InitData.SysMemPitch = Width * 4;
+
+	assert(FAILED(GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc = {};
+	SrvDesc.Format = TexDesc.Format;
+	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SrvDesc.Texture2D.MipLevels = 1;
+
+	assert(FAILED(GetDevice()->CreateShaderResourceView(Texture, &SrvDesc, &TextureView)) == false);
+
+	if (NeedsAlpha)
+	{
+		delete[] ImageDataRgba;
+	}
+
+	return TextureView;
 }

@@ -34,6 +34,7 @@ public:
 	void SetBackBufferRenderTarget();
 	void EnableDepthWrite();
 	void DisableDepthWrite();
+	void DisableDepthWriteAlwaysPass();
 	void ResetViewport();
 
 private:
@@ -47,6 +48,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_DepthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteEnabled;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabled;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabledAlwaysPass;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterState;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
@@ -69,6 +71,8 @@ public:
 	void GetWorldMatrix(DirectX::XMMATRIX& WorldMatrix) { WorldMatrix = m_WorldMatrix; }
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }
 	void GetOrthoMatrix(DirectX::XMMATRIX& OrthoMatrix) { OrthoMatrix = m_OrthoMatrix; }
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LoadTexture(const char* Filepath);
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVFirst;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVSecond;

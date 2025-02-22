@@ -39,17 +39,6 @@ public:
 		return PostProcess::ms_QuadVertexShader;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> GetDepthStencilState(ID3D11Device* Device)
-	{
-		if (ms_bInitialised)
-		{
-			return PostProcess::ms_DepthStencilState;
-		}
-
-		InitialiseShaderResources(Device);
-		return PostProcess::ms_DepthStencilState;
-	}
-
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadVertexBuffer(ID3D11Device* Device)
 	{
 		if (ms_bInitialised)
@@ -72,10 +61,11 @@ public:
 		return PostProcess::ms_QuadIndexBuffer;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetPixelShader() const { return m_PixelShader; };
 
 protected:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) = 0;
@@ -232,23 +222,11 @@ private:
 			return;
 		}
 
-		DepthStencilDesc.DepthEnable = false;
-		DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		DepthStencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-		DepthStencilDesc.StencilEnable = false;
-
-		hResult = Device->CreateDepthStencilState(&DepthStencilDesc, &ms_DepthStencilState);
-		if (FAILED(hResult))
-		{
-			return;
-		}
-
 		ms_bInitialised = true;
 	}
 
 	static Microsoft::WRL::ComPtr<ID3D11VertexShader> ms_QuadVertexShader;
 	static Microsoft::WRL::ComPtr<ID3D11InputLayout> ms_QuadInputLayout;
-	static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> ms_DepthStencilState;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadVertexBuffer;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadIndexBuffer;
 	static bool ms_bInitialised;

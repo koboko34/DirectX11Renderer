@@ -131,7 +131,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\BoxBlurPS.hlsl" />
-    <None Include="Shaders\BoxBlurVerticalPS.hlsl" />
     <None Include="Shaders\PhongPS.hlsl" />
     <None Include="Shaders\PhongVS.hlsl" />
     <None Include="Shaders\PixelationPS.hlsl" />

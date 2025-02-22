@@ -48,6 +48,7 @@ private:
 	bool LoadModel(const char* ModelFilename);
 	bool Render(double DeltaTime);
 	bool RenderScene();
+	bool RenderTexture();
 	bool RenderPhysicalLight();
 	bool RenderPlane();
 	void RenderImGui();
@@ -79,6 +80,8 @@ private:
 
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 	std::unique_ptr<PostProcess> m_EmptyPostProcess;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_TextureResourceView;
 };
 
 #endif
