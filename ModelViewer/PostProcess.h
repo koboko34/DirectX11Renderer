@@ -362,7 +362,7 @@ private:
 class PostProcessPixelation : public PostProcess
 {
 public:
-	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize)
+	PostProcessPixelation(float pixelSize)
 	{
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -371,7 +371,7 @@ public:
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
-		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, m_PixelSize, 0.f);
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, pixelSize, 0.f);
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
@@ -395,7 +395,6 @@ private:
 	}
 
 private:
-	float m_PixelSize;
 };
 
 class PostProcessBloom : public PostProcess
@@ -426,7 +425,7 @@ public:
 		TextureDesc.ArraySize = 1;
 		TextureDesc.SampleDesc.Count = 1;
 		TextureDesc.Usage = D3D11_USAGE_DEFAULT;
-		TextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		TextureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 		
 		ID3D11Texture2D* LuminousTexture;
@@ -495,6 +494,58 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_LuminousSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_BlurIntermediateSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_BlurredSRV;
+};
+
+class PostProcessToneMapper : public PostProcess
+{
+public:
+	enum ToneMapperFormula {
+		ReinhardBasic,
+		ReinhardExtended,
+		ReinhardExtendedBias
+	};
+	
+	PostProcessToneMapper(float WhiteLevel, float Exposure, float Bias, ToneMapperFormula Formula)
+	{
+		assert(Formula >= 0 && Formula < 3);
+		
+		struct ToneMapperData {
+			float WhiteLevel;
+			float Exposure;
+			float Bias;
+			int Formula;
+		};
+		
+		HRESULT hResult;
+		D3D11_BUFFER_DESC BufferDesc = {};
+		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		ToneMapperData Data = { WhiteLevel, Exposure, Bias, Formula };
+		D3D11_SUBRESOURCE_DATA BufferData = {};
+		BufferData.pSysMem = &Data;
+
+		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+
+		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
+	}
+
+private:
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
+		ID3D11DepthStencilView* DSV) override
+	{
+		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
+
+		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+
+		DeviceContext->DrawIndexed(6u, 0u, 0);
+	}
+
+private:
 };
 
 #endif

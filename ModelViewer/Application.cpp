@@ -89,6 +89,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.7f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 

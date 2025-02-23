@@ -137,5 +137,6 @@
     <None Include="Shaders\QuadPS.hlsl" />
     <None Include="Shaders\QuadVS.hlsl" />
     <None Include="Shaders\BloomPS.hlsl" />
+    <None Include="Shaders\ToneMapperPS.hlsl" />
   </ItemGroup>
 </Project>

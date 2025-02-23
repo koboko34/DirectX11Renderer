@@ -248,7 +248,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	PostProcessTextureDesc.Height = ScreenHeight;
 	PostProcessTextureDesc.MipLevels = 1;
 	PostProcessTextureDesc.ArraySize = 1;
-	PostProcessTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	PostProcessTextureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	PostProcessTextureDesc.SampleDesc.Count = 1;
 	PostProcessTextureDesc.Usage = D3D11_USAGE_DEFAULT;
 	PostProcessTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
