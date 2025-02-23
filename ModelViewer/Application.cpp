@@ -82,7 +82,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image.png");
+	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
@@ -90,6 +90,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.7f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 

@@ -397,6 +397,8 @@ private:
 private:
 };
 
+/////////////////////////////////////////////////////////////////////////////////
+
 class PostProcessBloom : public PostProcess
 {
 public:
@@ -496,6 +498,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_BlurredSRV;
 };
 
+/////////////////////////////////////////////////////////////////////////////////
+
 class PostProcessToneMapper : public PostProcess
 {
 public:
@@ -529,6 +533,45 @@ public:
 		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
+	}
+
+private:
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
+		ID3D11DepthStencilView* DSV) override
+	{
+		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
+
+		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+
+		DeviceContext->DrawIndexed(6u, 0u, 0);
+	}
+
+private:
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+
+class PostProcessGammaCorrection : public PostProcess
+{
+public:
+	PostProcessGammaCorrection(float Gamma)
+	{
+		HRESULT hResult;
+		D3D11_BUFFER_DESC BufferDesc = {};
+		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		DirectX::XMFLOAT4 Data = { Gamma, 0.f, 0.f, 0.f };
+		D3D11_SUBRESOURCE_DATA BufferData = {};
+		BufferData.pSysMem = &Data;
+
+		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		
+		SetupPixelShader(m_PixelShader, L"Shaders/GammaCorrectionPS.hlsl");
 	}
 
 private:
