@@ -48,7 +48,7 @@ private:
 	bool LoadModel(const char* ModelFilename);
 	bool Render(double DeltaTime);
 	bool RenderScene();
-	bool RenderTexture();
+	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
 	bool RenderPhysicalLight();
 	bool RenderPlane();
 	void RenderImGui();

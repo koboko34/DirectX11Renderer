@@ -20,5 +20,4 @@ float4 main(PS_In p) : SV_TARGET
 	float2 blockTexelSize = texelSize * blockSize;
 	float2 blockUV = floor(p.TexCoord / blockTexelSize) * blockTexelSize + (blockTexelSize * 0.5f);
 	return screenTexture.Sample(samplerState, blockUV);
-	//return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

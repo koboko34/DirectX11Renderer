@@ -85,9 +85,10 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image.png");
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.7f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 
@@ -178,12 +179,14 @@ bool Application::Render(double DeltaTime)
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV = m_Graphics->m_PostProcessSRVSecond;
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
 
+	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
+
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, NullSRVs);
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
 	//FALSE_IF_FAILED(RenderScene());
-	FALSE_IF_FAILED(RenderTexture());
+	FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
 	
 	// apply post processes (if any) and keep track of which shader resource view is the latest
 	DrawingForward = !DrawingForward;
@@ -261,7 +264,7 @@ bool Application::RenderScene()
 	return true;
 }
 
-bool Application::RenderTexture()
+bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView)
 {
 	unsigned int Stride, Offset;
 	Stride = sizeof(Vertex);
@@ -274,9 +277,8 @@ bool Application::RenderTexture()
 	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_Graphics->GetDeviceContext()->IASetInputLayout(m_Shader->GetInputLayout().Get());
 	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->GetPixelShader().Get(), nullptr, 0u);
-	m_Graphics->GetDeviceContext()->PSSetShaderResources(0, 1, m_TextureResourceView.GetAddressOf());
+	m_Graphics->GetDeviceContext()->PSSetShaderResources(0, 1, TextureView.GetAddressOf());
 
-	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
 	return true;
