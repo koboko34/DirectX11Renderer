@@ -85,9 +85,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurHorizontal>(3));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBlurVertical>(3));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(25));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.7f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
