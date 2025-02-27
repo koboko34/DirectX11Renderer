@@ -19,8 +19,8 @@ private:
 	struct Vertex
 	{
 		DirectX::XMFLOAT3 Pos;
-		DirectX::XMFLOAT2 TexCoord;
 		DirectX::XMFLOAT3 Normal;
+		DirectX::XMFLOAT2 TexCoord;
 	};
 
 public:

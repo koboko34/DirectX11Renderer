@@ -13,8 +13,8 @@ cbuffer BlurBuffer : register(b0)
 struct PS_In
 {
 	float4 Pos : SV_POSITION;
-	float2 TexCoord : TEXCOORD0;
 	float3 Normal : NORMAL;
+	float2 TexCoord : TEXCOORD0;
 };
 
 float4 HorizontalPS(PS_In p) : SV_TARGET

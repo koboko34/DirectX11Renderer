@@ -11,8 +11,8 @@ cbuffer BloomBuffer
 struct PS_In
 {
 	float4 Pos : SV_POSITION;
-	float2 TexCoord : TEXCOORD0;
 	float3 Normal : NORMAL;
+	float2 TexCoord : TEXCOORD0;
 };
 
 float CalcLuminance(float3 color)

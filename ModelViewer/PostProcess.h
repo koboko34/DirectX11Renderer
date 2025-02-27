@@ -151,16 +151,16 @@ private:
 		VertexLayout[0].AlignedByteOffset = 0;
 		VertexLayout[0].InstanceDataStepRate = 0;
 
-		VertexLayout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-		VertexLayout[1].SemanticName = "TEXCOORD";
+		VertexLayout[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+		VertexLayout[1].SemanticName = "NORMAL";
 		VertexLayout[1].SemanticIndex = 0;
 		VertexLayout[1].InputSlot = 0;
 		VertexLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 		VertexLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 		VertexLayout[1].InstanceDataStepRate = 0;
 
-		VertexLayout[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		VertexLayout[2].SemanticName = "NORMAL";
+		VertexLayout[2].Format = DXGI_FORMAT_R32G32_FLOAT;
+		VertexLayout[2].SemanticName = "TEXCOORD";
 		VertexLayout[2].SemanticIndex = 0;
 		VertexLayout[2].InputSlot = 0;
 		VertexLayout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -552,7 +552,7 @@ public:
 		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(LuminousTexture, NULL, &m_LuminousSRV));
 		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(BlurredTexture, NULL, &m_BlurredSRV));
 
-		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(25, 8.f);
+		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(50, 8.f);
 	}
 
 private:

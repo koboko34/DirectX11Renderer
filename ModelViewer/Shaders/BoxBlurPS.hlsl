@@ -11,8 +11,8 @@ cbuffer BlurBuffer
 struct PS_In
 {
 	float4 Pos : SV_POSITION;
-	float2 TexCoord : TEXCOORD0;
 	float3 Normal : NORMAL;
+	float2 TexCoord : TEXCOORD0;
 };
 
 float4 HorizontalPS(PS_In p) : SV_TARGET
@@ -20,7 +20,7 @@ float4 HorizontalPS(PS_In p) : SV_TARGET
 	float4 colorSum = float4(0.f, 0.f, 0.f, 1.f);
 	int sampleCount = 0;
 	
-	int effectiveBlurStrength = 50; // hard coded for now
+	int effectiveBlurStrength = 25; // hard coded for now
 	
 	for (int i = -effectiveBlurStrength; i <= effectiveBlurStrength; i++)
 	{
@@ -43,7 +43,7 @@ float4 VerticalPS(PS_In p) : SV_TARGET
 	float4 colorSum = float4(0.f, 0.f, 0.f, 1.f);
 	int sampleCount = 0;
 	
-	int effectiveBlurStrength = 50; // hard coded for now
+	int effectiveBlurStrength = 25; // hard coded for now
 	
 	for (int i = -effectiveBlurStrength; i <= effectiveBlurStrength; i++)
 	{

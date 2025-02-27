@@ -8,8 +8,8 @@ struct VS_In
 struct VS_Out
 {
 	float4 Pos : SV_POSITION;
-	float2 TexCoord : TEXCOORD0;
 	float3 Normal : NORMAL;
+	float2 TexCoord : TEXCOORD0;
 };
 
 VS_Out main(VS_In v)
