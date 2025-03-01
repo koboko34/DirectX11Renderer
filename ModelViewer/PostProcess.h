@@ -10,13 +10,6 @@
 #include "MyMacros.h"
 #include "Application.h"
 
-struct Vertex
-{
-	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT3 Normal;
-	DirectX::XMFLOAT2 TexCoord;
-};
-
 class PostProcess
 {
 public:
@@ -67,6 +60,13 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetPixelShader() const { return m_PixelShader; };
 
 protected:
+	struct Vertex
+	{
+		DirectX::XMFLOAT3 Pos;
+		DirectX::XMFLOAT3 Normal;
+		DirectX::XMFLOAT2 TexCoord;
+	};
+	
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,

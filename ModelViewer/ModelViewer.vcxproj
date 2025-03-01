@@ -33,6 +33,8 @@
     <ClCompile Include="InputClass.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="PostProcess.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -53,6 +55,8 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="InputClass.h" />
     <ClInclude Include="Light.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="MyMacros.h" />
     <ClInclude Include="PostProcess.h" />

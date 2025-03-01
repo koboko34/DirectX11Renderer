@@ -84,7 +84,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	LoadModel("Models/parafal/scene.gltf", "Models/parafal/");
+	LoadModel("Models/m1887/scene.gltf", "Models/m1887/");
 
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
