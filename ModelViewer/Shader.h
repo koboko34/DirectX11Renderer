@@ -36,8 +36,9 @@ public:
 
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
 	void Shutdown();
-	bool Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-				DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
+	void ActivateShader(ID3D11DeviceContext* DeviceContext);
+	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
+								DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
 
 	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 
@@ -46,10 +47,6 @@ public:
 private:
 	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
 	void ShutdownShader();
-
-	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-								DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
-	void RenderShader(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;

@@ -140,5 +140,6 @@
     <None Include="Shaders\ToneMapperPS.hlsl" />
     <None Include="Shaders\GammaCorrectionPS.hlsl" />
     <None Include="Shaders\GaussianBlurPS.hlsl" />
+    <None Include="Shaders\BasicPS.hlsl" />
   </ItemGroup>
 </Project>

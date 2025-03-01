@@ -45,7 +45,7 @@ public:
 	Graphics* GetGraphics() const { return m_Graphics; }
 
 private:
-	bool LoadModel(const char* ModelFilename);
+	bool LoadModel(const char* ModelFilename, const char* TexturesPath);
 	bool Render(double DeltaTime);
 	bool RenderScene();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
@@ -73,7 +73,7 @@ private:
 
 	const char* m_ModelLoadSuccessMessage = "";
 	bool m_ShouldRenderLight = true;
-	bool m_ShouldRenderPlane = true;
+	bool m_ShouldRenderPlane = false;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;

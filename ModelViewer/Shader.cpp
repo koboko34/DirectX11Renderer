@@ -32,7 +32,7 @@ bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
 		return false;
 	}
 	
-	Error = wcscpy_s(psFilename, 128, L"Shaders/PhongPS.hlsl");
+	Error = wcscpy_s(psFilename, 128, L"Shaders/BasicPS.hlsl");
 	if (Error != 0)
 	{
 		return false;
@@ -46,17 +46,6 @@ bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
 void Shader::Shutdown()
 {
 	ShutdownShader();
-}
-
-bool Shader::Render(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-					DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower)
-{
-	bool Result;
-	FALSE_IF_FAILED(SetShaderParameters(DeviceContext, World, View, Projection, CameraPos, Radius, LightPos, DiffuseColor, SpecularPower));
-
-	RenderShader(DeviceContext, IndexCount);
-
-	return true;
 }
 
 bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename)
@@ -239,12 +228,10 @@ bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XM
 	return true;
 }
 
-void Shader::RenderShader(ID3D11DeviceContext* DeviceContext, unsigned int IndexCount)
+void Shader::ActivateShader(ID3D11DeviceContext* DeviceContext)
 {
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
 
 	DeviceContext->VSSetShader(m_VertexShader.Get(), NULL, 0u);
 	DeviceContext->PSSetShader(m_PixelShader.Get(), NULL, 0u);
-
-	DeviceContext->DrawIndexed(IndexCount, 0u, 0);
 }

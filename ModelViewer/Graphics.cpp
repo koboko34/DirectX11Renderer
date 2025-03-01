@@ -365,7 +365,6 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const cha
 			ImageDataRgba[i * 4 + 3] = 255;
 		}
 	}
-	stbi_image_free(ImageData);
 
 	ID3D11Texture2D* Texture;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
@@ -385,18 +384,13 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const cha
 	InitData.SysMemPitch = Width * 4;
 
 	assert(FAILED(GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc = {};
-	SrvDesc.Format = TexDesc.Format;
-	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	SrvDesc.Texture2D.MipLevels = 1;
-
-	assert(FAILED(GetDevice()->CreateShaderResourceView(Texture, &SrvDesc, &TextureView)) == false);
+	assert(FAILED(GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);
 
 	if (NeedsAlpha)
 	{
 		delete[] ImageDataRgba;
 	}
+	stbi_image_free(ImageData);
 
 	return TextureView;
 }

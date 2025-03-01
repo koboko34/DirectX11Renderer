@@ -53,6 +53,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
+	/*
 	char ModelFilename[128];
 	strcpy_s(ModelFilename, "Models/sphere.obj");
 
@@ -75,6 +76,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		MessageBox(hWnd, L"Failed to initialise plane object!", L"Error", MB_OK);
 		return false;
 	}
+	*/
 
 	m_Light = new Light();
 	m_Light->SetPosition(1.f, 1.f, -0.5f);
@@ -82,15 +84,17 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
+	LoadModel("Models/parafal/scene.gltf", "Models/parafal/");
+
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(25));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.7f));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
+	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 
@@ -150,7 +154,7 @@ bool Application::Frame()
 	return true;
 }
 
-bool Application::LoadModel(const char* ModelFilename)
+bool Application::LoadModel(const char* ModelFilename, const char* TexturesPath)
 {
 	if (m_Model)
 	{
@@ -159,12 +163,9 @@ bool Application::LoadModel(const char* ModelFilename)
 	}
 	
 	bool Result;
-	char Filename[128];
-	
-	strcpy_s(Filename, ModelFilename);
 
 	m_Model = new Model();
-	FALSE_IF_FAILED(m_Model->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), Filename));
+	FALSE_IF_FAILED(m_Model->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename, TexturesPath));
 		
 	return true;
 }
@@ -187,8 +188,8 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
-	//FALSE_IF_FAILED(RenderScene());
-	FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
+	FALSE_IF_FAILED(RenderScene());
+	//FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
 	
 	// apply post processes (if any) and keep track of which shader resource view is the latest
 	DrawingForward = !DrawingForward;
@@ -223,7 +224,6 @@ bool Application::RenderScene()
 	float RotationAngle = (float)fmod(m_AppTime, 360.f);
 
 	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-	bool Result;
 	
 	m_Camera->Render();
 
@@ -244,23 +244,21 @@ bool Application::RenderScene()
 		WorldMatrix *= DirectX::XMMatrixTranslation(m_ModelPos.x, m_ModelPos.y, m_ModelPos.z);
 		m_Camera->GetViewMatrix(ViewMatrix);
 		m_Graphics->GetProjectionMatrix(ProjectionMatrix);
+		
+		m_Shader->ActivateShader(m_Graphics->GetDeviceContext());
+		m_Shader->SetShaderParameters(
+			m_Graphics->GetDeviceContext(),
+			WorldMatrix,
+			ViewMatrix,
+			ProjectionMatrix,
+			m_Camera->GetPosition(),
+			m_Light->GetRadius(),
+			m_Light->GetPosition(),
+			m_Light->GetDiffuseColor(),
+			m_Light->GetSpecularPower()
+		);
 
 		m_Model->Render(m_Graphics->GetDeviceContext());
-
-		FALSE_IF_FAILED(
-			m_Shader->Render(
-				m_Graphics->GetDeviceContext(),
-				m_Model->GetIndexCount(),
-				WorldMatrix,
-				ViewMatrix,
-				ProjectionMatrix,
-				m_Camera->GetPosition(),
-				m_Light->GetRadius(),
-				m_Light->GetPosition(),
-				m_Light->GetDiffuseColor(),
-				m_Light->GetSpecularPower()
-			)
-		);
 	}
 	
 	return true;
@@ -288,7 +286,7 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 
 bool Application::RenderPhysicalLight()
 {
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+	/*DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
 	m_Graphics->GetWorldMatrix(WorldMatrix);
@@ -313,14 +311,14 @@ bool Application::RenderPhysicalLight()
 			m_Light->GetDiffuseColor(),
 			m_Light->GetSpecularPower()
 		)
-	);
+	);*/
 	
 	return true;
 }
 
 bool Application::RenderPlane()
 {
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+	/*DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 	bool Result;
 
 	m_Graphics->GetWorldMatrix(WorldMatrix);
@@ -343,7 +341,7 @@ bool Application::RenderPlane()
 			m_Light->GetDiffuseColor(),
 			m_Light->GetSpecularPower()
 		)
-	);
+	);*/
 	
 	return true;
 }
@@ -413,7 +411,7 @@ void Application::RenderImGui()
 	{
 		if (ImGui::Button("Load Stanford Bunny"))
 		{
-			strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
+			/*strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
 			if (LoadModel(ModelLocationBuffer))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
@@ -421,12 +419,12 @@ void Application::RenderImGui()
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
+			}*/
 		}
 
 		if (ImGui::Button("Load Suzanne"))
 		{
-			strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
+			/*strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
 			if (LoadModel(ModelLocationBuffer))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
@@ -434,7 +432,7 @@ void Application::RenderImGui()
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
+			}*/
 		}
 
 		ImGui::Dummy(ImVec2(0.f, 20.f));
@@ -442,14 +440,14 @@ void Application::RenderImGui()
 		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
 		if (ImGui::Button("Load model from file"))
 		{
-			if (LoadModel(ModelLocationBuffer))
+			/*if (LoadModel(ModelLocationBuffer))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
 			}
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
+			}*/
 		}
 		ImGui::Text(m_ModelLoadSuccessMessage);
 	}
@@ -465,9 +463,6 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 {	
 	for (int i = 0; i < m_PostProcesses.size(); i++)
 	{
-		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr); // can't bind the texture as a shader resource while it is still the render target
-
 		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? SecondaryRTV : CurrentRTV,
 												DrawingForward ? CurrentSRV : SecondarySRV, m_Graphics->GetDepthStencilView());
 
