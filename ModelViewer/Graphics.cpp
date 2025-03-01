@@ -223,9 +223,13 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	RasterDesc.ScissorEnable = false;
 	RasterDesc.SlopeScaledDepthBias = 0.f;
 
-	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterState));
+	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOn));
 
-	m_DeviceContext->RSSetState(m_RasterState.Get());
+	m_DeviceContext->RSSetState(m_RasterStateBackFaceCullOn.Get());
+
+	RasterDesc.CullMode = D3D11_CULL_NONE;
+
+	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOff));
 
 	m_Viewport.Width = (float)ScreenWidth;
 	m_Viewport.Height = (float)ScreenHeight;
@@ -343,6 +347,11 @@ void Graphics::DisableDepthWriteAlwaysPass()
 void Graphics::ResetViewport()
 {
 	m_DeviceContext->RSSetViewports(1u, &m_Viewport);
+}
+
+void Graphics::SetRasterStateBackFaceCull(bool bShouldCull)
+{
+	GetDeviceContext()->RSSetState(bShouldCull ? m_RasterStateBackFaceCullOn.Get() : m_RasterStateBackFaceCullOff.Get());
 }
 
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const char* Filepath)

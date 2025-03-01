@@ -31,6 +31,8 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 		m_DiffuseColor.y = Color.g;
 		m_DiffuseColor.z = Color.b;
 	}
+
+	MeshMat->Get(AI_MATKEY_TWOSIDED, m_bTwoSided);
 }
 
 void Material::CreateConstantBuffer()

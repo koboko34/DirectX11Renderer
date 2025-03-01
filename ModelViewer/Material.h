@@ -32,6 +32,7 @@ private:
 	DirectX::XMFLOAT3 m_DiffuseColor;
 	int m_DiffuseSRV = -1;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+	bool m_bTwoSided = false;
 	
 	UINT m_uIndex;
 	Model* m_pOwner;

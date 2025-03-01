@@ -65,6 +65,8 @@ void Model::RenderMeshes(ID3D11DeviceContext* DeviceContext)
 			DeviceContext->PSSetShaderResources(0u, 1u, m_TexturesMap[m->m_MaterialIndex].GetAddressOf());
 		}
 
+		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!m_Materials[m->m_MaterialIndex]->m_bTwoSided);
+
 		DeviceContext->DrawIndexed(m->m_IndexCount, m->m_IndicesOffset, 0);
 	}
 }
@@ -78,13 +80,12 @@ bool Model::LoadModel()
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |
-		aiProcess_ConvertToLeftHanded
+		aiProcess_MakeLeftHanded |
+		aiProcess_FlipUVs
+		//aiProcess_ConvertToLeftHanded
 	);
 
-	if (!Scene)
-	{
-		return false;
-	}
+	assert(Scene);
 
 	ProcessNode(Scene->mRootNode, Scene);
 	CreateBuffers();

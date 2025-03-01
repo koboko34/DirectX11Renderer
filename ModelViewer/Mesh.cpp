@@ -36,7 +36,7 @@ void Mesh::ProcessMesh(aiMesh* SceneMesh)
 		aiFace Face = SceneMesh->mFaces[i];
 		for (size_t j = 0; j < Face.mNumIndices; j++)
 		{
-			m_pOwner->GetIndices().push_back(Face.mIndices[j]);
+			m_pOwner->GetIndices().push_back(Face.mIndices[j] + m_VerticesOffset);
 		}
 	}
 	m_IndexCount = (UINT)m_pOwner->GetIndices().size() - m_IndicesOffset;

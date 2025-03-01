@@ -84,7 +84,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	LoadModel("Models/m1887/scene.gltf", "Models/m1887/");
+	LoadModel("Models/car98k__bloostrike/scene.gltf", "Models/car98k__bloostrike/");
 
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
@@ -210,7 +210,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
-	//RenderImGui();
+	RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -378,9 +378,9 @@ void Application::RenderImGui()
 	{
 		ImGui::PushID(0);
 		ImGui::Text("Position");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -100.f, 100.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -100.f, 100.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -100.f, 100.f);
 		ImGui::PopID();
 
 		ImGui::Dummy(ImVec2(0.f, 2.f));

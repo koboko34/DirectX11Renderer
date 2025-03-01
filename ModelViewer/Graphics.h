@@ -36,6 +36,7 @@ public:
 	void DisableDepthWrite();
 	void DisableDepthWriteAlwaysPass();
 	void ResetViewport();
+	void SetRasterStateBackFaceCull(bool bShouldCull);
 
 private:
 	bool m_VSync_Enabled;
@@ -50,7 +51,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabled;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabledAlwaysPass;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterState;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOn;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOff;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
 
 	DirectX::XMMATRIX m_ProjectionMatrix;
