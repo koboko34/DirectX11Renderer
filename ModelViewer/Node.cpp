@@ -9,25 +9,23 @@ Node::Node(Model* pModel, Node* pOwner) : m_pModel(pModel), m_pOwner(pOwner)
 
 void Node::ProcessNode(aiNode* ModelNode, const aiScene* Scene, const DirectX::XMMATRIX& AccumulatedTransform)
 {
-	//m_LocalTransform = DirectX::XMMatrixTranspose(ConvertToXMMATRIX(ModelNode->mTransformation));
-	m_LocalTransform = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
-	m_AccumulatedTransform = m_LocalTransform * AccumulatedTransform;
+	m_NodeName = ModelNode->mName.C_Str();
+	
+	m_LocalTransform = ConvertToXMMATRIX(ModelNode->mTransformation);
+	m_AccumulatedTransform = AccumulatedTransform * m_LocalTransform;
 	CreateConstantBuffer();
 	
 	for (size_t i = 0; i < ModelNode->mNumMeshes; i++)
 	{
 		m_Meshes.emplace_back(std::make_unique<Mesh>(m_pModel, this));
-		UINT MeshIndex = (UINT)m_Meshes.size() - 1;
-
 		aiMesh* SceneMesh = Scene->mMeshes[ModelNode->mMeshes[i]];
-		m_Meshes[MeshIndex]->ProcessMesh(SceneMesh);
+		m_Meshes.back()->ProcessMesh(SceneMesh);
 	}
 
 	for (size_t i = 0; i < ModelNode->mNumChildren; i++)
 	{
 		m_Children.emplace_back(std::make_unique<Node>(m_pModel, this));
-		UINT Index = (UINT)(m_Children.size() - 1);
-		m_Children[Index].get()->ProcessNode(ModelNode->mChildren[i], Scene, m_AccumulatedTransform);
+		m_Children.back().get()->ProcessNode(ModelNode->mChildren[i], Scene, m_AccumulatedTransform);
 	}
 }
 

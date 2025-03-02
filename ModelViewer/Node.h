@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 
 #include "DirectXMath.h"
 
@@ -44,6 +45,8 @@ private:
 
 	DirectX::XMMATRIX m_LocalTransform;
 	DirectX::XMMATRIX m_AccumulatedTransform;
+
+	std::string m_NodeName;
 
 	Model* m_pModel;
 	Node* m_pOwner;

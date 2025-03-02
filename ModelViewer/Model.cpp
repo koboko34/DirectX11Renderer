@@ -128,8 +128,7 @@ void Model::LoadMaterials(const aiScene* Scene)
 	for (size_t i = 0; i < Scene->mNumMaterials; i++)
 	{
 		m_Materials.emplace_back(std::make_shared<Material>((UINT)i, this));
-		UINT MatIndex = (UINT)m_Materials.size() - 1;
-		m_Materials[MatIndex]->LoadTextures(Scene->mMaterials[i]);
-		m_Materials[MatIndex]->CreateConstantBuffer();
+		m_Materials.back()->LoadTextures(Scene->mMaterials[i]);
+		m_Materials.back()->CreateConstantBuffer();
 	}
 }
