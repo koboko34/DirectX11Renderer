@@ -32,8 +32,7 @@ bool Model::Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceContext,
 
 void Model::Shutdown()
 {
-	ShutdownBuffers();
-	ReleaseModel();
+	Reset();
 }
 
 void Model::Render(ID3D11DeviceContext* DeviceContext)
@@ -58,11 +57,18 @@ void Model::RenderMeshes(ID3D11DeviceContext* DeviceContext)
 
 	for (const std::unique_ptr<Mesh>& m : m_Meshes)
 	{
-		DeviceContext->PSSetConstantBuffers(0u, 1u, m_Materials[m->m_MaterialIndex]->m_ConstantBuffer.GetAddressOf());
+		const Material* Mat = m_Materials[m->m_MaterialIndex].get();
 		
-		if (m_Materials[m->m_MaterialIndex]->m_DiffuseSRV >= 0)
+		DeviceContext->PSSetConstantBuffers(0u, 1u, Mat->m_ConstantBuffer.GetAddressOf());
+		
+		if (Mat->m_DiffuseSRV >= 0)
 		{
-			DeviceContext->PSSetShaderResources(0u, 1u, m_TexturesMap[m->m_MaterialIndex].GetAddressOf());
+			DeviceContext->PSSetShaderResources(0u, 1u, m_Textures[Mat->m_DiffuseSRV].GetAddressOf());
+		}
+
+		if (Mat->m_SpecularSRV >= 0)
+		{
+			DeviceContext->PSSetShaderResources(1u, 1u, m_Textures[Mat->m_SpecularSRV].GetAddressOf());
 		}
 
 		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!m_Materials[m->m_MaterialIndex]->m_bTwoSided);
@@ -103,7 +109,8 @@ void Model::ReleaseModel()
 void Model::Reset()
 {
 	ShutdownBuffers();
-	m_TexturesMap.clear();
+	m_TextureIndexMap.clear();
+	m_Textures.clear();
 	m_Materials.clear();
 	m_Meshes.clear();
 	ReleaseModel();
@@ -116,7 +123,7 @@ void Model::ProcessNode(aiNode* Node, const aiScene* Scene)
 		m_Meshes.emplace_back(std::make_unique<Mesh>(this));
 		UINT MeshIndex = (UINT)m_Meshes.size() - 1;
 		
-		aiMesh* SceneMesh = Scene->mMeshes[Node->mMeshes[i]];		
+		aiMesh* SceneMesh = Scene->mMeshes[Node->mMeshes[i]];
 		m_Meshes[MeshIndex]->ProcessMesh(SceneMesh);
 	}
 

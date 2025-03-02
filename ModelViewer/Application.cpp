@@ -84,7 +84,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	LoadModel("Models/car98k__bloostrike/scene.gltf", "Models/car98k__bloostrike/");
+	LoadModel("Models/busto_de_francisco_goya_en_fuendetodos/scene.gltf", "Models/busto_de_francisco_goya_en_fuendetodos/");
 
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
@@ -411,28 +411,38 @@ void Application::RenderImGui()
 	{
 		if (ImGui::Button("Load Stanford Bunny"))
 		{
-			/*strcpy_s(ModelLocationBuffer, "Models/stanford-bunny.obj");
-			if (LoadModel(ModelLocationBuffer))
+			if (LoadModel("Models/stanford-bunny.obj", ""))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
 			}
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}*/
+			}
 		}
 
 		if (ImGui::Button("Load Suzanne"))
 		{
-			/*strcpy_s(ModelLocationBuffer, "Models/suzanne.obj");
-			if (LoadModel(ModelLocationBuffer))
+			if (LoadModel("Models/suzanne.obj", ""))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
 			}
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}*/
+			}
+		}
+
+		if (ImGui::Button("Load Fantasy Sword"))
+		{
+			if (LoadModel("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"))
+			{
+				m_ModelLoadSuccessMessage = "Loaded model successfully!";
+			}
+			else
+			{
+				m_ModelLoadSuccessMessage = "Failed to load model!";
+			}
 		}
 
 		ImGui::Dummy(ImVec2(0.f, 20.f));
@@ -440,14 +450,14 @@ void Application::RenderImGui()
 		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
 		if (ImGui::Button("Load model from file"))
 		{
-			/*if (LoadModel(ModelLocationBuffer))
+			if (LoadModel(ModelLocationBuffer, ""))
 			{
 				m_ModelLoadSuccessMessage = "Loaded model successfully!";
 			}
 			else
 			{
 				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}*/
+			}
 		}
 		ImGui::Text(m_ModelLoadSuccessMessage);
 	}

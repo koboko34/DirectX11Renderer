@@ -8,6 +8,8 @@ Mesh::Mesh(Model* pOwner) : m_pOwner(pOwner)
 
 void Mesh::ProcessMesh(aiMesh* SceneMesh)
 {
+	// this is duplicating vertices, come back to this and optimise at some point
+	
 	m_VerticesOffset = (UINT)m_pOwner->GetVertices().size();
 	m_IndicesOffset = (UINT)m_pOwner->GetIndices().size();
 	m_MaterialIndex = SceneMesh->mMaterialIndex;

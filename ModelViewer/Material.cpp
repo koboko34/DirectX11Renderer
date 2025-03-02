@@ -10,7 +10,9 @@ Material::Material(UINT Index, Model* pOwner) : m_uIndex(Index), m_pOwner(pOwner
 
 void Material::LoadTextures(aiMaterial* MeshMat)
 {
-	if (m_pOwner->GetTexturesMap().find(m_uIndex) != m_pOwner->GetTexturesMap().end())
+	MeshMat->Get(AI_MATKEY_TWOSIDED, m_bTwoSided);
+
+	if (m_pOwner->GetTexturesPath().empty())
 	{
 		return;
 	}
@@ -20,10 +22,7 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 	if (MeshMat->GetTexture(aiTextureType_DIFFUSE, 0, &Path) == AI_SUCCESS)
 	{
 		std::string FullPath = m_pOwner->GetTexturesPath() + std::string(Path.C_Str());
-
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV = Application::GetSingletonPtr()->GetGraphics()->LoadTexture(FullPath.c_str());
-		m_pOwner->GetTexturesMap().insert({m_uIndex, SRV});
-		m_DiffuseSRV = (int)m_uIndex;
+		LoadTexture(FullPath);
 	}
 	else if (MeshMat->Get(AI_MATKEY_COLOR_DIFFUSE, Color) == AI_SUCCESS)
 	{
@@ -32,7 +31,38 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 		m_DiffuseColor.z = Color.b;
 	}
 
-	MeshMat->Get(AI_MATKEY_TWOSIDED, m_bTwoSided);
+	if (MeshMat->GetTexture(aiTextureType_SPECULAR, 0, &Path) == AI_SUCCESS)
+	{
+		std::string FullPath = m_pOwner->GetTexturesPath() + std::string(Path.C_Str());
+		LoadTexture(FullPath);
+	}
+	else
+	{
+		MeshMat->Get(AI_MATKEY_COLOR_SPECULAR, m_Specular);
+	}
+}
+
+void Material::LoadTexture(const std::string& Path)
+{
+	std::unordered_map<std::string, UINT>& TextureIndexMap = m_pOwner->GetTextureIndexMap();
+	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& Textures = m_pOwner->GetTextures();
+	if (TextureIndexMap.find(Path) == TextureIndexMap.end())
+	{
+		// not loaded, load and add index to map
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV = Application::GetSingletonPtr()->GetGraphics()->LoadTexture(Path.c_str());
+		Textures.push_back(SRV);
+
+		UINT Index = (UINT)Textures.size() - 1;
+		TextureIndexMap.insert({ Path, Index });
+
+		m_DiffuseSRV = Index;
+	}
+	else
+	{
+		// already loaded, find index and assign
+		UINT Index = TextureIndexMap.at(Path);
+		m_DiffuseSRV = Index;
+	}
 }
 
 void Material::CreateConstantBuffer()
@@ -46,6 +76,8 @@ void Material::CreateConstantBuffer()
 	MaterialData Data = {};
 	Data.DiffuseColor = m_DiffuseColor;
 	Data.DiffuseSRV = m_DiffuseSRV;
+	Data.SpecularSRV = m_SpecularSRV;
+	Data.Specular = m_Specular;
 
 	D3D11_SUBRESOURCE_DATA BufferData = {};
 	BufferData.pSysMem = &Data;

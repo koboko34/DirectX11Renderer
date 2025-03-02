@@ -40,7 +40,8 @@ public:
 	std::vector<UINT>& GetIndices() { return m_Indices; }
 	std::vector<std::unique_ptr<Mesh>>& GetMeshes() { return m_Meshes; }
 	std::vector<std::unique_ptr<Material>>& GetMaterials() { return m_Materials; }
-	std::unordered_map<UINT, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTexturesMap() { return m_TexturesMap; }
+	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTextures() { return m_Textures; }
+	std::unordered_map<std::string, UINT>& GetTextureIndexMap() { return m_TextureIndexMap; }
 
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
@@ -65,7 +66,8 @@ private:
 	std::vector<UINT> m_Indices;
 	std::vector<std::unique_ptr<Mesh>> m_Meshes;
 	std::vector<std::unique_ptr<Material>> m_Materials;
-	std::unordered_map<UINT, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_TexturesMap;
+	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_Textures;
+	std::unordered_map<std::string, UINT> m_TextureIndexMap;
 
 	std::string m_ModelPath;
 	std::string m_TexturesPath;

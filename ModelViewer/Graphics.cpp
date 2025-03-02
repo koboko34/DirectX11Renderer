@@ -361,8 +361,29 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const cha
 	assert(ImageData);
 	
 	unsigned char* ImageDataRgba = ImageData;
-	bool NeedsAlpha = Channels < 4;
-	if (NeedsAlpha)
+	bool NeedsAlpha = Channels == 3;
+
+	ID3D11Texture2D* Texture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
+	
+	D3D11_TEXTURE2D_DESC TexDesc = {};
+	TexDesc.Width = Width;
+	TexDesc.Height = Height;
+	TexDesc.MipLevels = 1;
+	TexDesc.ArraySize = 1;
+	TexDesc.SampleDesc.Count = 1;
+	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	if (Channels == 1)
+	{
+		TexDesc.Format = DXGI_FORMAT_R8_UNORM;
+	}
+	else if (Channels == 2)
+	{
+		TexDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+	}
+	else if (Channels == 3)
 	{
 		ImageDataRgba = new unsigned char[Width * Height * 4];
 
@@ -373,24 +394,18 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const cha
 			ImageDataRgba[i * 4 + 2] = ImageData[i * 3 + 2];
 			ImageDataRgba[i * 4 + 3] = 255;
 		}
+		
+		Channels = 4;
+		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	}
-
-	ID3D11Texture2D* Texture;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
-	
-	D3D11_TEXTURE2D_DESC TexDesc = {};
-	TexDesc.Width = Width;
-	TexDesc.Height = Height;
-	TexDesc.MipLevels = 1;
-	TexDesc.ArraySize = 1;
-	TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	TexDesc.SampleDesc.Count = 1;
-	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	else
+	{
+		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
 
 	D3D11_SUBRESOURCE_DATA InitData = {};
 	InitData.pSysMem = ImageDataRgba;
-	InitData.SysMemPitch = Width * 4;
+	InitData.SysMemPitch = Width * Channels;
 
 	assert(FAILED(GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
 	assert(FAILED(GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);

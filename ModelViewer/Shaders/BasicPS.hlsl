@@ -1,10 +1,14 @@
 Texture2D diffuseTexture : register(t0);
+Texture2D specularTexture : register(t1);
 SamplerState samplerState : register(s0);
 
 cbuffer Material
 {
 	float3 DiffuseColor;
 	int DiffuseSRV;
+	float Specular;
+	int SpecularSRV;
+	float2 Padding;
 };
 
 struct PS_In
@@ -17,6 +21,12 @@ struct PS_In
 
 float4 main(PS_In p) : SV_TARGET
 {
+	if (SpecularSRV >= 0)
+	{
+		float2 s = specularTexture.Sample(samplerState, p.TexCoord);
+		return float4(s.r, s.g, 0.f, 1.f);
+	}
+		
 	if (DiffuseSRV >= 0)
 	{
 		return diffuseTexture.Sample(samplerState, p.TexCoord);
