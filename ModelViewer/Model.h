@@ -56,8 +56,6 @@ private:
 	void ReleaseModel();
 	void Reset();
 
-	void ProcessNode(aiNode* Node, const aiScene* Scene);
-
 	bool CreateBuffers();
 	void LoadMaterials(const aiScene* Scene);
 

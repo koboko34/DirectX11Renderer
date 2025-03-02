@@ -55,16 +55,17 @@ bool Model::LoadModel()
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |
-		aiProcess_MakeLeftHanded |
-		aiProcess_FlipUVs
-		//aiProcess_ConvertToLeftHanded
+		//aiProcess_FlipWindingOrder
+		//aiProcess_MakeLeftHanded
+		//aiProcess_FlipUVs
+		aiProcess_ConvertToLeftHanded
 	);
 
 	assert(Scene);
 
 	LoadMaterials(Scene);
 	m_RootNode = std::make_unique<Node>(this, nullptr);
-	m_RootNode->ProcessNode(Scene->mRootNode, Scene);
+	m_RootNode->ProcessNode(Scene->mRootNode, Scene, DirectX::XMMatrixIdentity());
 	CreateBuffers();
 
 	return true;

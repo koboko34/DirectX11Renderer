@@ -1,13 +1,19 @@
 #include "Node.h"
 #include "Model.h"
 #include "Application.h"
+#include "MyMacros.h"
 
 Node::Node(Model* pModel, Node* pOwner) : m_pModel(pModel), m_pOwner(pOwner)
 {
 }
 
-void Node::ProcessNode(aiNode* ModelNode, const aiScene* Scene)
+void Node::ProcessNode(aiNode* ModelNode, const aiScene* Scene, const DirectX::XMMATRIX& AccumulatedTransform)
 {
+	//m_LocalTransform = DirectX::XMMatrixTranspose(ConvertToXMMATRIX(ModelNode->mTransformation));
+	m_LocalTransform = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
+	m_AccumulatedTransform = m_LocalTransform * AccumulatedTransform;
+	CreateConstantBuffer();
+	
 	for (size_t i = 0; i < ModelNode->mNumMeshes; i++)
 	{
 		m_Meshes.emplace_back(std::make_unique<Mesh>(m_pModel, this));
@@ -21,7 +27,7 @@ void Node::ProcessNode(aiNode* ModelNode, const aiScene* Scene)
 	{
 		m_Children.emplace_back(std::make_unique<Node>(m_pModel, this));
 		UINT Index = (UINT)(m_Children.size() - 1);
-		m_Children[Index].get()->ProcessNode(ModelNode->mChildren[i], Scene);
+		m_Children[Index].get()->ProcessNode(ModelNode->mChildren[i], Scene, m_AccumulatedTransform);
 	}
 }
 
@@ -34,6 +40,7 @@ void Node::RenderMeshes()
 	DeviceContext->IASetVertexBuffers(0u, 1u, m_pModel->GetVertexBuffer().GetAddressOf(), &Stride, &Offset);
 	DeviceContext->IASetIndexBuffer(m_pModel->GetIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	DeviceContext->VSSetConstantBuffers(1u, 1u, m_ConstantBuffer.GetAddressOf());
 
 	for (const std::unique_ptr<Mesh>& m : m_Meshes)
 	{
@@ -51,7 +58,8 @@ void Node::RenderMeshes()
 			DeviceContext->PSSetShaderResources(1u, 1u, m_pModel->GetTextures()[Mat->m_SpecularSRV].GetAddressOf());
 		}
 
-		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!Mat->m_bTwoSided);
+		//Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!Mat->m_bTwoSided); // this doesn't actually work in some cases, investigate
+		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(true);
 
 		DeviceContext->DrawIndexed(m->m_IndexCount, m->m_IndicesOffset, 0);
 	}
@@ -60,4 +68,28 @@ void Node::RenderMeshes()
 	{
 		ChildNode->RenderMeshes();
 	}
+}
+
+DirectX::XMMATRIX Node::ConvertToXMMATRIX(const aiMatrix4x4& aiMatrix) const
+{
+	return DirectX::XMMATRIX(
+		aiMatrix.a1, aiMatrix.a2, aiMatrix.a3, aiMatrix.a4,
+		aiMatrix.b1, aiMatrix.b2, aiMatrix.b3, aiMatrix.b4,
+		aiMatrix.c1, aiMatrix.c2, aiMatrix.c3, aiMatrix.c4,
+		aiMatrix.d1, aiMatrix.d2, aiMatrix.d3, aiMatrix.d4
+	);
+}
+
+void Node::CreateConstantBuffer()
+{
+	HRESULT hResult;
+	D3D11_BUFFER_DESC BufferDesc = {};
+	BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	BufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
+	BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA Data;
+	Data.pSysMem = &m_AccumulatedTransform;
+
+	ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &Data, &m_ConstantBuffer));
 }
