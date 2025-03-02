@@ -22,7 +22,7 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 	if (MeshMat->GetTexture(aiTextureType_DIFFUSE, 0, &Path) == AI_SUCCESS)
 	{
 		std::string FullPath = m_pOwner->GetTexturesPath() + std::string(Path.C_Str());
-		LoadTexture(FullPath);
+		LoadTexture(FullPath, m_DiffuseSRV);
 	}
 	else if (MeshMat->Get(AI_MATKEY_COLOR_DIFFUSE, Color) == AI_SUCCESS)
 	{
@@ -34,7 +34,7 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 	if (MeshMat->GetTexture(aiTextureType_SPECULAR, 0, &Path) == AI_SUCCESS)
 	{
 		std::string FullPath = m_pOwner->GetTexturesPath() + std::string(Path.C_Str());
-		LoadTexture(FullPath);
+		LoadTexture(FullPath, m_SpecularSRV);
 	}
 	else
 	{
@@ -42,7 +42,7 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 	}
 }
 
-void Material::LoadTexture(const std::string& Path)
+void Material::LoadTexture(const std::string& Path, int& TextureIndex)
 {
 	std::unordered_map<std::string, UINT>& TextureIndexMap = m_pOwner->GetTextureIndexMap();
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& Textures = m_pOwner->GetTextures();
@@ -55,13 +55,13 @@ void Material::LoadTexture(const std::string& Path)
 		UINT Index = (UINT)Textures.size() - 1;
 		TextureIndexMap.insert({ Path, Index });
 
-		m_DiffuseSRV = Index;
+		TextureIndex = Index;
 	}
 	else
 	{
 		// already loaded, find index and assign
 		UINT Index = TextureIndexMap.at(Path);
-		m_DiffuseSRV = Index;
+		TextureIndex = Index;
 	}
 }
 

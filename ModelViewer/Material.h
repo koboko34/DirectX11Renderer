@@ -31,7 +31,7 @@ public:
 	Material(UINT Index, Model* pOwner);
 
 	void LoadTextures(aiMaterial* MeshMat);
-	void LoadTexture(const std::string& Path);
+	void LoadTexture(const std::string& Path, int& TextureIndex);
 	void CreateConstantBuffer();
 
 private:
