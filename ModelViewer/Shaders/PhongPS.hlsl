@@ -40,7 +40,7 @@ struct PS_In
 };
 
 float4 main(PS_In p) : SV_TARGET
-{	
+{		
 	float4 Color;
 	if (Mat.DiffuseSRV >= 0)
 	{
@@ -51,7 +51,7 @@ float4 main(PS_In p) : SV_TARGET
 		Color = float4(Mat.DiffuseColor, 1.f);
 	}
 	
-	float AmbientFactor = 0.3f;
+	float AmbientFactor = 0.1f;
 	float4 Ambient = float4(Color.rgb * AmbientFactor, 1.f);
 	
 	float Distance = distance(p.WorldPos, Lighting.LightPos);
@@ -67,7 +67,7 @@ float4 main(PS_In p) : SV_TARGET
     float4 Specular = float4(0.f, 0.f, 0.f, 0.f);
 	if (DiffuseFactor > 0.f)
     {
-        Diffuse = float4(Lighting.LightColor.rgb * DiffuseFactor, 1.f);
+        Diffuse = float4(Lighting.LightColor.rgb * Color.rgb * DiffuseFactor, 1.f);
 		
 		float3 PixelToCam = normalize(Lighting.CameraPos - p.WorldPos);
 		float3 HalfwayVec = normalize(PixelToCam + PixelToLight);

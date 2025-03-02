@@ -39,7 +39,8 @@ VS_Out main(VS_In v)
 	o.Pos = mul(o.Pos, ProjectionMatrix);
 	
 	o.TexCoord = v.TexCoord;
-	o.WorldNormal = mul(mul(float4(v.Normal, 0.f), AccumulatedModelMatrix), WorldMatrix).xyz;
+	
+	o.WorldNormal = mul(mul(float4(v.Normal, 0.f), AccumulatedModelMatrix), WorldMatrix).xyz; // correct as long as I use uniform scaling
 	o.WorldNormal = normalize(o.WorldNormal);
 	
 	return o;
