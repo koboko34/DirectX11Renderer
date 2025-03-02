@@ -36,11 +36,11 @@ struct PS_In
 	float4 Pos : SV_POSITION;
 	float3 WorldPos : POSITION;
 	float2 TexCoord : TEXCOORD0;
-	float3 Normal : NORMAL;
+	float3 WorldNormal : NORMAL;
 };
 
 float4 main(PS_In p) : SV_TARGET
-{
+{	
 	float4 Color;
 	if (Mat.DiffuseSRV >= 0)
 	{
@@ -51,7 +51,7 @@ float4 main(PS_In p) : SV_TARGET
 		Color = float4(Mat.DiffuseColor, 1.f);
 	}
 	
-	float AmbientFactor = 0.5f;
+	float AmbientFactor = 0.3f;
 	float4 Ambient = float4(Color.rgb * AmbientFactor, 1.f);
 	
 	float Distance = distance(p.WorldPos, Lighting.LightPos);
@@ -61,7 +61,7 @@ float4 main(PS_In p) : SV_TARGET
 	}
 	
 	float3 PixelToLight = normalize(Lighting.LightPos - p.WorldPos);
-	float DiffuseFactor = saturate(dot(PixelToLight, p.Normal));	
+	float DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));	
 	
 	float4 Diffuse = float4(0.f, 0.f, 0.f, 0.f);
     float4 Specular = float4(0.f, 0.f, 0.f, 0.f);
@@ -71,7 +71,7 @@ float4 main(PS_In p) : SV_TARGET
 		
 		float3 PixelToCam = normalize(Lighting.CameraPos - p.WorldPos);
 		float3 HalfwayVec = normalize(PixelToCam + PixelToLight);
-		float SpecularFactor = pow(saturate(dot(p.Normal, HalfwayVec)), Lighting.SpecularPower);
+		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), Lighting.SpecularPower);
 		Specular = float4(Lighting.LightColor.rgb * SpecularFactor, 1.f);		
     }
 	
