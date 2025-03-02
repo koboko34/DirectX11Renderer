@@ -53,12 +53,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
-	/*
-	char ModelFilename[128];
-	strcpy_s(ModelFilename, "Models/sphere.obj");
-
 	m_SceneLight = new Model();
-	Result = m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename);
+	Result = m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), "Models/sphere.obj", "");
 	if (!Result)
 	{
 		ShowCursor(true);
@@ -66,25 +62,13 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
-	strcpy_s(ModelFilename, "Models/plane.obj");
-
-	m_Plane = new Model();
-	Result = m_Plane->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename);
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise plane object!", L"Error", MB_OK);
-		return false;
-	}
-	*/
-
 	m_Light = new Light();
 	m_Light->SetPosition(1.f, 1.f, -0.5f);
 	m_Light->SetSpecularPower(32.f);
 	m_Light->SetRadius(5.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	LoadModel("Models/busto_de_francisco_goya_en_fuendetodos/scene.gltf", "Models/busto_de_francisco_goya_en_fuendetodos/");
+	LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
 
 	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
 
@@ -94,7 +78,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 
@@ -227,10 +211,6 @@ bool Application::RenderScene()
 	
 	m_Camera->Render();
 
-	if (m_ShouldRenderPlane && m_Plane)
-	{
-		RenderPlane();
-	}
 	if (m_ShouldRenderLight && m_Light)
 	{
 		RenderPhysicalLight();
@@ -258,7 +238,7 @@ bool Application::RenderScene()
 			m_Light->GetSpecularPower()
 		);
 
-		m_Model->Render(m_Graphics->GetDeviceContext());
+		m_Model->Render();
 	}
 	
 	return true;
@@ -286,8 +266,7 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 
 bool Application::RenderPhysicalLight()
 {
-	/*DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-	bool Result;
+	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
 
 	m_Graphics->GetWorldMatrix(WorldMatrix);
 	auto LightPos = m_Light->GetPosition();
@@ -296,12 +275,10 @@ bool Application::RenderPhysicalLight()
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
-	m_SceneLight->Render(m_Graphics->GetDeviceContext());
-
-	FALSE_IF_FAILED(
-		m_Shader->Render(
+	m_Shader->ActivateShader(m_Graphics->GetDeviceContext());
+	assert(
+		m_Shader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
-			m_SceneLight->GetIndexCount(),
 			WorldMatrix,
 			ViewMatrix,
 			ProjectionMatrix,
@@ -311,37 +288,9 @@ bool Application::RenderPhysicalLight()
 			m_Light->GetDiffuseColor(),
 			m_Light->GetSpecularPower()
 		)
-	);*/
-	
-	return true;
-}
+	);
 
-bool Application::RenderPlane()
-{
-	/*DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-	bool Result;
-
-	m_Graphics->GetWorldMatrix(WorldMatrix);
-	WorldMatrix *= DirectX::XMMatrixScaling(20.f, 1.f, 20.f);
-	m_Camera->GetViewMatrix(ViewMatrix);
-	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
-
-	m_Plane->Render(m_Graphics->GetDeviceContext());
-
-	FALSE_IF_FAILED(
-		m_Shader->Render(
-			m_Graphics->GetDeviceContext(),
-			m_Plane->GetIndexCount(),
-			WorldMatrix,
-			ViewMatrix,
-			ProjectionMatrix,
-			m_Camera->GetPosition(),
-			m_Light->GetRadius(),
-			m_Light->GetPosition(),
-			m_Light->GetDiffuseColor(),
-			m_Light->GetSpecularPower()
-		)
-	);*/
+	m_SceneLight->Render();
 	
 	return true;
 }
@@ -391,10 +340,6 @@ void Application::RenderImGui()
 		m_ModelScale.y = m_ModelScale.x;
 		m_ModelScale.z = m_ModelScale.x;
 		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 10.f));
-
-		ImGui::Checkbox("Render plane?", &m_ShouldRenderPlane);
 
 		ImGui::Dummy(ImVec2(0.f, 20.f));
 

@@ -5,14 +5,18 @@
 
 #include "DirectXMath.h"
 
+#include <memory>
+
 struct aiMesh;
+class Material;
 
 class Mesh
 {
 	friend class Model;
+	friend class Node;
 
 public:
-	Mesh(Model* pOwner);
+	Mesh(Model* pModel, Node* pNode);
 
 	void ProcessMesh(aiMesh* SceneMesh);
 
@@ -21,9 +25,10 @@ private:
 	unsigned int m_IndicesOffset;
 	unsigned int m_VertexCount;
 	unsigned int m_IndexCount;
-	unsigned int m_MaterialIndex;
+	std::shared_ptr<Material> m_Material;
 
-	Model* m_pOwner;
+	Model* m_pModel;
+	Node* m_pNode;
 
 };
 

@@ -35,46 +35,15 @@ void Model::Shutdown()
 	Reset();
 }
 
-void Model::Render(ID3D11DeviceContext* DeviceContext)
+void Model::Render()
 {
-	RenderMeshes(DeviceContext);
+	m_RootNode->RenderMeshes();
 }
 
 void Model::ShutdownBuffers()
 {
 	m_VertexBuffer.Reset();
 	m_IndexBuffer.Reset();
-}
-
-void Model::RenderMeshes(ID3D11DeviceContext* DeviceContext)
-{
-	UINT Stride = sizeof(Vertex);
-	UINT Offset = 0u;
-	
-	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	for (const std::unique_ptr<Mesh>& m : m_Meshes)
-	{
-		const Material* Mat = m_Materials[m->m_MaterialIndex].get();
-		
-		DeviceContext->PSSetConstantBuffers(0u, 1u, Mat->m_ConstantBuffer.GetAddressOf());
-		
-		if (Mat->m_DiffuseSRV >= 0)
-		{
-			DeviceContext->PSSetShaderResources(0u, 1u, m_Textures[Mat->m_DiffuseSRV].GetAddressOf());
-		}
-
-		if (Mat->m_SpecularSRV >= 0)
-		{
-			DeviceContext->PSSetShaderResources(1u, 1u, m_Textures[Mat->m_SpecularSRV].GetAddressOf());
-		}
-
-		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!m_Materials[m->m_MaterialIndex]->m_bTwoSided);
-
-		DeviceContext->DrawIndexed(m->m_IndexCount, m->m_IndicesOffset, 0);
-	}
 }
 
 bool Model::LoadModel()
@@ -93,44 +62,36 @@ bool Model::LoadModel()
 
 	assert(Scene);
 
-	ProcessNode(Scene->mRootNode, Scene);
-	CreateBuffers();
 	LoadMaterials(Scene);
+	m_RootNode = std::make_unique<Node>(this, nullptr);
+	m_RootNode->ProcessNode(Scene->mRootNode, Scene);
+	CreateBuffers();
 
 	return true;
 }
 
 void Model::ReleaseModel()
 {
-	m_Vertices.resize(0);
-	m_Indices.resize(0);
+	m_RootNode.reset();
+
+	m_Textures.clear();
+	m_Materials.clear();
+	m_Meshes.clear();
+	m_Vertices.clear();
+	m_Indices.clear();
+
+	m_Textures.shrink_to_fit();
+	m_Materials.shrink_to_fit();
+	m_Meshes.shrink_to_fit();
+	m_Vertices.shrink_to_fit();
+	m_Indices.shrink_to_fit();
 }
 
 void Model::Reset()
 {
 	ShutdownBuffers();
 	m_TextureIndexMap.clear();
-	m_Textures.clear();
-	m_Materials.clear();
-	m_Meshes.clear();
 	ReleaseModel();
-}
-
-void Model::ProcessNode(aiNode* Node, const aiScene* Scene)
-{
-	for (size_t i = 0; i < Node->mNumMeshes; i++)
-	{
-		m_Meshes.emplace_back(std::make_unique<Mesh>(this));
-		UINT MeshIndex = (UINT)m_Meshes.size() - 1;
-		
-		aiMesh* SceneMesh = Scene->mMeshes[Node->mMeshes[i]];
-		m_Meshes[MeshIndex]->ProcessMesh(SceneMesh);
-	}
-
-	for (size_t i = 0; i < Node->mNumChildren; i++)
-	{
-		ProcessNode(Node->mChildren[i], Scene);
-	}
 }
 
 bool Model::CreateBuffers()
@@ -165,7 +126,7 @@ void Model::LoadMaterials(const aiScene* Scene)
 {
 	for (size_t i = 0; i < Scene->mNumMaterials; i++)
 	{
-		m_Materials.emplace_back(std::make_unique<Material>((UINT)i, this));
+		m_Materials.emplace_back(std::make_shared<Material>((UINT)i, this));
 		UINT MatIndex = (UINT)m_Materials.size() - 1;
 		m_Materials[MatIndex]->LoadTextures(Scene->mMaterials[i]);
 		m_Materials[MatIndex]->CreateConstantBuffer();

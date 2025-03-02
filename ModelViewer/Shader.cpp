@@ -32,7 +32,7 @@ bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
 		return false;
 	}
 	
-	Error = wcscpy_s(psFilename, 128, L"Shaders/BasicPS.hlsl");
+	Error = wcscpy_s(psFilename, 128, L"Shaders/PhongPS.hlsl");
 	if (Error != 0)
 	{
 		return false;
@@ -202,7 +202,7 @@ bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XM
 	View = DirectX::XMMatrixTranspose(View);
 	Projection = DirectX::XMMatrixTranspose(Projection);
 	
-	HFALSE_IF_FAILED(DeviceContext->Map(m_MatrixBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_MatrixBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
 	MatrixDataPtr = (MatrixBuffer*)MappedResource.pData;
 	MatrixDataPtr->WorldMatrix = World;
 	MatrixDataPtr->ViewMatrix = View;
@@ -212,7 +212,7 @@ bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XM
 	DeviceContext->VSSetConstantBuffers(vsBufferSlot, 1u, m_MatrixBuffer.GetAddressOf());
 	vsBufferSlot++;
 
-	HFALSE_IF_FAILED(DeviceContext->Map(m_LightingBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_LightingBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
 	LightingDataPtr->Radius = Radius;

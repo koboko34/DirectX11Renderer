@@ -36,6 +36,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="Node.cpp" />
     <ClCompile Include="PostProcess.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SystemClass.cpp" />
@@ -59,6 +60,7 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="MyMacros.h" />
+    <ClInclude Include="Node.h" />
     <ClInclude Include="PostProcess.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SystemClass.h" />

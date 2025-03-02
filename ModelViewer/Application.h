@@ -50,7 +50,6 @@ private:
 	bool RenderScene();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
 	bool RenderPhysicalLight();
-	bool RenderPlane();
 	void RenderImGui();
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
@@ -64,7 +63,6 @@ private:
 	Light* m_Light;
 
 	Model* m_SceneLight;
-	Model* m_Plane;
 	Model* m_Model;
 
 	DirectX::XMFLOAT3 m_ModelPos;
@@ -73,7 +71,6 @@ private:
 
 	const char* m_ModelLoadSuccessMessage = "";
 	bool m_ShouldRenderLight = true;
-	bool m_ShouldRenderPlane = false;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;

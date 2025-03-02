@@ -15,7 +15,7 @@ struct aiMaterial;
 
 struct MaterialData
 {
-	DirectX::XMFLOAT3 DiffuseColor = { 0.f, 0.f, 0.f };
+	DirectX::XMFLOAT3 DiffuseColor = { 1.f, 1.f, 1.f };
 	int DiffuseSRV = -1;
 	float Specular = 0.f;
 	int SpecularSRV = -1;
@@ -26,6 +26,7 @@ class Material
 {
 	friend class Model;
 	friend class Mesh;
+	friend class Node;
 
 public:
 	Material(UINT Index, Model* pOwner);

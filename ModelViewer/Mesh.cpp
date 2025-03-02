@@ -2,7 +2,7 @@
 
 #include "Model.h"
 
-Mesh::Mesh(Model* pOwner) : m_pOwner(pOwner)
+Mesh::Mesh(Model* pModel, Node* pNode) : m_pModel(pModel), m_pNode(pNode)
 {
 }
 
@@ -10,9 +10,9 @@ void Mesh::ProcessMesh(aiMesh* SceneMesh)
 {
 	// this is duplicating vertices, come back to this and optimise at some point
 	
-	m_VerticesOffset = (UINT)m_pOwner->GetVertices().size();
-	m_IndicesOffset = (UINT)m_pOwner->GetIndices().size();
-	m_MaterialIndex = SceneMesh->mMaterialIndex;
+	m_VerticesOffset = (UINT)m_pModel->GetVertices().size();
+	m_IndicesOffset = (UINT)m_pModel->GetIndices().size();
+	m_Material = m_pModel->GetMaterials()[SceneMesh->mMaterialIndex];
 
 	for (size_t i = 0; i < SceneMesh->mNumVertices; i++)
 	{
@@ -29,17 +29,17 @@ void Mesh::ProcessMesh(aiMesh* SceneMesh)
 			v.TexCoord = DirectX::XMFLOAT2(0.f, 0.f);
 		}
 
-		m_pOwner->GetVertices().push_back(v);
+		m_pModel->GetVertices().push_back(v);
 	}
-	m_VertexCount = (UINT)m_pOwner->GetVertices().size() - m_VerticesOffset;
+	m_VertexCount = (UINT)m_pModel->GetVertices().size() - m_VerticesOffset;
 
 	for (size_t i = 0; i < SceneMesh->mNumFaces; i++)
 	{
 		aiFace Face = SceneMesh->mFaces[i];
 		for (size_t j = 0; j < Face.mNumIndices; j++)
 		{
-			m_pOwner->GetIndices().push_back(Face.mIndices[j] + m_VerticesOffset);
+			m_pModel->GetIndices().push_back(Face.mIndices[j] + m_VerticesOffset);
 		}
 	}
-	m_IndexCount = (UINT)m_pOwner->GetIndices().size() - m_IndicesOffset;
+	m_IndexCount = (UINT)m_pModel->GetIndices().size() - m_IndicesOffset;
 }

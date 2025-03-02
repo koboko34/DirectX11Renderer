@@ -15,6 +15,7 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+#include "Node.h"
 #include "Mesh.h"
 #include "Material.h"
 
@@ -34,12 +35,14 @@ public:
 
 	bool Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceContext, std::string ModelFilename, std::string TexturesPath);
 	void Shutdown();
-	void Render(ID3D11DeviceContext* DeviceContext);
+	void Render();
 
+	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
+	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer() const { return m_IndexBuffer; }
 	std::vector<Vertex>& GetVertices() { return m_Vertices; }
 	std::vector<UINT>& GetIndices() { return m_Indices; }
 	std::vector<std::unique_ptr<Mesh>>& GetMeshes() { return m_Meshes; }
-	std::vector<std::unique_ptr<Material>>& GetMaterials() { return m_Materials; }
+	std::vector<std::shared_ptr<Material>>& GetMaterials() { return m_Materials; }
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTextures() { return m_Textures; }
 	std::unordered_map<std::string, UINT>& GetTextureIndexMap() { return m_TextureIndexMap; }
 
@@ -48,7 +51,6 @@ public:
 
 private:
 	void ShutdownBuffers();
-	void RenderMeshes(ID3D11DeviceContext* DeviceContext);
 
 	bool LoadModel();
 	void ReleaseModel();
@@ -65,7 +67,8 @@ private:
 	std::vector<Vertex> m_Vertices;
 	std::vector<UINT> m_Indices;
 	std::vector<std::unique_ptr<Mesh>> m_Meshes;
-	std::vector<std::unique_ptr<Material>> m_Materials;
+	std::unique_ptr<Node> m_RootNode;
+	std::vector<std::shared_ptr<Material>> m_Materials;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_Textures;
 	std::unordered_map<std::string, UINT> m_TextureIndexMap;
 
