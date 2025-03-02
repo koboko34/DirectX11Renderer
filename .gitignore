@@ -398,3 +398,4 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 ModelViewer/shader-error.txt
+/ModelViewer/Models
