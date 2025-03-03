@@ -47,11 +47,11 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_VSync_Enabled = VSync;
 	m_Dimensions = std::make_pair(ScreenWidth, ScreenHeight);
 
-	HFALSE_IF_FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&Factory));
-	HFALSE_IF_FAILED(Factory->EnumAdapters(0, &Adapter));
-	HFALSE_IF_FAILED(Adapter->EnumOutputs(0, &AdapterOutput));
+	ASSERT_NOT_FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&Factory));
+	ASSERT_NOT_FAILED(Factory->EnumAdapters(0, &Adapter));
+	ASSERT_NOT_FAILED(Adapter->EnumOutputs(0, &AdapterOutput));
 
-	HFALSE_IF_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, NULL));
+	ASSERT_NOT_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, NULL));
 
 	// create a list to hold all the possible display modes for this monitor/video card combination
 	DisplayModeList = new DXGI_MODE_DESC[NumModes];
@@ -60,7 +60,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 		return false;
 	}
 
-	HFALSE_IF_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, DisplayModeList));
+	ASSERT_NOT_FAILED(AdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &NumModes, DisplayModeList));
 
 	for (unsigned int i = 0; i < NumModes; i++)
 	{
@@ -74,7 +74,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 		}
 	}
 
-	HFALSE_IF_FAILED(Adapter->GetDesc(&AdapterDesc));
+	ASSERT_NOT_FAILED(Adapter->GetDesc(&AdapterDesc));
 
 	m_VideoCardMemory = (int)(AdapterDesc.DedicatedVideoMemory / 1024 / 1024);
 
@@ -136,7 +136,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	FeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-	HFALSE_IF_FAILED(D3D11CreateDeviceAndSwapChain(
+	ASSERT_NOT_FAILED(D3D11CreateDeviceAndSwapChain(
 		NULL,
 		D3D_DRIVER_TYPE_HARDWARE,
 		NULL,
@@ -150,8 +150,8 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 		NULL,
 		&m_DeviceContext)
 	);
-	HFALSE_IF_FAILED(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBufferPtr));
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_BackBufferRTV));
+	ASSERT_NOT_FAILED(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBufferPtr));
+	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_BackBufferRTV));
 
 	BackBufferPtr->Release();
 	BackBufferPtr = 0;
@@ -168,7 +168,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthBufferDesc.CPUAccessFlags = 0;
 	DepthBufferDesc.MiscFlags = 0;
 
-	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&DepthBufferDesc, NULL, &m_DepthStencilBuffer));
+	ASSERT_NOT_FAILED(m_Device->CreateTexture2D(&DepthBufferDesc, NULL, &m_DepthStencilBuffer));
 
 	DepthStencilDesc.DepthEnable = true;
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -188,19 +188,19 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	DepthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteEnabled));
+	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteEnabled));
 
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	DepthStencilDesc.StencilWriteMask = 0;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabled));
+	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabled));
 
 	DepthStencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
 	DepthStencilDesc.StencilEnable = false;
 	DepthStencilDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
 	DepthStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabledAlwaysPass));
+	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabledAlwaysPass));
 
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteEnabled.Get(), 1);
 
@@ -208,9 +208,28 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	DepthStencilViewDesc.Texture2D.MipSlice = 0;
 
-	HFALSE_IF_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
+	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
 
 	m_DeviceContext->OMSetRenderTargets(1, m_BackBufferRTV.GetAddressOf(), m_DepthStencilView.Get());
+
+	D3D11_BLEND_DESC BlendDesc = {};
+	BlendDesc.AlphaToCoverageEnable = false;
+	BlendDesc.IndependentBlendEnable = false;
+	BlendDesc.RenderTarget[0].BlendEnable = false;
+	BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	ASSERT_NOT_FAILED(m_Device->CreateBlendState(&BlendDesc, &m_BlendStateOpaque));
+	m_DeviceContext->OMSetBlendState(m_BlendStateOpaque.Get(), nullptr, 0xFFFFFFFF);
+
+	BlendDesc.RenderTarget[0].BlendEnable = true;
+	BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	ASSERT_NOT_FAILED(m_Device->CreateBlendState(&BlendDesc, &m_BlendStateTransparent));
 
 	RasterDesc.AntialiasedLineEnable = false;
 	RasterDesc.CullMode = D3D11_CULL_BACK;
@@ -223,13 +242,13 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	RasterDesc.ScissorEnable = false;
 	RasterDesc.SlopeScaledDepthBias = 0.f;
 
-	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOn));
+	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOn));
 
 	m_DeviceContext->RSSetState(m_RasterStateBackFaceCullOn.Get());
 
 	RasterDesc.CullMode = D3D11_CULL_NONE;
 
-	HFALSE_IF_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOff));
+	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOff));
 
 	m_Viewport.Width = (float)ScreenWidth;
 	m_Viewport.Height = (float)ScreenHeight;
@@ -257,14 +276,14 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	PostProcessTextureDesc.Usage = D3D11_USAGE_DEFAULT;
 	PostProcessTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTFirst));
-	HFALSE_IF_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTSecond));
+	ASSERT_NOT_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTFirst));
+	ASSERT_NOT_FAILED(m_Device->CreateTexture2D(&PostProcessTextureDesc, NULL, &PostProcessRTTSecond));
 
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
-	HFALSE_IF_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
+	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
+	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
 
-	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
-	HFALSE_IF_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
+	ASSERT_NOT_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
+	ASSERT_NOT_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -274,7 +293,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	HFALSE_IF_FAILED(m_Device->CreateSamplerState(&SamplerDesc, &m_SamplerState));
+	ASSERT_NOT_FAILED(m_Device->CreateSamplerState(&SamplerDesc, &m_SamplerState));
 	m_DeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());
 
 	ImGui_ImplDX11_Init(m_Device.Get(), m_DeviceContext.Get());
@@ -342,6 +361,16 @@ void Graphics::DisableDepthWrite()
 void Graphics::DisableDepthWriteAlwaysPass()
 {
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteDisabledAlwaysPass.Get(), 1);
+}
+
+void Graphics::EnableBlending()
+{
+	m_DeviceContext->OMSetBlendState(m_BlendStateTransparent.Get(), nullptr, 0xFFFFFFFF);
+}
+
+void Graphics::DisableBlending()
+{
+	m_DeviceContext->OMSetBlendState(m_BlendStateOpaque.Get(), nullptr, 0xFFFFFFFF);
 }
 
 void Graphics::ResetViewport()

@@ -35,6 +35,8 @@ public:
 	void EnableDepthWrite();
 	void DisableDepthWrite();
 	void DisableDepthWriteAlwaysPass();
+	void EnableBlending();
+	void DisableBlending();
 	void ResetViewport();
 	void SetRasterStateBackFaceCull(bool bShouldCull);
 
@@ -51,6 +53,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabled;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabledAlwaysPass;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStateOpaque;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStateTransparent;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOn;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOff;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;

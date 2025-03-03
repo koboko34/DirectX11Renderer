@@ -42,6 +42,7 @@ private:
 	int m_SpecularSRV = -1;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	bool m_bTwoSided = true;
+	bool m_bOpaque = false;
 	
 	UINT m_uIndex;
 	Model* m_pOwner;

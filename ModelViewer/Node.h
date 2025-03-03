@@ -29,16 +29,12 @@ public:
 
 	void ProcessNode(aiNode* ModelNode, const aiScene* Scene, const DirectX::XMMATRIX& AccumulatedTransform);
 
-	std::vector<std::unique_ptr<Mesh>>& GetMeshes() { return m_Meshes; }
-
 private:
-	void RenderMeshes();
 	void CreateConstantBuffer();
 
 	DirectX::XMMATRIX ConvertToXMMATRIX(const aiMatrix4x4& aiMatrix) const;
 
 private:
-	std::vector<std::unique_ptr<Mesh>> m_Meshes;
 	std::vector<std::unique_ptr<Node>> m_Children;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;

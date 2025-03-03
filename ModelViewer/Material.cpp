@@ -11,7 +11,13 @@ Material::Material(UINT Index, Model* pOwner) : m_uIndex(Index), m_pOwner(pOwner
 void Material::LoadTextures(aiMaterial* MeshMat)
 {
 	MeshMat->Get(AI_MATKEY_TWOSIDED, m_bTwoSided);
-
+	float Opacity = 0.f;
+	MeshMat->Get(AI_MATKEY_OPACITY, Opacity);
+	if (Opacity >= 1.f)
+	{
+		m_bOpaque = true;
+	}
+	
 	if (m_pOwner->GetTexturesPath().empty())
 	{
 		return;
