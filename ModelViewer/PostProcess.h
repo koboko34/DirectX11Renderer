@@ -608,12 +608,13 @@ public:
 	enum ToneMapperFormula {
 		ReinhardBasic,
 		ReinhardExtended,
-		ReinhardExtendedBias
+		ReinhardExtendedBias,
+		NarkowiczACES
 	};
 	
 	PostProcessToneMapper(float WhiteLevel, float Exposure, float Bias, ToneMapperFormula Formula)
 	{
-		assert(Formula >= 0 && Formula < 3);
+		assert(Formula >= 0 && Formula < 4);
 		
 		struct ToneMapperData {
 			float WhiteLevel;

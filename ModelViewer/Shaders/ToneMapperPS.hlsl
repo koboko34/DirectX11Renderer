@@ -6,12 +6,13 @@ cbuffer ToneMapperBuffer
 	float whiteLevel;
 	float exposure;
 	float bias;
-	int formula; // 0 == Reinhard Basic, 1 == ReinhardExtended, 2 = ReinhardExtendedBias
+	int formula; // 0 == Reinhard Basic, 1 == ReinhardExtended, 2 == ReinhardExtendedBias, 3 == NarkowiczACES
 };
 
 #define REINHARD_BASIC 0
 #define REINHARD_EXTENDED 1
 #define REINHARD_EXTENDED_BIAS 2
+#define NARKOWICZ_ACES 3
 
 struct PS_In
 {
@@ -37,6 +38,16 @@ float3 ReinhardExtendedBias(float3 color)
 	return color / (color + bias);
 }
 
+float3 NarkowiczACES(float3 color)
+{
+	float a = 2.51f;
+	float b = 0.03f;
+	float c = 2.43f;
+	float d = 0.59f;
+	float e = 0.14f;
+	return saturate((color * (a * color + b)) / (color * (c * color + d) + e));
+}
+
 float4 main(PS_In p) : SV_TARGET
 {
 	float4 color = screenTexture.Sample(samplerState, p.TexCoord);
@@ -53,6 +64,10 @@ float4 main(PS_In p) : SV_TARGET
 	else if (formula == REINHARD_EXTENDED_BIAS)
 	{
 		toneMappedColor = ReinhardExtendedBias(color.xyz);
+	}
+	else if (formula == NARKOWICZ_ACES)
+	{
+		toneMappedColor = NarkowiczACES(color.xyz);
 	}
 	
 	return float4(toneMappedColor, 1.f);
