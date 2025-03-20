@@ -609,12 +609,14 @@ public:
 		ReinhardBasic,
 		ReinhardExtended,
 		ReinhardExtendedBias,
-		NarkowiczACES
+		NarkowiczACES,
+		HillACES,
+		None
 	};
 	
 	PostProcessToneMapper(float WhiteLevel, float Exposure, float Bias, ToneMapperFormula Formula)
 	{
-		assert(Formula >= 0 && Formula < 4);
+		assert(Formula >= 0 && Formula < ToneMapperFormula::None);
 		
 		struct ToneMapperData {
 			float WhiteLevel;
