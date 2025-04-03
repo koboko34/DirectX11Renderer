@@ -17,9 +17,8 @@ struct MaterialData
 {
 	DirectX::XMFLOAT3 DiffuseColor = { 1.f, 1.f, 1.f };
 	int DiffuseSRV = -1;
-	float Specular = 0.f;
+	DirectX::XMFLOAT3 Specular = { 1.f, 1.f, 1.f };
 	int SpecularSRV = -1;
-	float Padding[2] = { 0.f, 0.f };
 };
 
 class Material
@@ -37,12 +36,14 @@ public:
 
 private:
 	DirectX::XMFLOAT3 m_DiffuseColor;
-	float m_Specular = 0.f;
+	DirectX::XMFLOAT3 m_Specular;
 	int m_DiffuseSRV = -1;
 	int m_SpecularSRV = -1;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	bool m_bTwoSided = true;
 	bool m_bOpaque = false;
+
+	std::string m_Name;
 	
 	UINT m_uIndex;
 	Model* m_pOwner;

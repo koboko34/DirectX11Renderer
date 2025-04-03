@@ -10,6 +10,7 @@ void Mesh::ProcessMesh(aiMesh* SceneMesh)
 {
 	// this is duplicating vertices, come back to this and optimise at some point
 	
+	m_Name = SceneMesh->mName.C_Str();
 	m_VerticesOffset = (UINT)m_pModel->GetVertices().size();
 	m_IndicesOffset = (UINT)m_pModel->GetIndices().size();
 	m_Material = m_pModel->GetMaterials()[SceneMesh->mMaterialIndex];

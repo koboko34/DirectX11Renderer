@@ -62,7 +62,7 @@ void Camera::Render()
 
 	LookAt.x = 0.f;
 	LookAt.y = 0.f;
-	LookAt.z = 1.f;
+	LookAt.z = 0.f;
 
 	LookAtVector = DirectX::XMLoadFloat3(&LookAt);
 

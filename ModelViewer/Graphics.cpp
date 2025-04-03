@@ -2,9 +2,6 @@
 
 #include "ImGui\imgui_impl_dx11.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include "MyMacros.h"
 
 
@@ -381,69 +378,4 @@ void Graphics::ResetViewport()
 void Graphics::SetRasterStateBackFaceCull(bool bShouldCull)
 {
 	GetDeviceContext()->RSSetState(bShouldCull ? m_RasterStateBackFaceCullOn.Get() : m_RasterStateBackFaceCullOff.Get());
-}
-
-Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Graphics::LoadTexture(const char* Filepath)
-{	
-	int Width, Height, Channels;
-	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
-	assert(ImageData);
-	
-	unsigned char* ImageDataRgba = ImageData;
-	bool NeedsAlpha = Channels == 3;
-
-	ID3D11Texture2D* Texture;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
-	
-	D3D11_TEXTURE2D_DESC TexDesc = {};
-	TexDesc.Width = Width;
-	TexDesc.Height = Height;
-	TexDesc.MipLevels = 1;
-	TexDesc.ArraySize = 1;
-	TexDesc.SampleDesc.Count = 1;
-	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-	if (Channels == 1)
-	{
-		TexDesc.Format = DXGI_FORMAT_R8_UNORM;
-	}
-	else if (Channels == 2)
-	{
-		TexDesc.Format = DXGI_FORMAT_R8G8_UNORM;
-	}
-	else if (Channels == 3)
-	{
-		ImageDataRgba = new unsigned char[Width * Height * 4];
-
-		for (int i = 0; i < Width * Height; i++)
-		{
-			ImageDataRgba[i * 4 + 0] = ImageData[i * 3 + 0];
-			ImageDataRgba[i * 4 + 1] = ImageData[i * 3 + 1];
-			ImageDataRgba[i * 4 + 2] = ImageData[i * 3 + 2];
-			ImageDataRgba[i * 4 + 3] = 255;
-		}
-		
-		Channels = 4;
-		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	}
-	else
-	{
-		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	}
-
-	D3D11_SUBRESOURCE_DATA InitData = {};
-	InitData.pSysMem = ImageDataRgba;
-	InitData.SysMemPitch = Width * Channels;
-
-	assert(FAILED(GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
-	assert(FAILED(GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);
-
-	if (NeedsAlpha)
-	{
-		delete[] ImageDataRgba;
-	}
-	stbi_image_free(ImageData);
-
-	return TextureView;
 }

@@ -8,6 +8,7 @@
 
 #include "MyMacros.h"
 #include "PostProcess.h"
+#include "ResourceManager.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -41,7 +42,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	}
 
 	m_Camera = new Camera();
-	m_Camera->SetPosition(0.f, 1.f, -2.f);
+	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f, 0.f);
 
 	m_Shader = new Shader();
@@ -63,21 +64,24 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	}
 
 	m_Light = new Light();
-	m_Light->SetPosition(1.f, 1.f, -0.5f);
-	m_Light->SetSpecularPower(32.f);
-	m_Light->SetRadius(5.f);
+	m_Light->SetPosition(1.7f, 2.5f, -1.7f);
+	m_Light->SetSpecularPower(256.f);
+	m_Light->SetRadius(10.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
+	auto FirstCar = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
+	FirstCar->SetPosition(-1.f, -1.f, 0.f);
+	auto SecondCar = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
+	SecondCar->SetPosition(1.f, 1.f, 0.f);
 
-	m_TextureResourceView = m_Graphics->LoadTexture("Textures/image_gamma_linear.png");
+	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadResource("Textures/image_gamma_linear.png"));
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(25));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::ReinhardExtended));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::HillACES));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
 
 	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
@@ -87,6 +91,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 void Application::Shutdown()
 {
+	for (auto Model : m_Models)
+	{
+		Model->Shutdown();
+	}
+	m_Models.clear();
+	
 	if (m_Model)
 	{
 		m_Model->Shutdown();
@@ -138,20 +148,23 @@ bool Application::Frame()
 	return true;
 }
 
-bool Application::LoadModel(const char* ModelFilename, const char* TexturesPath)
+std::shared_ptr<Model> Application::LoadModel(const char* ModelFilename, const char* TexturesPath)
 {
-	if (m_Model)
+	if (m_Model) // this will need to be removed
 	{
 		m_Model->Shutdown();
 		delete m_Model;
 	}
 	
-	bool Result;
-
-	m_Model = new Model();
-	FALSE_IF_FAILED(m_Model->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename, TexturesPath));
+	m_Models.emplace_back(std::make_shared<Model>());
+	if (!m_Models.back()->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename, TexturesPath))
+	{
+		m_Models.back()->Shutdown();
+		m_Models.pop_back();
+		return std::shared_ptr<Model>();
+	}
 		
-	return true;
+	return m_Models.back();
 }
 
 bool Application::Render(double DeltaTime)
@@ -204,11 +217,6 @@ bool Application::Render(double DeltaTime)
 bool Application::RenderScene()
 {
 	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
-	
-	float RotationAngle = (float)fmod(m_AppTime, 360.f);
-
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-	
 	m_Camera->Render();
 
 	if (m_ShouldRenderLight && m_Light)
@@ -216,15 +224,30 @@ bool Application::RenderScene()
 		RenderPhysicalLight();
 	}
 
-	if (m_Model)
+	RenderModels();
+	
+	
+	return true;
+}
+
+void Application::RenderModels()
+{
+	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
+	float RotationAngle = (float)fmod(m_AppTime, 360.f);
+
+	m_Camera->GetViewMatrix(ViewMatrix);
+	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
+	
+	for (auto Model : m_Models)
 	{
+		Transform ModelTransform = Model->GetTransform();
 		m_Graphics->GetWorldMatrix(WorldMatrix);
-		WorldMatrix *= DirectX::XMMatrixRotationY(RotationAngle);
-		WorldMatrix *= DirectX::XMMatrixScaling(m_ModelScale.x, m_ModelScale.y, m_ModelScale.z);
-		WorldMatrix *= DirectX::XMMatrixTranslation(m_ModelPos.x, m_ModelPos.y, m_ModelPos.z);
-		m_Camera->GetViewMatrix(ViewMatrix);
-		m_Graphics->GetProjectionMatrix(ProjectionMatrix);
-		
+		WorldMatrix *= DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(ModelTransform.Rotation.x));
+		WorldMatrix *= DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(ModelTransform.Rotation.y + RotationAngle * 30.f));
+		WorldMatrix *= DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(ModelTransform.Rotation.z));
+		WorldMatrix *= DirectX::XMMatrixScaling(ModelTransform.Scale.x, ModelTransform.Scale.y, ModelTransform.Scale.z);
+		WorldMatrix *= DirectX::XMMatrixTranslation(ModelTransform.Position.x, ModelTransform.Position.y, ModelTransform.Position.z);
+
 		m_Shader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_Shader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
@@ -238,10 +261,8 @@ bool Application::RenderScene()
 			m_Light->GetSpecularPower()
 		);
 
-		m_Model->Render();
+		Model->Render();
 	}
-	
-	return true;
 }
 
 bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView)
@@ -327,14 +348,23 @@ void Application::RenderImGui()
 	{
 		ImGui::PushID(0);
 		ImGui::Text("Position");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -100.f, 100.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -100.f, 100.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -100.f, 100.f);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
 		ImGui::PopID();
 
 		ImGui::Dummy(ImVec2(0.f, 2.f));
 
 		ImGui::PushID(1);
+		ImGui::Text("Rotation");
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelRot) + 0, -180.f, 180.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelRot) + 1, -180.f, 180.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelRot) + 2, -180.f, 180.f);
+		ImGui::PopID();
+
+		ImGui::Dummy(ImVec2(0.f, 2.f));
+
+		ImGui::PushID(2);
 		ImGui::Text("Scale");
 		ImGui::SliderFloat("XYZ", reinterpret_cast<float*>(&m_ModelScale), 0.f, 5.f);
 		m_ModelScale.y = m_ModelScale.x;
@@ -346,6 +376,7 @@ void Application::RenderImGui()
 		if (ImGui::Button("Restore Defaults"))
 		{
 			m_ModelPos = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+			m_ModelRot = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
 			m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
 		}
 	}

@@ -78,8 +78,6 @@ public:
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }
 	void GetOrthoMatrix(DirectX::XMMATRIX& OrthoMatrix) { OrthoMatrix = m_OrthoMatrix; }
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LoadTexture(const char* Filepath);
-
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVFirst;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVSecond;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostProcessSRVFirst;

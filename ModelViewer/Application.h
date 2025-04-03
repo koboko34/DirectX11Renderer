@@ -45,9 +45,10 @@ public:
 	Graphics* GetGraphics() const { return m_Graphics; }
 
 private:
-	bool LoadModel(const char* ModelFilename, const char* TexturesPath);
+	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath);
 	bool Render(double DeltaTime);
 	bool RenderScene();
+	void RenderModels();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
 	bool RenderPhysicalLight();
 	void RenderImGui();
@@ -65,12 +66,14 @@ private:
 	Model* m_SceneLight;
 	Model* m_Model;
 
+	std::vector<std::shared_ptr<Model>> m_Models;
+
 	DirectX::XMFLOAT3 m_ModelPos;
 	DirectX::XMFLOAT3 m_ModelRot;
 	DirectX::XMFLOAT3 m_ModelScale;
 
 	const char* m_ModelLoadSuccessMessage = "";
-	bool m_ShouldRenderLight = true;
+	bool m_ShouldRenderLight = false;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;

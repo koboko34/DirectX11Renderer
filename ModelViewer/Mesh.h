@@ -6,6 +6,7 @@
 #include "DirectXMath.h"
 
 #include <memory>
+#include <string>
 
 struct aiMesh;
 class Material;
@@ -26,6 +27,7 @@ private:
 	unsigned int m_VertexCount;
 	unsigned int m_IndexCount;
 	std::shared_ptr<Material> m_Material;
+	std::string m_Name;
 
 	Model* m_pModel;
 	Node* m_pNode;

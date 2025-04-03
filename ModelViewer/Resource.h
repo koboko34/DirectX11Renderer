@@ -1,0 +1,27 @@
+#pragma once
+
+#ifndef RESOURCE_H
+
+#include <string>
+
+typedef unsigned int UINT;
+
+class Resource
+{
+	friend class ResourceManager;
+
+public:
+	Resource(void* pData, std::string Filepath) : m_pData(pData), m_Filepath(Filepath) { AddRef(); }
+
+	UINT AddRef() { return ++m_RefCount; }
+	UINT RemoveRef();
+
+private:
+	UINT m_RefCount = 0;
+	void* m_pData = nullptr;
+
+	std::string m_Filepath;
+	const char* m_Extension;
+};
+
+#endif

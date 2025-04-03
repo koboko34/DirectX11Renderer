@@ -4,12 +4,16 @@
 
 #include "assimp/material.h"
 
+#include "ResourceManager.h"
+
 Material::Material(UINT Index, Model* pOwner) : m_uIndex(Index), m_pOwner(pOwner)
 {
 }
 
 void Material::LoadTextures(aiMaterial* MeshMat)
 {
+	m_Name = MeshMat->GetName().C_Str();
+
 	MeshMat->Get(AI_MATKEY_TWOSIDED, m_bTwoSided);
 	float Opacity = 0.f;
 	MeshMat->Get(AI_MATKEY_OPACITY, Opacity);
@@ -42,9 +46,11 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 		std::string FullPath = m_pOwner->GetTexturesPath() + std::string(Path.C_Str());
 		LoadTexture(FullPath, m_SpecularSRV);
 	}
-	else
+	else if (MeshMat->Get(AI_MATKEY_COLOR_SPECULAR, Color) == AI_SUCCESS)
 	{
-		MeshMat->Get(AI_MATKEY_COLOR_SPECULAR, m_Specular);
+		m_Specular.x = Color.r;
+		m_Specular.y = Color.g;
+		m_Specular.z = Color.b;
 	}
 }
 
@@ -55,7 +61,9 @@ void Material::LoadTexture(const std::string& Path, int& TextureIndex)
 	if (TextureIndexMap.find(Path) == TextureIndexMap.end())
 	{
 		// not loaded, load and add index to map
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV = Application::GetSingletonPtr()->GetGraphics()->LoadTexture(Path.c_str());
+		ResourceManager* pResManager = ResourceManager::GetSingletonPtr();
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV(reinterpret_cast<ID3D11ShaderResourceView*>(pResManager->LoadResource(Path)));
 		Textures.push_back(SRV);
 
 		UINT Index = (UINT)Textures.size() - 1;

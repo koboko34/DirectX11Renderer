@@ -53,6 +53,16 @@ void Model::Render()
 	RenderMeshes(m_TransparentMeshes);
 }
 
+void Model::SetTransform(const Transform& NewTransform)
+{
+	m_Transform = NewTransform;
+}
+
+void Model::SetPosition(float x, float y, float z)
+{
+	m_Transform.Position = DirectX::XMFLOAT3(x, y, z);
+}
+
 void Model::ShutdownBuffers()
 {
 	m_VertexBuffer.Reset();

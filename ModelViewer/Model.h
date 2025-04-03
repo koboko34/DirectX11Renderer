@@ -26,6 +26,13 @@ struct Vertex
 	DirectX::XMFLOAT2 TexCoord;
 };
 
+struct Transform
+{
+	DirectX::XMFLOAT3 Position  = { 0.f, 0.f, 0.f };
+	DirectX::XMFLOAT3 Rotation  = { 0.f, 0.f, 0.f };
+	DirectX::XMFLOAT3 Scale		= { 1.f, 1.f, 1.f };
+};
+
 class Model
 {
 public:
@@ -49,6 +56,10 @@ public:
 
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
+
+	const Transform& GetTransform() const { return m_Transform; }
+	void SetTransform(const Transform& NewTransform);
+	void SetPosition(float x, float y, float z);
 
 private:
 	void ShutdownBuffers();
@@ -76,6 +87,8 @@ private:
 
 	std::string m_ModelPath;
 	std::string m_TexturesPath;
+
+	Transform m_Transform;
 };
 
 #endif

@@ -21,9 +21,8 @@ struct MaterialData
 {
 	float3 DiffuseColor;
 	int DiffuseSRV;
-	float Specular;
+	float3 Specular;
 	int SpecularSRV;
-	float2 Padding;
 };
 
 cbuffer Material : register(b1)
@@ -51,6 +50,8 @@ float4 main(PS_In p) : SV_TARGET
 		Color = float4(Mat.DiffuseColor, 1.f);
 	}
 	
+	clip(Color.a < 0.1f ? -1.f : 1.f);
+	
 	float AmbientFactor = 0.05f;
 	float4 Ambient = float4(Color * AmbientFactor);
 	
@@ -67,7 +68,7 @@ float4 main(PS_In p) : SV_TARGET
     float4 Specular = float4(0.f, 0.f, 0.f, 0.f);
 	if (DiffuseFactor > 0.f)
     {
-		Diffuse = float4(Lighting.LightColor, 1.f) * Color * DiffuseFactor;
+		Diffuse = float4(Lighting.LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
 		
 		float3 PixelToCam = normalize(Lighting.CameraPos - p.WorldPos);
 		float3 HalfwayVec = normalize(PixelToCam + PixelToLight);
@@ -79,5 +80,6 @@ float4 main(PS_In p) : SV_TARGET
 	Diffuse *= Attenuation;
     Specular *= Attenuation;
 	
-    return saturate(Ambient + Diffuse + Specular);
+	float4 outColor = saturate(Ambient + Diffuse + Specular);
+    return outColor;
 }
