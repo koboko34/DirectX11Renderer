@@ -56,6 +56,7 @@ void Material::LoadTextures(aiMaterial* MeshMat)
 
 void Material::LoadTexture(const std::string& Path, int& TextureIndex)
 {
+	m_pOwner->GetTexturePathsSet().insert(Path);
 	std::unordered_map<std::string, UINT>& TextureIndexMap = m_pOwner->GetTextureIndexMap();
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& Textures = m_pOwner->GetTextures();
 	if (TextureIndexMap.find(Path) == TextureIndexMap.end())

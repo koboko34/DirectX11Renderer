@@ -20,11 +20,12 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 
 void* ResourceManager::LoadResource(const std::string& Filepath)
 {
-	// check if it already loaded, if so, just return the data ptr
+	// check if it already loaded, if so, add to ref count and return the data ptr
 	auto itRes = m_ResourceMap.find(Filepath);
 	if (itRes != m_ResourceMap.end())
 	{
-		return itRes->second.get()->m_pData;
+		itRes->second->AddRef();
+		return itRes->second->m_pData;
 	}
 
 	// else try to load resource
@@ -34,7 +35,6 @@ void* ResourceManager::LoadResource(const std::string& Filepath)
 	{
 		assert(false && "Invalid filepath!");
 	}
-
 	Extension = Filepath.substr(Pos);
 
 	void* pData = nullptr;
@@ -53,8 +53,7 @@ void* ResourceManager::LoadResource(const std::string& Filepath)
 		return nullptr;
 	}
 
-	m_ResourceMap[Filepath] = std::make_unique<Resource>(pData, Filepath);
-	m_ResourceMap[Filepath].get()->m_Extension = Extension.c_str();
+	m_ResourceMap[Filepath] = std::make_unique<Resource>(pData, Filepath, Extension);
 	return pData;
 }
 
@@ -71,11 +70,8 @@ bool ResourceManager::UnloadResource(const std::string& Filepath)
 	if (ResourceToUnload->RemoveRef() < 1)
 	{
 		auto it = m_Unloaders.find(ResourceToUnload->m_Extension);
-		if (it != m_Unloaders.end())
-		{
-			it->second(Filepath);
-		}
-
+		assert(it != m_Unloaders.end() && "Failed to find unloader by extension!");
+		it->second(Filepath);
 		m_ResourceMap.erase(Filepath);
 		return false;
 	}

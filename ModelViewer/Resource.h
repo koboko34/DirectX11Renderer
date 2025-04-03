@@ -11,7 +11,7 @@ class Resource
 	friend class ResourceManager;
 
 public:
-	Resource(void* pData, std::string Filepath) : m_pData(pData), m_Filepath(Filepath) { AddRef(); }
+	Resource(void* pData, const std::string& Filepath, const std::string& Extension) : m_pData(pData), m_Filepath(Filepath), m_Extension(Extension) { AddRef(); }
 
 	UINT AddRef() { return ++m_RefCount; }
 	UINT RemoveRef();
@@ -20,8 +20,8 @@ private:
 	UINT m_RefCount = 0;
 	void* m_pData = nullptr;
 
-	std::string m_Filepath;
-	const char* m_Extension;
+	const std::string m_Filepath;
+	const std::string m_Extension;
 };
 
 #endif

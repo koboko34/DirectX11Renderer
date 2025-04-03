@@ -4,6 +4,7 @@
 #define MODEL_H
 
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 
 #include <d3d11.h>
@@ -53,6 +54,7 @@ public:
 	std::vector<std::shared_ptr<Material>>& GetMaterials() { return m_Materials; }
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTextures() { return m_Textures; }
 	std::unordered_map<std::string, UINT>& GetTextureIndexMap() { return m_TextureIndexMap; }
+	std::unordered_set<std::string>& GetTexturePathsSet() { return m_TexturePathsSet; }
 
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
@@ -84,6 +86,7 @@ private:
 	std::vector<std::shared_ptr<Material>> m_Materials;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_Textures;
 	std::unordered_map<std::string, UINT> m_TextureIndexMap;
+	std::unordered_set<std::string> m_TexturePathsSet;
 
 	std::string m_ModelPath;
 	std::string m_TexturesPath;

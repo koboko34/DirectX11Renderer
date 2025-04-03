@@ -4,6 +4,7 @@
 
 #include "MyMacros.h"
 #include "Application.h"
+#include "ResourceManager.h"
 
 Model::Model()
 {
@@ -104,6 +105,12 @@ void Model::ReleaseModel()
 	m_TransparentMeshes.clear();
 	m_Vertices.clear();
 	m_Indices.clear();
+
+	for (const std::string& Path : m_TexturePathsSet)
+	{
+		ResourceManager::GetSingletonPtr()->UnloadResource(Path);
+	}
+	m_TexturePathsSet.clear();
 
 	m_Textures.shrink_to_fit();
 	m_Materials.shrink_to_fit();
