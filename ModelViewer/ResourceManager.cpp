@@ -155,7 +155,7 @@ void* ResourceManager::LoadJpg(const std::string& Filepath)
 
 void ResourceManager::UnloadPng(const std::string& Filepath)
 {
-	return;
+	return; // 
 }
 
 void ResourceManager::UnloadJpg(const std::string& Filepath)

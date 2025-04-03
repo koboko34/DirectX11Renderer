@@ -9,9 +9,11 @@
 
 #include "Graphics.h"
 #include "Shader.h"
+#include "InstancedShader.h"
 #include "Model.h"
 #include "Camera.h"
 #include "Light.h"
+#include "GameObject.h"
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
@@ -60,13 +62,14 @@ private:
 
 	Graphics* m_Graphics;
 	Shader* m_Shader;
+	InstancedShader* m_InstancedShader;
 	Camera* m_Camera;
 	Light* m_Light;
 
 	Model* m_SceneLight;
-	Model* m_Model;
 
 	std::vector<std::shared_ptr<Model>> m_Models;
+	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
 	DirectX::XMFLOAT3 m_ModelPos;
 	DirectX::XMFLOAT3 m_ModelRot;

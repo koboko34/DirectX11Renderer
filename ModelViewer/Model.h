@@ -19,19 +19,13 @@
 #include "Node.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "GameObject.h"
 
 struct Vertex
 {
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexCoord;
-};
-
-struct Transform
-{
-	DirectX::XMFLOAT3 Position  = { 0.f, 0.f, 0.f };
-	DirectX::XMFLOAT3 Rotation  = { 0.f, 0.f, 0.f };
-	DirectX::XMFLOAT3 Scale		= { 1.f, 1.f, 1.f };
 };
 
 class Model
@@ -43,7 +37,7 @@ public:
 
 	bool Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceContext, std::string ModelFilename, std::string TexturesPath);
 	void Shutdown();
-	void Render();
+	void Render(ID3D11Buffer* InstanceBuffer);
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer() const { return m_IndexBuffer; }
@@ -59,9 +53,7 @@ public:
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
 
-	const Transform& GetTransform() const { return m_Transform; }
-	void SetTransform(const Transform& NewTransform);
-	void SetPosition(float x, float y, float z);
+	std::vector<DirectX::XMMATRIX>& GetTransforms() { return m_Transforms; }
 
 private:
 	void ShutdownBuffers();
@@ -74,6 +66,7 @@ private:
 	void LoadMaterials(const aiScene* Scene);
 
 	void RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes);
+	void RenderMeshesInstanced(const std::vector<std::unique_ptr<Mesh>>& Meshes);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
@@ -91,7 +84,7 @@ private:
 	std::string m_ModelPath;
 	std::string m_TexturesPath;
 
-	Transform m_Transform;
+	std::vector<DirectX::XMMATRIX> m_Transforms;
 };
 
 #endif

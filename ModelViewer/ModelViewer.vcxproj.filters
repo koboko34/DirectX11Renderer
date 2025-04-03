@@ -84,6 +84,12 @@
     <ClCompile Include="Resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InstancedShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -158,6 +164,12 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InstancedShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\BoxBlurPS.hlsl" />
@@ -171,5 +183,6 @@
     <None Include="Shaders\GammaCorrectionPS.hlsl" />
     <None Include="Shaders\GaussianBlurPS.hlsl" />
     <None Include="Shaders\BasicPS.hlsl" />
+    <None Include="Shaders\InstancedPhongVS.hlsl" />
   </ItemGroup>
 </Project>

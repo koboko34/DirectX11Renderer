@@ -18,7 +18,6 @@ Application::Application()
 	m_Shader = 0;
 	m_Camera = 0;
 	m_Light = 0;
-	m_Model = 0;
 
 	m_ModelPos   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
 	m_ModelRot   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
@@ -54,6 +53,15 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		return false;
 	}
 
+	m_InstancedShader = new InstancedShader();
+	Result = m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd);
+	if (!Result)
+	{
+		ShowCursor(true);
+		MessageBox(hWnd, L"Failed to initialise Shader object!", L"Error", MB_OK);
+		return false;
+	}
+
 	m_SceneLight = new Model();
 	Result = m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), "Models/sphere.obj", "");
 	if (!Result)
@@ -69,10 +77,13 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Light->SetRadius(10.f);
 	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	auto FirstCar = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
-	FirstCar->SetPosition(-1.f, -1.f, 0.f);
-	auto SecondCar = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
-	SecondCar->SetPosition(1.f, 1.f, 0.f);
+	auto CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
+	m_GameObjects.back()->SetModel(CarModel.get());
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
+	m_GameObjects.back()->SetModel(CarModel.get());
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadResource("Textures/image_gamma_linear.png"));
 
@@ -91,23 +102,28 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 void Application::Shutdown()
 {
-	for (auto Model : m_Models)
+	for (auto& Object : m_GameObjects)
+	{
+		Object->Shutdown();
+	}
+	
+	for (auto& Model : m_Models)
 	{
 		Model->Shutdown();
 	}
 	m_Models.clear();
-	
-	if (m_Model)
-	{
-		m_Model->Shutdown();
-		delete m_Model;
-		m_Model = 0;
-	}
 
 	if (m_Light)
 	{
 		delete m_Light;
 		m_Light = 0;
+	}
+
+	if (m_InstancedShader)
+	{
+		m_InstancedShader->Shutdown();
+		delete m_InstancedShader;
+		m_InstancedShader = 0;
 	}
 
 	if (m_Shader)
@@ -138,6 +154,10 @@ bool Application::Frame()
 	DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - m_LastUpdate).count() / 1000000.0;
 	m_LastUpdate = Now;
 	m_AppTime += DeltaTime;
+
+	float RotationAngle = (float)fmod(m_AppTime, 360.f);
+	m_GameObjects[0]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
+	m_GameObjects[1]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
 	
 	bool Result = Render(DeltaTime);
 	if (!Result)
@@ -150,12 +170,6 @@ bool Application::Frame()
 
 std::shared_ptr<Model> Application::LoadModel(const char* ModelFilename, const char* TexturesPath)
 {
-	if (m_Model) // this will need to be removed
-	{
-		m_Model->Shutdown();
-		delete m_Model;
-	}
-	
 	m_Models.emplace_back(std::make_shared<Model>());
 	if (!m_Models.back()->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename, TexturesPath))
 	{
@@ -207,7 +221,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
-	RenderImGui();
+	//RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -221,37 +235,38 @@ bool Application::RenderScene()
 
 	if (m_ShouldRenderLight && m_Light)
 	{
-		RenderPhysicalLight();
+		//RenderPhysicalLight();
 	}
 
 	RenderModels();
-	
 	
 	return true;
 }
 
 void Application::RenderModels()
 {
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-	float RotationAngle = (float)fmod(m_AppTime, 360.f);
+	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
+	//float RotationAngle = (float)fmod(m_AppTime, 360.f);
 
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
-	
-	for (auto Model : m_Models)
-	{
-		Transform ModelTransform = Model->GetTransform();
-		m_Graphics->GetWorldMatrix(WorldMatrix);
-		WorldMatrix *= DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(ModelTransform.Rotation.x));
-		WorldMatrix *= DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(ModelTransform.Rotation.y + RotationAngle * 30.f));
-		WorldMatrix *= DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(ModelTransform.Rotation.z));
-		WorldMatrix *= DirectX::XMMatrixScaling(ModelTransform.Scale.x, ModelTransform.Scale.y, ModelTransform.Scale.z);
-		WorldMatrix *= DirectX::XMMatrixTranslation(ModelTransform.Position.x, ModelTransform.Position.y, ModelTransform.Position.z);
 
-		m_Shader->ActivateShader(m_Graphics->GetDeviceContext());
-		m_Shader->SetShaderParameters(
+	for (auto& Model : m_Models)
+	{
+		Model->GetTransforms().clear();
+	}
+
+	for (auto& Object : m_GameObjects)
+	{
+		Object->SendTransformToModel();
+	}
+	
+	for (auto& Model : m_Models)
+	{
+		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
+		m_InstancedShader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
-			WorldMatrix,
+			Model.get(),
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
@@ -261,7 +276,7 @@ void Application::RenderModels()
 			m_Light->GetSpecularPower()
 		);
 
-		Model->Render();
+		Model->Render(m_InstancedShader->GetInstanceBuffer().Get());
 	}
 }
 
@@ -311,7 +326,7 @@ bool Application::RenderPhysicalLight()
 		)
 	);
 
-	m_SceneLight->Render();
+	//m_SceneLight->Render();
 	
 	return true;
 }
