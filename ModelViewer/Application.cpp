@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "Windows.h"
+
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_win32.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -9,6 +11,8 @@
 #include "MyMacros.h"
 #include "PostProcess.h"
 #include "ResourceManager.h"
+#include "InputClass.h"
+#include "SystemClass.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -18,10 +22,6 @@ Application::Application()
 	m_Shader = 0;
 	m_Camera = 0;
 	m_Light = 0;
-
-	m_ModelPos   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
-	m_ModelRot   = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
-	m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
 
 	m_LastUpdate = std::chrono::steady_clock::now();
 	m_AppTime = 0.0;
@@ -42,7 +42,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_Camera = new Camera();
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
-	m_Camera->SetRotation(0.f, 0.f, 0.f);
+	m_Camera->SetRotation(0.f, 0.f);
 
 	m_Shader = new Shader();
 	Result = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
@@ -158,6 +158,11 @@ bool Application::Frame()
 	float RotationAngle = (float)fmod(m_AppTime, 360.f);
 	m_GameObjects[0]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
 	m_GameObjects[1]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
+
+	if (GetForegroundWindow() == m_hWnd)
+	{
+		ProcessInput();
+	}
 	
 	bool Result = Render(DeltaTime);
 	if (!Result)
@@ -246,8 +251,6 @@ bool Application::RenderScene()
 void Application::RenderModels()
 {
 	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
-	//float RotationAngle = (float)fmod(m_AppTime, 360.f);
-
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
@@ -276,7 +279,7 @@ void Application::RenderModels()
 			m_Light->GetSpecularPower()
 		);
 
-		Model->Render(m_InstancedShader->GetInstanceBuffer().Get());
+		Model->Render();
 	}
 }
 
@@ -359,101 +362,6 @@ void Application::RenderImGui()
 	}
 	ImGui::End();
 
-	if (ImGui::Begin("Model"))
-	{
-		ImGui::PushID(0);
-		ImGui::Text("Position");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelPos) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelPos) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelPos) + 2, -10.f, 10.f);
-		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 2.f));
-
-		ImGui::PushID(1);
-		ImGui::Text("Rotation");
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(&m_ModelRot) + 0, -180.f, 180.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(&m_ModelRot) + 1, -180.f, 180.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(&m_ModelRot) + 2, -180.f, 180.f);
-		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 2.f));
-
-		ImGui::PushID(2);
-		ImGui::Text("Scale");
-		ImGui::SliderFloat("XYZ", reinterpret_cast<float*>(&m_ModelScale), 0.f, 5.f);
-		m_ModelScale.y = m_ModelScale.x;
-		m_ModelScale.z = m_ModelScale.x;
-		ImGui::PopID();
-
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-
-		if (ImGui::Button("Restore Defaults"))
-		{
-			m_ModelPos = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
-			m_ModelRot = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
-			m_ModelScale = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
-		}
-	}
-	ImGui::End();
-
-	static char ModelLocationBuffer[1024];
-	if (ImGui::Begin("Load Models"))
-	{
-		if (ImGui::Button("Load Stanford Bunny"))
-		{
-			if (LoadModel("Models/stanford-bunny.obj", ""))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-
-		if (ImGui::Button("Load Suzanne"))
-		{
-			if (LoadModel("Models/suzanne.obj", ""))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-
-		if (ImGui::Button("Load Fantasy Sword"))
-		{
-			if (LoadModel("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-
-		ImGui::InputText("Model file location", ModelLocationBuffer, sizeof(ModelLocationBuffer));
-		if (ImGui::Button("Load model from file"))
-		{
-			if (LoadModel(ModelLocationBuffer, ""))
-			{
-				m_ModelLoadSuccessMessage = "Loaded model successfully!";
-			}
-			else
-			{
-				m_ModelLoadSuccessMessage = "Failed to load model!";
-			}
-		}
-		ImGui::Text(m_ModelLoadSuccessMessage);
-	}
-	ImGui::End();
-
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -469,4 +377,37 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 
 		DrawingForward = !DrawingForward;
 	}
+}
+
+void Application::ProcessInput()
+{
+	DirectX::XMFLOAT3 LookDir = m_Camera->GetRotatedLookDir();
+	DirectX::XMFLOAT3 LookRight = m_Camera->GetRotatedLookRight();
+	
+	if (GetAsyncKeyState('W') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x + LookDir.x * m_CameraSpeed, m_Camera->GetPosition().y + LookDir.y * m_CameraSpeed, m_Camera->GetPosition().z + LookDir.z * m_CameraSpeed);
+	}
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x - LookDir.x * m_CameraSpeed, m_Camera->GetPosition().y - LookDir.y * m_CameraSpeed, m_Camera->GetPosition().z - LookDir.z * m_CameraSpeed);
+	}
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x + LookRight.x * m_CameraSpeed, m_Camera->GetPosition().y, m_Camera->GetPosition().z + LookRight.z * m_CameraSpeed);
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x - LookRight.x * m_CameraSpeed, m_Camera->GetPosition().y, m_Camera->GetPosition().z - LookRight.z * m_CameraSpeed);
+	}
+	if (GetAsyncKeyState('Q') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x, m_Camera->GetPosition().y - 1.f * m_CameraSpeed, m_Camera->GetPosition().z);
+	}
+	if (GetAsyncKeyState('E') & 0x8000)
+	{
+		m_Camera->SetPosition(m_Camera->GetPosition().x, m_Camera->GetPosition().y + 1.f * m_CameraSpeed, m_Camera->GetPosition().z);
+	}
+
+	m_Camera->SetRotation(m_Camera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_Camera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f);
 }

@@ -5,10 +5,13 @@
 
 class InputClass
 {
+private:
+	InputClass() {}
+
+	static InputClass* ms_Instance;
+
 public:
-	InputClass();
-	InputClass(const InputClass& Other);
-	~InputClass();
+	static InputClass* GetSingletonPtr();
 
 	void Initialise();
 

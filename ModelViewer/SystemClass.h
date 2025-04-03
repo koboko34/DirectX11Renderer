@@ -7,6 +7,8 @@
 
 #include <Windows.h>
 
+#include "DirectXMath.h"
+
 #include "ImGuiManager.h"
 
 #include "InputClass.h"
@@ -14,15 +16,18 @@
 class SystemClass
 {
 public:
-	SystemClass();
-	SystemClass(const SystemClass& Other);
-	~SystemClass();
-
 	bool Initialise();
 	void Shutdown();
 	void Run();
 
 	LRESULT CALLBACK MessageHandler(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam);
+	static void ProcessMouseMovement();
+	static void ConfineCursorToWindow();
+
+public:
+	static DirectX::XMFLOAT2 m_MouseDelta;
+
+	static HWND m_hwnd;
 
 private:
 	bool Frame();
@@ -32,11 +37,9 @@ private:
 private:
 	LPCWSTR m_ApplicationName;
 	HINSTANCE m_hInstance;
-	HWND m_hwnd;
-
-	InputClass* m_Input;
 
 	ImGuiManager ImGui;
+
 };
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam);

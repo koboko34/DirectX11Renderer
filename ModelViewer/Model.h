@@ -32,12 +32,12 @@ class Model
 {
 public:
 	Model();
-	Model(const Model& Other);
+	Model(const Model& Other) = delete;
 	~Model();
 
 	bool Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceContext, std::string ModelFilename, std::string TexturesPath);
 	void Shutdown();
-	void Render(ID3D11Buffer* InstanceBuffer);
+	void Render();
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer() const { return m_IndexBuffer; }
@@ -66,7 +66,6 @@ private:
 	void LoadMaterials(const aiScene* Scene);
 
 	void RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes);
-	void RenderMeshesInstanced(const std::vector<std::unique_ptr<Mesh>>& Meshes);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;

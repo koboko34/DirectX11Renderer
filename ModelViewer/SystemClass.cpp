@@ -6,18 +6,8 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-SystemClass::SystemClass()
-{
-	m_Input = nullptr;
-}
-
-SystemClass::SystemClass(const SystemClass& Other)
-{
-}
-
-SystemClass::~SystemClass()
-{
-}
+HWND SystemClass::m_hwnd = 0;
+DirectX::XMFLOAT2 SystemClass::m_MouseDelta = { 0.f, 0.f };
 
 bool SystemClass::Initialise()
 {
@@ -29,8 +19,7 @@ bool SystemClass::Initialise()
 
 	InitialiseWindows(ScreenWidth, ScreenHeight);
 
-	m_Input = new InputClass();
-	m_Input->Initialise();
+	InputClass::GetSingletonPtr();
 
 	Result = Application::GetSingletonPtr()->Initialise(ScreenWidth, ScreenHeight, m_hwnd);
 	if (!Result)
@@ -44,12 +33,6 @@ bool SystemClass::Initialise()
 void SystemClass::Shutdown()
 {
 	Application::GetSingletonPtr()->Shutdown();
-
-	if (m_Input)
-	{
-		delete m_Input;
-		m_Input = nullptr;
-	}
 
 	ImGui_ImplWin32_Shutdown();
 
@@ -93,7 +76,7 @@ bool SystemClass::Frame()
 {
 	bool Result;
 
-	if (m_Input->IsKeyDown(VK_ESCAPE))
+	if (InputClass::GetSingletonPtr()->IsKeyDown(VK_ESCAPE))
 	{
 		return false;
 	}
@@ -116,20 +99,20 @@ LRESULT SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM 
 	
 	switch (umsg)
 	{
-	case WM_KEYDOWN:
-	{
-		m_Input->KeyDown((unsigned int)wparam);
-		return 0;
-	}
-	case WM_KEYUP:
-	{
-		m_Input->KeyUp((unsigned int)wparam);
-		return 0;
-	}
-	default:
-	{
-		return DefWindowProc(hwnd, umsg, wparam, lparam);
-	}
+		case WM_KEYDOWN:
+		{
+			InputClass::GetSingletonPtr()->KeyDown((unsigned int)wparam);
+			return 0;
+		}
+		case WM_KEYUP:
+		{
+			InputClass::GetSingletonPtr()->KeyUp((unsigned int)wparam);
+			return 0;
+		}
+		default:
+		{
+			return DefWindowProc(hwnd, umsg, wparam, lparam);
+		}
 	}
 }
 
@@ -208,11 +191,18 @@ void SystemClass::InitialiseWindows(int& ScreenWidth, int& ScreenHeight)
 	ImGui_ImplWin32_Init(m_hwnd);
 
 	ShowCursor(false);
+
+	RECT rect;
+	GetClientRect(m_hwnd, &rect);
+	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	ClientToScreen(m_hwnd, &center);
+	SetCursorPos(center.x, center.y);
 }
 
 void SystemClass::ShutdownWindows()
 {
 	ShowCursor(true);
+	ClipCursor(NULL);
 
 	if (FULL_SCREEN)
 	{
@@ -228,23 +218,66 @@ void SystemClass::ShutdownWindows()
 	ApplicationHandle = nullptr;
 }
 
+void SystemClass::ConfineCursorToWindow()
+{
+	RECT rect;
+	GetClientRect(m_hwnd, &rect);
+	POINT ul = { rect.left, rect.top };
+	POINT lr = { rect.right, rect.bottom };
+
+	ClientToScreen(m_hwnd, &ul);
+	ClientToScreen(m_hwnd, &lr);
+
+	RECT clipRect = { ul.x, ul.y, lr.x, lr.y };
+	ClipCursor(&clipRect);
+	ShowCursor(FALSE);
+}
+
+void SystemClass::ProcessMouseMovement()
+{
+	POINT currentMousePos;
+	GetCursorPos(&currentMousePos);
+
+	RECT rect;
+	GetClientRect(m_hwnd, &rect);
+	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	ClientToScreen(m_hwnd, &center);
+
+	m_MouseDelta = { (float)(currentMousePos.x - center.x), (float)(currentMousePos.y - center.y) };
+
+	SetCursorPos(center.x, center.y);
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMessage)
 	{
-	case WM_DESTROY:
-	{
-		PostQuitMessage(0);
-		return 0;
-	}
-	case WM_CLOSE:
-	{
-		PostQuitMessage(0);
-		return 0;
-	}
-	default:
-	{
-		return ApplicationHandle->MessageHandler(hWnd, uMessage, wParam, lParam);
-	}
+		case WM_MOUSEMOVE:
+			SystemClass::ProcessMouseMovement();
+			return 0;
+		case WM_ACTIVATE:
+			if (wParam == WA_INACTIVE)
+			{
+				ClipCursor(NULL);
+				ShowCursor(TRUE);
+			}
+			else {
+				SystemClass::ConfineCursorToWindow();
+			}
+			break;
+		case WM_DESTROY:
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
+		case WM_CLOSE:
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
+		default:
+		{
+			return ApplicationHandle->MessageHandler(hWnd, uMessage, wParam, lParam);
+		}
 	}
 }

@@ -46,6 +46,8 @@ public:
 	HWND GetWindowHandle() const { return m_hWnd; }
 	Graphics* GetGraphics() const { return m_Graphics; }
 
+	InstancedShader* GetInstancedShader() { return m_InstancedShader; }
+
 private:
 	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath);
 	bool Render(double DeltaTime);
@@ -56,6 +58,8 @@ private:
 	void RenderImGui();
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
+
+	void ProcessInput();
 
 private:	
 	HWND m_hWnd;
@@ -71,15 +75,12 @@ private:
 	std::vector<std::shared_ptr<Model>> m_Models;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
-	DirectX::XMFLOAT3 m_ModelPos;
-	DirectX::XMFLOAT3 m_ModelRot;
-	DirectX::XMFLOAT3 m_ModelScale;
-
 	const char* m_ModelLoadSuccessMessage = "";
 	bool m_ShouldRenderLight = false;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
+	float m_CameraSpeed = 0.5f;
 
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 	std::unique_ptr<PostProcess> m_EmptyPostProcess;

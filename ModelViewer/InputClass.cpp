@@ -1,15 +1,15 @@
 #include "InputClass.h"
 
-InputClass::InputClass()
-{
-}
+InputClass* InputClass::ms_Instance = nullptr;
 
-InputClass::InputClass(const InputClass& Other)
+InputClass* InputClass::GetSingletonPtr()
 {
-}
-
-InputClass::~InputClass()
-{
+	if (!InputClass::ms_Instance)
+	{
+		InputClass::ms_Instance = new InputClass();
+		InputClass::ms_Instance->Initialise();
+	}
+	return InputClass::ms_Instance;
 }
 
 void InputClass::Initialise()

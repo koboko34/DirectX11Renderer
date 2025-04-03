@@ -11,6 +11,8 @@ Camera::Camera()
 	m_RotationX = 0.0f;
 	m_RotationY = 0.0f;
 	m_RotationZ = 0.0f;
+
+	m_LookDir = { 0.f, 0.f, 1.f };
 }
 
 Camera::Camera(const Camera&)
@@ -28,16 +30,23 @@ void Camera::SetPosition(float x, float y, float z)
 	m_PositionZ = z;
 }
 
-void Camera::SetRotation(float x, float y, float z)
+void Camera::SetRotation(float Pitch, float Yaw)
 {
-	m_RotationX = x;
-	m_RotationY = y;
-	m_RotationZ = z;
+	m_RotationX = Pitch;
+	m_RotationY = Yaw;
+}
+
+void Camera::SetLookDir(float x, float y, float z)
+{
+	m_LookDir = { x, y, z };
+	DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&m_LookDir);
+	v = DirectX::XMVector3Normalize(v);
+	DirectX::XMStoreFloat3(&m_LookDir, v);
 }
 
 void Camera::Render()
 {
-	DirectX::XMFLOAT3 Up, Position, LookAt;
+	DirectX::XMFLOAT3 Up, Position;
 	DirectX::XMVECTOR UpVector, PositionVector, LookAtVector, ReversePositionVector;
 	DirectX::XMMATRIX RotationMatrix;
 	float Yaw, Pitch, Roll;
@@ -60,15 +69,11 @@ void Camera::Render()
 
 	ReversePositionVector = DirectX::XMLoadFloat3(&Position);
 
-	LookAt.x = 0.f;
-	LookAt.y = 0.f;
-	LookAt.z = 0.f;
-
-	LookAtVector = DirectX::XMLoadFloat3(&LookAt);
+	LookAtVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
 
 	Pitch = TO_RADIANS(m_RotationX);
 	Yaw = TO_RADIANS(m_RotationY);
-	Roll = TO_RADIANS(m_RotationZ);
+	Roll = TO_RADIANS(0.f);
 
 	RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(Pitch, Yaw, Roll);
 
@@ -79,5 +84,36 @@ void Camera::Render()
 
 	//m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, LookAtVector, UpVector);
 
-	m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, ReversePositionVector, UpVector);
+	//m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, ReversePositionVector, UpVector);
+	m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, LookAtVector, UpVector);
+}
+
+DirectX::XMFLOAT3 Camera::GetRotatedLookDir() const
+{
+	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(TO_RADIANS(m_RotationX), TO_RADIANS(m_RotationY), 0.f);
+	
+	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
+	LookVector = DirectX::XMVector3Normalize(LookVector);
+
+	DirectX::XMFLOAT3 RotatedDir;
+	DirectX::XMStoreFloat3(&RotatedDir, LookVector);
+	return RotatedDir;
+}
+
+DirectX::XMFLOAT3 Camera::GetRotatedLookRight() const
+{
+	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(TO_RADIANS(m_RotationX), TO_RADIANS(m_RotationY), 0.f);
+
+	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
+	LookVector = DirectX::XMVector3Normalize(LookVector);
+
+	DirectX::XMFLOAT3 Up = { 0.f, 1.f, 0.f };
+	DirectX::XMVECTOR UpVector = DirectX::XMLoadFloat3(&Up);
+	DirectX::XMVECTOR RightVector = DirectX::XMVector3Cross(LookVector, UpVector);
+
+	DirectX::XMFLOAT3 RotatedLookRight;
+	DirectX::XMStoreFloat3(&RotatedLookRight, RightVector);
+	return RotatedLookRight;
 }

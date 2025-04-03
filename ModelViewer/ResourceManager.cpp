@@ -37,6 +37,9 @@ void* ResourceManager::LoadResource(const std::string& Filepath)
 	}
 	Extension = Filepath.substr(Pos);
 
+	std::transform(Extension.begin(), Extension.end(), Extension.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+
 	void* pData = nullptr;
 	auto it = m_Loaders.find(Extension);
 	if (it != m_Loaders.end())
@@ -155,7 +158,7 @@ void* ResourceManager::LoadJpg(const std::string& Filepath)
 
 void ResourceManager::UnloadPng(const std::string& Filepath)
 {
-	return; // 
+	return;
 }
 
 void ResourceManager::UnloadJpg(const std::string& Filepath)
