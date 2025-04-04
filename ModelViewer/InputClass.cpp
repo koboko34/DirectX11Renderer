@@ -34,3 +34,8 @@ bool InputClass::IsKeyDown(unsigned int Key)
 {
 	return m_Keys[Key];
 }
+
+void InputClass::SetMouseWheelDelta(short Delta)
+{
+	m_MouseWheelDelta = Delta;
+}

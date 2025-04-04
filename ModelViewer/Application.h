@@ -61,6 +61,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
 
 	void ProcessInput();
+	void ToggleShowCursor();
 
 private:	
 	HWND m_hWnd;
@@ -84,6 +85,10 @@ private:
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
 	float m_CameraSpeed = 0.5f;
+	float m_CameraSpeedMin = 0.125f;
+	float m_CameraSpeedMax = 2.f;
+	bool m_bShowCursor = false;
+	bool m_bCursorToggleReleased = true;
 
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 	std::unique_ptr<PostProcess> m_EmptyPostProcess;

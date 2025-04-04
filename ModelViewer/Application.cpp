@@ -390,14 +390,31 @@ void Application::ProcessInput()
 
 	if (InputClass::GetSingletonPtr()->IsKeyDown('M'))
 	{
-		int Count;
-		do {
-			Count = ShowCursor(TRUE);
-		} while (Count < 0);
-		SystemClass::ms_bShouldProcessMouse = false;
-		SystemClass::m_MouseDelta = { 0.f, 0.f };
+		if (m_bCursorToggleReleased)
+		{
+			m_bCursorToggleReleased = false;
+			ToggleShowCursor();
+		}
 	}
-	if (InputClass::GetSingletonPtr()->IsKeyDown('N'))
+	else
+	{
+		m_bCursorToggleReleased = true;
+	}
+
+	short Delta = InputClass::GetSingletonPtr()->GetMouseWheelDelta();
+	if (Delta > 0)
+	{
+		m_CameraSpeed = std::fmin(m_CameraSpeed * (float)(Delta / 60), m_CameraSpeedMax);
+	}
+	else if (Delta < 0)
+	{
+		m_CameraSpeed = std::fmax(m_CameraSpeed * (1.f / (float)(Delta / 60)), m_CameraSpeedMin);
+	}
+}
+
+void Application::ToggleShowCursor()
+{	
+	if (m_bShowCursor)
 	{
 		int Count;
 		do {
@@ -407,4 +424,14 @@ void Application::ProcessInput()
 		SetCursorPos(SystemClass::ms_Center.x, SystemClass::ms_Center.y);
 		SystemClass::m_MouseDelta = { 0.f, 0.f };
 	}
+	else
+	{
+		int Count;
+		do {
+			Count = ShowCursor(TRUE);
+		} while (Count < 0);
+		SystemClass::ms_bShouldProcessMouse = false;
+		SystemClass::m_MouseDelta = { 0.f, 0.f };
+	}
+	m_bShowCursor = !m_bShowCursor;
 }

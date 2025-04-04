@@ -20,8 +20,13 @@ public:
 
 	bool IsKeyDown(unsigned int Key);
 
+	void SetMouseWheelDelta(short Delta);
+
+	short GetMouseWheelDelta() const { return m_MouseWheelDelta; }
+
 private:
 	bool m_Keys[256];
+	short m_MouseWheelDelta = 0;
 };
 
 #endif

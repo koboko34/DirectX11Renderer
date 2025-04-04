@@ -51,6 +51,8 @@ void SystemClass::Run()
 	ShouldClose = false;
 	while (!ShouldClose)
 	{
+		InputClass::GetSingletonPtr()->SetMouseWheelDelta(0);
+		
 		// handle the windows messages
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -109,6 +111,11 @@ LRESULT SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM 
 		case WM_KEYUP:
 		{
 			InputClass::GetSingletonPtr()->KeyUp((unsigned int)wparam);
+			return 0;
+		}
+		case WM_MOUSEWHEEL:
+		{
+			InputClass::GetSingletonPtr()->SetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wparam));
 			return 0;
 		}
 		default:
