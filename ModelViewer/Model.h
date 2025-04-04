@@ -16,6 +16,7 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+#include "Component.h"
 #include "Node.h"
 #include "Mesh.h"
 #include "Material.h"
@@ -28,7 +29,7 @@ struct Vertex
 	DirectX::XMFLOAT2 TexCoord;
 };
 
-class Model
+class Model : public Component
 {
 public:
 	Model();

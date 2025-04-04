@@ -253,7 +253,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 	switch (uMessage)
 	{
 		case WM_MOUSEMOVE:
-			SystemClass::ProcessMouseMovement();
+			//SystemClass::ProcessMouseMovement();
 			return 0;
 		case WM_ACTIVATE:
 			if (wParam == WA_INACTIVE)

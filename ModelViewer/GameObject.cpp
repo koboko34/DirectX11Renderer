@@ -11,11 +11,6 @@ void GameObject::Shutdown()
 {
 }
 
-void GameObject::SetModel(Model* NewModel)
-{
-	m_Model = NewModel;
-}
-
 void GameObject::SetPosition(float x, float y, float z)
 {
 	m_Transform.Position = DirectX::XMFLOAT3(x, y, z);
@@ -36,11 +31,34 @@ void GameObject::SetTransform(const Transform& NewTransform)
 	m_Transform = NewTransform;
 }
 
-void GameObject::SendTransformToModel()
+void GameObject::AddComponent(Component* Comp)
 {
-	assert(m_Model);
+	if (!Comp)
+	{
+		return;
+	}
 
-	m_Model->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetWorldMatrix()));
+	Comp->SetOwner(this);
+	m_Components.push_back(std::shared_ptr<Component>(Comp));
+
+	if (Model* m = dynamic_cast<Model*>(Comp))
+	{
+		m_Models.push_back(std::shared_ptr<Model>(m));
+	}
+}
+
+void GameObject::SendTransformToModels()
+{
+	for (auto& Comp : m_Components)
+	{
+		Model* m = dynamic_cast<Model*>(Comp.get());
+		if (!m)
+		{
+			continue;
+		}
+
+		m->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetWorldMatrix()));
+	}
 }
 
 const DirectX::XMMATRIX GameObject::GetWorldMatrix() const

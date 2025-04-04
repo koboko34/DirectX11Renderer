@@ -6,6 +6,7 @@
 #include "DirectXMath.h"
 
 #include "Model.h"
+#include "Component.h"
 
 struct Transform
 {
@@ -21,13 +22,17 @@ public:
 
 	void Shutdown();
 
-	void SetModel(Model* NewModel);
 	void SetPosition(float x, float y, float z);
 	void SetRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
 	void SetTransform(const Transform& NewTransform);
 
-	void SendTransformToModel();
+	void AddComponent(Component* Comp);
+
+	void SendTransformToModels();
+
+	const std::vector<std::shared_ptr<Component>>& GetComponents() const { return m_Components; }
+	const std::vector<std::shared_ptr<Model>>& GetModels() const { return m_Models; }
 
 	const DirectX::XMMATRIX GetWorldMatrix() const;
 
@@ -35,9 +40,14 @@ public:
 	const DirectX::XMFLOAT3 GetRotation() const { return m_Transform.Rotation; }
 	const DirectX::XMFLOAT3 GetScale() const { return m_Transform.Scale; }
 
+	DirectX::XMFLOAT3* GetPositionPtr() { return &m_Transform.Position; }
+
 private:
 	Model* m_Model = nullptr;
 	Transform m_Transform;
+
+	std::vector<std::shared_ptr<Component>> m_Components;
+	std::vector<std::shared_ptr<Model>> m_Models;
 
 	size_t m_UID;
 

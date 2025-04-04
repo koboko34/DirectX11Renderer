@@ -9,20 +9,20 @@
 #include "ImGui/imgui_impl_dx11.h"
 
 #include "MyMacros.h"
+#include "Camera.h"
+#include "Shader.h"
+#include "InstancedShader.h"
+#include "Model.h"
+#include "Light.h"
 #include "PostProcess.h"
 #include "ResourceManager.h"
-#include "InputClass.h"
 #include "SystemClass.h"
+#include "Skybox.h"
 
 Application* Application::m_Instance = nullptr;
 
 Application::Application()
 {
-	m_Graphics = 0;
-	m_Shader = 0;
-	m_Camera = 0;
-	m_Light = 0;
-
 	m_LastUpdate = std::chrono::steady_clock::now();
 	m_AppTime = 0.0;
 }
@@ -32,58 +32,44 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_hWnd = hWnd;
 	
 	m_Graphics = new Graphics();
-	bool Result = m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise Graphics object!", L"Error", MB_OK);
-		return false;
-	}
+	assert(m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR));
+
+	m_Shader = new Shader();
+	assert(m_Shader->Initialise(m_Graphics->GetDevice(), hWnd));
+
+	m_InstancedShader = new InstancedShader();
+	assert(m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd));
+
+	m_SceneLight = new Model();
+	assert(m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), "Models/sphere.obj", ""));
+	m_Models.push_back(std::shared_ptr<Model>(m_SceneLight));
+	
+	m_Skybox = new Skybox();
+	assert(m_Skybox->Init());
 
 	m_Camera = new Camera();
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
 
-	m_Shader = new Shader();
-	Result = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise Shader object!", L"Error", MB_OK);
-		return false;
-	}
-
-	m_InstancedShader = new InstancedShader();
-	Result = m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd);
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise Shader object!", L"Error", MB_OK);
-		return false;
-	}
-
-	m_SceneLight = new Model();
-	Result = m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), "Models/sphere.obj", "");
-	if (!Result)
-	{
-		ShowCursor(true);
-		MessageBox(hWnd, L"Failed to initialise scene light object!", L"Error", MB_OK);
-		return false;
-	}
-
-	m_Light = new Light();
-	m_Light->SetPosition(1.7f, 2.5f, -1.7f);
-	m_Light->SetSpecularPower(256.f);
-	m_Light->SetRadius(10.f);
-	m_Light->SetDiffuseColor(1.f, 1.f, 1.f);
+	m_PointLight = new Light();
+	m_PointLight->SetSpecularPower(256.f);
+	m_PointLight->SetRadius(10.f);
+	m_PointLight->SetDiffuseColor(1.f, 1.f, 1.f);
 
 	auto CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
-	m_GameObjects.back()->SetModel(CarModel.get());
+	m_GameObjects.back()->AddComponent(CarModel.get());
+
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
-	m_GameObjects.back()->SetModel(CarModel.get());
+	m_GameObjects.back()->AddComponent(CarModel.get());
+
+	m_LightObject = std::make_shared<GameObject>();
+	m_LightObject->SetPosition(1.7f, 2.5f, -1.7f);
+	m_LightObject->SetScale(0.1f, 0.1f, 0.1f);
+	m_LightObject->AddComponent(m_SceneLight);
+	m_LightObject->AddComponent(m_PointLight);
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadResource("Textures/image_gamma_linear.png"));
 
@@ -113,10 +99,9 @@ void Application::Shutdown()
 	}
 	m_Models.clear();
 
-	if (m_Light)
+	if (m_Skybox)
 	{
-		delete m_Light;
-		m_Light = 0;
+		m_Skybox->Shutdown();
 	}
 
 	if (m_InstancedShader)
@@ -226,7 +211,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
-	//RenderImGui();
+	RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -235,15 +220,15 @@ bool Application::Render(double DeltaTime)
 
 bool Application::RenderScene()
 {
-	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
+	m_Graphics->BeginScene(0.f, 0.f, 1.f, 1.f);
 	m_Camera->Render();
 
-	if (m_ShouldRenderLight && m_Light)
-	{
-		//RenderPhysicalLight();
-	}
-
 	RenderModels();
+
+	if (m_bShouldRenderLight)
+	{
+		RenderPhysicalLight();
+	}
 	
 	return true;
 }
@@ -261,7 +246,7 @@ void Application::RenderModels()
 
 	for (auto& Object : m_GameObjects)
 	{
-		Object->SendTransformToModel();
+		Object->SendTransformToModels();
 	}
 	
 	for (auto& Model : m_Models)
@@ -273,10 +258,10 @@ void Application::RenderModels()
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
-			m_Light->GetRadius(),
-			m_Light->GetPosition(),
-			m_Light->GetDiffuseColor(),
-			m_Light->GetSpecularPower()
+			m_PointLight->GetRadius(),
+			m_PointLight->GetOwner()->GetPosition(),
+			m_PointLight->GetDiffuseColor(),
+			m_PointLight->GetSpecularPower()
 		);
 
 		Model->Render();
@@ -303,35 +288,31 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 	return true;
 }
 
-bool Application::RenderPhysicalLight()
+void Application::RenderPhysicalLight()
 {
-	DirectX::XMMATRIX WorldMatrix, ViewMatrix, ProjectionMatrix;
-
-	m_Graphics->GetWorldMatrix(WorldMatrix);
-	auto LightPos = m_Light->GetPosition();
-	WorldMatrix *= DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
-	WorldMatrix *= DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z);
+	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
-	m_Shader->ActivateShader(m_Graphics->GetDeviceContext());
-	assert(
-		m_Shader->SetShaderParameters(
-			m_Graphics->GetDeviceContext(),
-			WorldMatrix,
-			ViewMatrix,
-			ProjectionMatrix,
-			m_Camera->GetPosition(),
-			0.f,
-			m_Light->GetPosition(),
-			m_Light->GetDiffuseColor(),
-			m_Light->GetSpecularPower()
-		)
+	auto& Model = m_LightObject->GetModels()[0];
+	Model->GetTransforms().clear();
+
+	m_LightObject->SendTransformToModels();
+
+	m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
+	m_InstancedShader->SetShaderParameters(
+		m_Graphics->GetDeviceContext(),
+		Model.get(),
+		ViewMatrix,
+		ProjectionMatrix,
+		m_Camera->GetPosition(),
+		m_PointLight->GetRadius(),
+		m_PointLight->GetOwner()->GetPosition(),
+		m_PointLight->GetDiffuseColor(),
+		m_PointLight->GetSpecularPower()
 	);
 
-	//m_SceneLight->Render();
-	
-	return true;
+	Model->Render();
 }
 
 void Application::RenderImGui()
@@ -341,22 +322,17 @@ void Application::RenderImGui()
 	ImGui::NewFrame();
 
 	ShowCursor(true);
-	static bool ShowDemoWindow = false;
-	if (ShowDemoWindow)
-	{
-		ImGui::ShowDemoWindow(&ShowDemoWindow);
-	}
 
-	assert(m_Light || "Must have a light in the scene before spawning light window!");
+	assert(m_LightObject.get() && "Must have a light in the scene before spawning light window!");
 	if (ImGui::Begin("Light"))
 	{
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_Light->GetPositionPtr()) + 2, -10.f, 10.f);
+		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 0, -10.f, 10.f);
+		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 1, -10.f, 10.f);
+		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 2, -10.f, 10.f);
 
 		ImGui::Dummy(ImVec2(0.f, 10.f));
 
-		ImGui::Checkbox("Render scene light?", &m_ShouldRenderLight);
+		ImGui::Checkbox("Render scene light?", &m_bShouldRenderLight);
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}

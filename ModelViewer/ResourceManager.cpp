@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include <cassert>
+#include <algorithm>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

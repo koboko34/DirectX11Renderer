@@ -5,13 +5,15 @@
 
 #include <DirectXMath.h>
 
-class Light
+#include "Component.h"
+
+#include "GameObject.h"
+
+class Light : public Component
 {
 public:
-	Light();
-	Light(const Light&);
-	~Light();
-
+	Light() {}
+	
 	void SetPosition(float x, float y, float z);
 	void SetDiffuseColor(float r, float g, float b);
 	void SetSpecularPower(float Power);

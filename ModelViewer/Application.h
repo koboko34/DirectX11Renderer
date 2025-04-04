@@ -8,19 +8,20 @@
 #include <memory>
 
 #include "Graphics.h"
-#include "Shader.h"
-#include "InstancedShader.h"
-#include "Model.h"
-#include "Camera.h"
-#include "Light.h"
-#include "GameObject.h"
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
 const float SCREEN_DEPTH = 1000.f;
-const float SCREEN_NEAR = 0.3f;
+const float SCREEN_NEAR = 0.1f;
 
+class Shader;
+class InstancedShader;
+class Model;
+class Light;
+class Camera;
 class PostProcess;
+class GameObject;
+class Skybox;
 
 class Application
 {
@@ -54,7 +55,7 @@ private:
 	bool RenderScene();
 	void RenderModels();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
-	bool RenderPhysicalLight();
+	void RenderPhysicalLight();
 	void RenderImGui();
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
@@ -64,19 +65,21 @@ private:
 private:	
 	HWND m_hWnd;
 
-	Graphics* m_Graphics;
-	Shader* m_Shader;
-	InstancedShader* m_InstancedShader;
-	Camera* m_Camera;
-	Light* m_Light;
+	Graphics* m_Graphics						= nullptr;
+	Shader* m_Shader							= nullptr;
+	InstancedShader* m_InstancedShader			= nullptr;
+	Camera* m_Camera							= nullptr;
+	Light* m_PointLight							= nullptr;
+	std::shared_ptr<GameObject> m_LightObject;
 
 	Model* m_SceneLight;
+	Skybox* m_Skybox;
 
 	std::vector<std::shared_ptr<Model>> m_Models;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
 	const char* m_ModelLoadSuccessMessage = "";
-	bool m_ShouldRenderLight = false;
+	bool m_bShouldRenderLight = true;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
