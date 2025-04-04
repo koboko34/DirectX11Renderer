@@ -29,6 +29,9 @@ public:
 
 	static HWND m_hwnd;
 
+	static bool ms_bShouldProcessMouse;
+	static POINT ms_Center;
+
 private:
 	bool Frame();
 	void InitialiseWindows(int& ScreenWidth, int& ScreenHeight);

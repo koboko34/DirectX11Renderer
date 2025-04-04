@@ -17,6 +17,7 @@
 #include "PostProcess.h"
 #include "ResourceManager.h"
 #include "SystemClass.h"
+#include "InputClass.h"
 #include "Skybox.h"
 
 Application* Application::m_Instance = nullptr;
@@ -321,7 +322,7 @@ void Application::RenderImGui()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ShowCursor(true);
+	//ShowCursor(true);
 
 	assert(m_LightObject.get() && "Must have a light in the scene before spawning light window!");
 	if (ImGui::Begin("Light"))
@@ -386,4 +387,24 @@ void Application::ProcessInput()
 	}
 
 	m_Camera->SetRotation(m_Camera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_Camera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f);
+
+	if (InputClass::GetSingletonPtr()->IsKeyDown('M'))
+	{
+		int Count;
+		do {
+			Count = ShowCursor(TRUE);
+		} while (Count < 0);
+		SystemClass::ms_bShouldProcessMouse = false;
+		SystemClass::m_MouseDelta = { 0.f, 0.f };
+	}
+	if (InputClass::GetSingletonPtr()->IsKeyDown('N'))
+	{
+		int Count;
+		do {
+			Count = ShowCursor(FALSE);
+		} while (Count >= 0);
+		SystemClass::ms_bShouldProcessMouse = true;
+		SetCursorPos(SystemClass::ms_Center.x, SystemClass::ms_Center.y);
+		SystemClass::m_MouseDelta = { 0.f, 0.f };
+	}
 }

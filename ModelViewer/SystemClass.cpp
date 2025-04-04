@@ -8,6 +8,8 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 HWND SystemClass::m_hwnd = 0;
 DirectX::XMFLOAT2 SystemClass::m_MouseDelta = { 0.f, 0.f };
+bool SystemClass::ms_bShouldProcessMouse = true;
+POINT SystemClass::ms_Center;
 
 bool SystemClass::Initialise()
 {
@@ -126,7 +128,7 @@ void SystemClass::InitialiseWindows(int& ScreenWidth, int& ScreenHeight)
 
 	m_hInstance = GetModuleHandle(NULL);
 
-	m_ApplicationName = L"Model Viewer";
+	m_ApplicationName = L"DirectX 11 Renderer";
 
 	// setup the windows class with default settings
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -194,9 +196,9 @@ void SystemClass::InitialiseWindows(int& ScreenWidth, int& ScreenHeight)
 
 	RECT rect;
 	GetClientRect(m_hwnd, &rect);
-	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
-	ClientToScreen(m_hwnd, &center);
-	SetCursorPos(center.x, center.y);
+	ms_Center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	ClientToScreen(m_hwnd, &ms_Center);
+	SetCursorPos(ms_Center.x, ms_Center.y);
 }
 
 void SystemClass::ShutdownWindows()
@@ -240,12 +242,12 @@ void SystemClass::ProcessMouseMovement()
 
 	RECT rect;
 	GetClientRect(m_hwnd, &rect);
-	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
-	ClientToScreen(m_hwnd, &center);
+	ms_Center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	ClientToScreen(m_hwnd, &ms_Center);
 
-	m_MouseDelta = { (float)(currentMousePos.x - center.x), (float)(currentMousePos.y - center.y) };
+	m_MouseDelta = { (float)(currentMousePos.x - ms_Center.x), (float)(currentMousePos.y - ms_Center.y) };
 
-	SetCursorPos(center.x, center.y);
+	SetCursorPos(ms_Center.x, ms_Center.y);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
@@ -253,7 +255,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 	switch (uMessage)
 	{
 		case WM_MOUSEMOVE:
-			//SystemClass::ProcessMouseMovement();
+			if (SystemClass::ms_bShouldProcessMouse)
+			{
+				SystemClass::ProcessMouseMovement();
+			}
 			return 0;
 		case WM_ACTIVATE:
 			if (wParam == WA_INACTIVE)
