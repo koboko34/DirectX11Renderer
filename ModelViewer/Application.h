@@ -46,11 +46,12 @@ public:
 
 	HWND GetWindowHandle() const { return m_hWnd; }
 	Graphics* GetGraphics() const { return m_Graphics; }
+	Camera* GetCamera() const { return m_Camera; }
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader; }
 
 private:
-	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath);
+	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath = "");
 	bool Render(double DeltaTime);
 	bool RenderScene();
 	void RenderModels();
@@ -73,14 +74,12 @@ private:
 	Light* m_PointLight							= nullptr;
 	std::shared_ptr<GameObject> m_LightObject;
 
-	Model* m_SceneLight;
 	Skybox* m_Skybox;
 
 	std::vector<std::shared_ptr<Model>> m_Models;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
-	const char* m_ModelLoadSuccessMessage = "";
-	bool m_bShouldRenderLight = true;
+	bool m_bShouldRenderLight = false;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;

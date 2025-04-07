@@ -19,14 +19,14 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 	return ResourceManager::ms_Instance;
 }
 
-void* ResourceManager::LoadResource(const std::string& Filepath)
+void* ResourceManager::LoadResource(const std::string& Filepath, ResourceType Type)
 {
 	// check if it already loaded, if so, add to ref count and return the data ptr
 	auto itRes = m_ResourceMap.find(Filepath);
-	if (itRes != m_ResourceMap.end())
+	if (itRes != m_ResourceMap.end() && itRes->second[Type].get())
 	{
-		itRes->second->AddRef();
-		return itRes->second->m_pData;
+		itRes->second[Type]->AddRef();
+		return itRes->second[Type]->m_pData;
 	}
 
 	// else try to load resource
@@ -45,7 +45,7 @@ void* ResourceManager::LoadResource(const std::string& Filepath)
 	auto it = m_Loaders.find(Extension);
 	if (it != m_Loaders.end())
 	{
-		pData = it->second(Filepath);
+		pData = it->second(Filepath, Type);
 	}
 	else
 	{
@@ -57,29 +57,37 @@ void* ResourceManager::LoadResource(const std::string& Filepath)
 		return nullptr;
 	}
 
-	m_ResourceMap[Filepath] = std::make_unique<Resource>(pData, Filepath, Extension);
+	m_ResourceMap[Filepath][Type] = std::make_unique<Resource>(pData, Filepath, Extension);
 	return pData;
 }
 
-bool ResourceManager::UnloadResource(const std::string& Filepath)
+bool ResourceManager::UnloadResource(const std::string& Filepath, ResourceType Type)
 {
 	// returns true if the resource's ref count is still above 0 after decrementing
 	
-	Resource* ResourceToUnload = m_ResourceMap[Filepath].get();
+	Resource* ResourceToUnload = m_ResourceMap[Filepath][Type].get();
 	if (!ResourceToUnload)
 	{
 		return false;
 	}
 
-	if (ResourceToUnload->RemoveRef() < 1)
+	ResourceToUnload->RemoveRef();
+	for (auto& Res : m_ResourceMap[Filepath])
 	{
-		auto it = m_Unloaders.find(ResourceToUnload->m_Extension);
-		assert(it != m_Unloaders.end() && "Failed to find unloader by extension!");
-		it->second(Filepath);
-		m_ResourceMap.erase(Filepath);
-		return false;
+		if (!Res)
+			continue;
+
+		if (Res->m_RefCount > 0)
+		{
+			return true;
+		}
 	}
-	return true;
+
+	auto it = m_Unloaders.find(ResourceToUnload->m_Extension);
+	assert(it != m_Unloaders.end() && "Failed to find unloader by extension!");
+	it->second(Filepath);
+	m_ResourceMap.erase(Filepath);
+	return false;
 }
 
 ID3D11ShaderResourceView* ResourceManager::LoadTexture(const char* Filepath)
@@ -147,13 +155,84 @@ ID3D11ShaderResourceView* ResourceManager::LoadTexture(const char* Filepath)
 	return TextureView;
 }
 
-void* ResourceManager::LoadPng(const std::string& Filepath)
+ID3D11Texture2D* ResourceManager::LoadAsTexture2D(const char* Filepath)
 {
+	int Width, Height, Channels;
+	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
+	assert(ImageData);
+
+	unsigned char* ImageDataRgba = ImageData;
+	bool NeedsAlpha = Channels == 3;
+
+	ID3D11Texture2D* Texture = nullptr;
+
+	D3D11_TEXTURE2D_DESC TexDesc = {};
+	TexDesc.Width = Width;
+	TexDesc.Height = Height;
+	TexDesc.MipLevels = 1;
+	TexDesc.ArraySize = 1;
+	TexDesc.SampleDesc.Count = 1;
+	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	if (Channels == 1)
+	{
+		TexDesc.Format = DXGI_FORMAT_R8_UNORM;
+	}
+	else if (Channels == 2)
+	{
+		TexDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+	}
+	else if (Channels == 3)
+	{
+		ImageDataRgba = new unsigned char[Width * Height * 4];
+
+		for (int i = 0; i < Width * Height; i++)
+		{
+			ImageDataRgba[i * 4 + 0] = ImageData[i * 3 + 0];
+			ImageDataRgba[i * 4 + 1] = ImageData[i * 3 + 1];
+			ImageDataRgba[i * 4 + 2] = ImageData[i * 3 + 2];
+			ImageDataRgba[i * 4 + 3] = 255;
+		}
+
+		Channels = 4;
+		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
+	else
+	{
+		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
+
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = ImageDataRgba;
+	InitData.SysMemPitch = Width * Channels;
+
+	assert(FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
+
+	if (NeedsAlpha)
+	{
+		delete[] ImageDataRgba;
+	}
+	stbi_image_free(ImageData);
+
+	return Texture;
+}
+
+void* ResourceManager::LoadPng(const std::string& Filepath, ResourceType Type)
+{
+	if (Type == Texture2D)
+	{
+		return LoadAsTexture2D(Filepath.c_str());
+	}
 	return LoadTexture(Filepath.c_str());
 }
 
-void* ResourceManager::LoadJpg(const std::string& Filepath)
+void* ResourceManager::LoadJpg(const std::string& Filepath, ResourceType Type)
 {
+	if (Type == Texture2D)
+	{
+		return LoadAsTexture2D(Filepath.c_str());
+	}
 	return LoadTexture(Filepath.c_str());
 }
 

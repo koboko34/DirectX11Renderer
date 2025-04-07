@@ -4,17 +4,15 @@
 
 #include "MyMacros.h"
 
+Graphics* Graphics::m_Instance = nullptr;
 
-Graphics::Graphics()
+Graphics* Graphics::GetSingletonPtr()
 {
-}
-
-Graphics::Graphics(const Graphics& Other)
-{
-}
-
-Graphics::~Graphics()
-{
+	if (!m_Instance)
+	{
+		m_Instance = new Graphics();
+	}
+	return m_Instance;
 }
 
 bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hwnd, bool Fullscreen, float ScreenDepth, float ScreenNear)

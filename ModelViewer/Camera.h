@@ -16,7 +16,7 @@ public:
 	void SetRotation(float Pitch, float Yaw);
 	void SetLookDir(float, float, float);
 
-	void Render();
+	void CalcViewMatrix();
 
 private:
 	float m_PositionX, m_PositionY, m_PositionZ;
@@ -32,6 +32,7 @@ public:
 	DirectX::XMFLOAT3 GetRotatedLookDir() const;
 	DirectX::XMFLOAT3 GetRotatedLookRight() const;
 	void GetViewMatrix(DirectX::XMMATRIX& ViewMatrix) { ViewMatrix = m_ViewMatrix; }
+	DirectX::XMMATRIX GetViewMatrix() const { return m_ViewMatrix; }
 };
 
 #endif

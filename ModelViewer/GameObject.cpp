@@ -49,14 +49,8 @@ void GameObject::AddComponent(Component* Comp)
 
 void GameObject::SendTransformToModels()
 {
-	for (auto& Comp : m_Components)
+	for (auto& m : m_Models)
 	{
-		Model* m = dynamic_cast<Model*>(Comp.get());
-		if (!m)
-		{
-			continue;
-		}
-
 		m->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetWorldMatrix()));
 	}
 }

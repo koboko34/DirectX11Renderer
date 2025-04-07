@@ -196,5 +196,7 @@
     <None Include="Shaders\GaussianBlurPS.hlsl" />
     <None Include="Shaders\BasicPS.hlsl" />
     <None Include="Shaders\InstancedPhongVS.hlsl" />
+    <None Include="Shaders\SkyboxPS.hlsl" />
+    <None Include="Shaders\SkyboxVS.hlsl" />
   </ItemGroup>
 </Project>

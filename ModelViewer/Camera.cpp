@@ -44,7 +44,7 @@ void Camera::SetLookDir(float x, float y, float z)
 	DirectX::XMStoreFloat3(&m_LookDir, v);
 }
 
-void Camera::Render()
+void Camera::CalcViewMatrix()
 {
 	DirectX::XMFLOAT3 Up, Position;
 	DirectX::XMVECTOR UpVector, PositionVector, LookAtVector, ReversePositionVector;

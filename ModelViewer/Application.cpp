@@ -32,7 +32,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 {
 	m_hWnd = hWnd;
 	
-	m_Graphics = new Graphics();
+	m_Graphics = Graphics::GetSingletonPtr();
 	assert(m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR));
 
 	m_Shader = new Shader();
@@ -41,10 +41,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_InstancedShader = new InstancedShader();
 	assert(m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd));
 
-	m_SceneLight = new Model();
-	assert(m_SceneLight->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), "Models/sphere.obj", ""));
-	m_Models.push_back(std::shared_ptr<Model>(m_SceneLight));
-	
 	m_Skybox = new Skybox();
 	assert(m_Skybox->Init());
 
@@ -66,10 +62,11 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->AddComponent(CarModel.get());
 
+	auto SceneLightModel = LoadModel("Models/sphere.obj");
 	m_LightObject = std::make_shared<GameObject>();
 	m_LightObject->SetPosition(1.7f, 2.5f, -1.7f);
 	m_LightObject->SetScale(0.1f, 0.1f, 0.1f);
-	m_LightObject->AddComponent(m_SceneLight);
+	m_LightObject->AddComponent(SceneLightModel.get());
 	m_LightObject->AddComponent(m_PointLight);
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadResource("Textures/image_gamma_linear.png"));
@@ -199,6 +196,8 @@ bool Application::Render(double DeltaTime)
 	Stride = sizeof(Vertex);
 	Offset = 0u;
 	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
+	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_Graphics->GetDeviceContext()->IASetInputLayout(PostProcess::GetQuadInputLayout(m_Graphics->GetDevice()).Get());
 	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
 	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
 	m_Graphics->DisableDepthWriteAlwaysPass(); // simpler for now but might need to refactor when wanting to use depth data in post processes
@@ -222,7 +221,8 @@ bool Application::Render(double DeltaTime)
 bool Application::RenderScene()
 {
 	m_Graphics->BeginScene(0.f, 0.f, 1.f, 1.f);
-	m_Camera->Render();
+	m_Camera->CalcViewMatrix();
+	m_Skybox->Render();
 
 	RenderModels();
 
@@ -321,8 +321,6 @@ void Application::RenderImGui()
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-
-	//ShowCursor(true);
 
 	assert(m_LightObject.get() && "Must have a light in the scene before spawning light window!");
 	if (ImGui::Begin("Light"))

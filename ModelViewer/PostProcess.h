@@ -57,6 +57,17 @@ public:
 		return PostProcess::ms_QuadIndexBuffer;
 	}
 
+	static Microsoft::WRL::ComPtr<ID3D11InputLayout> GetQuadInputLayout(ID3D11Device* Device)
+	{
+		if (ms_bInitialised)
+		{
+			return PostProcess::ms_QuadInputLayout;
+		}
+
+		InitialiseShaderResources(Device);
+		return PostProcess::ms_QuadInputLayout;
+	}
+
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetPixelShader() const { return m_PixelShader; };
 
 protected:

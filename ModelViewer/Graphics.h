@@ -18,10 +18,13 @@
 
 class Graphics
 {
+private:
+	static Graphics* m_Instance;
+
+	Graphics() {}
+
 public:
-	Graphics();
-	Graphics(const Graphics&);
-	~Graphics();
+	static Graphics* GetSingletonPtr();
 
 	bool Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hwnd, bool Fullscreen, float ScreenDepth, float ScreenNear);
 	void Shutdown();
