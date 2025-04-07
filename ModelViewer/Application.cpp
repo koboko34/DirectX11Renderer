@@ -69,7 +69,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_LightObject->AddComponent(SceneLightModel.get());
 	m_LightObject->AddComponent(m_PointLight);
 
-	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadResource("Textures/image_gamma_linear.png"));
+	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
 	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(25));
@@ -86,6 +86,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 void Application::Shutdown()
 {
+	ResourceManager::GetSingletonPtr()->UnloadTexture(m_QuadTexturePath);
+	m_TextureResourceView = nullptr;
+	
 	for (auto& Object : m_GameObjects)
 	{
 		Object->Shutdown();
@@ -121,6 +124,8 @@ void Application::Shutdown()
 		delete m_Camera;
 		m_Camera = 0;
 	}
+
+	ResourceManager::GetSingletonPtr()->Shutdown();
 
 	if (m_Graphics)
 	{

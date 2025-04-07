@@ -13,14 +13,6 @@
 
 #include "Resource.h"
 
-enum ResourceType
-{
-	Texture2D,
-	SRV,
-
-	Default
-};
-
 class ResourceManager
 {
 private:
@@ -31,35 +23,20 @@ private:
 public:
 	static ResourceManager* GetSingletonPtr();
 
-	void* LoadResource(const std::string& Filepath, ResourceType Type = Default);
-	bool UnloadResource(const std::string& Filepath, ResourceType Type = Default);
+	void Shutdown();
 
-	std::unordered_map<std::string, std::array<std::unique_ptr<Resource>, ResourceType::Default + 1>>& GetResourceMap() { return m_ResourceMap; }
+	// these must NOT be stored with a ComPtr and should be unloaded using UnloadTexture when no longer needed
+	ID3D11ShaderResourceView* LoadTexture(const std::string& Filepath);
+	bool UnloadTexture(const std::string& Filepath);
 
-private:
-	static void* LoadPng(const std::string& Filepath, ResourceType Type);
-	static void* LoadJpg(const std::string& Filepath, ResourceType Type);
-
-	static void UnloadPng(const std::string& Filepath);
-	static void UnloadJpg(const std::string& Filepath);
-
-	static ID3D11ShaderResourceView* LoadTexture(const char* Filepath);
-	static ID3D11Texture2D* LoadAsTexture2D(const char* Filepath);
+	std::unordered_map<std::string, std::unique_ptr<Resource>>& GetTexturesMap() { return m_TexturesMap; }
 
 private:
-	std::unordered_map<std::string, std::array<std::unique_ptr<Resource>, ResourceType::Default + 1>> m_ResourceMap;
+	ID3D11ShaderResourceView* Internal_LoadTexture(const char* Filepath);
+	void Internal_UnloadTexture(const std::string& Filepath);
 
-	const std::unordered_map<std::string, std::function<void*(const std::string&, ResourceType)>> m_Loaders = {
-		{".png",  LoadPng},
-		{".jpg",  LoadJpg},
-		{".jpeg", LoadJpg},
-	};
-
-	const std::unordered_map<std::string, std::function<void (const std::string&)>> m_Unloaders = {
-		{".png",  UnloadPng},
-		{".jpg",  UnloadJpg},
-		{".jpeg", UnloadJpg},
-	};
+private:
+	std::unordered_map<std::string, std::unique_ptr<Resource>> m_TexturesMap;
 
 };
 

@@ -51,7 +51,7 @@ bool Skybox::Init()
 	D3D11_SUBRESOURCE_DATA Data[6] = {};
 	for (int i = 0; i < 6; i++)
 	{
-		ID3D11Texture2D* OriginalTex = m_Textures[i].Get();
+		ID3D11Texture2D* OriginalTex = m_Textures[i];
 		D3D11_TEXTURE2D_DESC Desc;
 		OriginalTex->GetDesc(&Desc);
 
@@ -77,6 +77,12 @@ bool Skybox::Init()
 		Data[i].pSysMem = TextureData[i].data();
 		Data[i].SysMemPitch = Mapped.RowPitch;
 	}
+
+	for (const std::string& Filename : m_FileNames)
+	{
+		ResourceManager::GetSingletonPtr()->UnloadTexture(m_TexturesDir + Filename);
+	}
+	m_Textures.clear();
 
 	HFALSE_IF_FAILED(Device->CreateTexture2D(&CubeDesc, Data, &pTexture));
 
@@ -161,18 +167,25 @@ void Skybox::Render()
 
 void Skybox::Shutdown()
 {
-	for (const std::string& Filename : m_FileNames)
-	{
-		ResourceManager::GetSingletonPtr()->UnloadResource(m_TexturesDir + Filename);
-	}
-	m_Textures.clear();
 }
 
 bool Skybox::LoadTextures()
 {
 	for (const std::string& Filename : m_FileNames)
 	{
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture(reinterpret_cast<ID3D11Texture2D*>(ResourceManager::GetSingletonPtr()->LoadResource(m_TexturesDir + Filename, Texture2D)));
+		ID3D11ShaderResourceView* SRV = ResourceManager::GetSingletonPtr()->LoadTexture(m_TexturesDir + Filename);
+		if (!SRV)
+		{
+			return false;
+		}
+		
+		ID3D11Resource* Resource = nullptr;
+		SRV->GetResource(&Resource);
+
+		ID3D11Texture2D* Texture = nullptr;
+		HRESULT hResult;
+		
+		HFALSE_IF_FAILED(Resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&Texture));
 		m_Textures.push_back(Texture);
 	}
 	return true;

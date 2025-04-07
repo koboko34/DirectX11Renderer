@@ -6,7 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "Application.h"
+#include "Graphics.h"
 
 ResourceManager* ResourceManager::ms_Instance = nullptr;
 
@@ -19,78 +19,51 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 	return ResourceManager::ms_Instance;
 }
 
-void* ResourceManager::LoadResource(const std::string& Filepath, ResourceType Type)
+void ResourceManager::Shutdown()
 {
-	// check if it already loaded, if so, add to ref count and return the data ptr
-	auto itRes = m_ResourceMap.find(Filepath);
-	if (itRes != m_ResourceMap.end() && itRes->second[Type].get())
+	m_TexturesMap.clear();
+}
+
+ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepath)
+{
+	auto itRes = m_TexturesMap.find(Filepath);
+	if (itRes != m_TexturesMap.end() && itRes->second.get())
 	{
-		itRes->second[Type]->AddRef();
-		return itRes->second[Type]->m_pData;
+		itRes->second->AddRef();
+		return reinterpret_cast<ID3D11ShaderResourceView*>(itRes->second->m_pData);
 	}
 
-	// else try to load resource
-	size_t Pos = Filepath.find('.');
-	std::string Extension;
-	if (Pos == std::string::npos)
-	{
-		assert(false && "Invalid filepath!");
-	}
-	Extension = Filepath.substr(Pos);
-
-	std::transform(Extension.begin(), Extension.end(), Extension.begin(),
-		[](unsigned char c) { return std::tolower(c); });
-
-	void* pData = nullptr;
-	auto it = m_Loaders.find(Extension);
-	if (it != m_Loaders.end())
-	{
-		pData = it->second(Filepath, Type);
-	}
-	else
-	{
-		assert(false && "Unknown file extension!");
-	}
-
+	ID3D11ShaderResourceView* pData = Internal_LoadTexture(Filepath.c_str());
 	if (!pData)
 	{
 		return nullptr;
 	}
 
-	m_ResourceMap[Filepath][Type] = std::make_unique<Resource>(pData, Filepath, Extension);
+	m_TexturesMap[Filepath] = std::make_unique<Resource>(pData, Filepath);
 	return pData;
 }
 
-bool ResourceManager::UnloadResource(const std::string& Filepath, ResourceType Type)
+bool ResourceManager::UnloadTexture(const std::string& Filepath)
 {
 	// returns true if the resource's ref count is still above 0 after decrementing
 	
-	Resource* ResourceToUnload = m_ResourceMap[Filepath][Type].get();
+	Resource* ResourceToUnload = m_TexturesMap[Filepath].get();
 	if (!ResourceToUnload)
 	{
 		return false;
 	}
 
 	ResourceToUnload->RemoveRef();
-	for (auto& Res : m_ResourceMap[Filepath])
+	if (ResourceToUnload->m_RefCount > 0)
 	{
-		if (!Res)
-			continue;
-
-		if (Res->m_RefCount > 0)
-		{
-			return true;
-		}
+		return true;
 	}
 
-	auto it = m_Unloaders.find(ResourceToUnload->m_Extension);
-	assert(it != m_Unloaders.end() && "Failed to find unloader by extension!");
-	it->second(Filepath);
-	m_ResourceMap.erase(Filepath);
+	Internal_UnloadTexture(Filepath);
 	return false;
 }
 
-ID3D11ShaderResourceView* ResourceManager::LoadTexture(const char* Filepath)
+ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* Filepath)
 {
 	int Width, Height, Channels;
 	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
@@ -143,105 +116,23 @@ ID3D11ShaderResourceView* ResourceManager::LoadTexture(const char* Filepath)
 	InitData.pSysMem = ImageDataRgba;
 	InitData.SysMemPitch = Width * Channels;
 
-	assert(FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
-	assert(FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);
+	assert(FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
+	assert(FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);
 
 	if (NeedsAlpha)
 	{
 		delete[] ImageDataRgba;
 	}
 	stbi_image_free(ImageData);
+
+	TextureView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
 
 	return TextureView;
 }
 
-ID3D11Texture2D* ResourceManager::LoadAsTexture2D(const char* Filepath)
+void ResourceManager::Internal_UnloadTexture(const std::string& Filepath)
 {
-	int Width, Height, Channels;
-	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
-	assert(ImageData);
-
-	unsigned char* ImageDataRgba = ImageData;
-	bool NeedsAlpha = Channels == 3;
-
-	ID3D11Texture2D* Texture = nullptr;
-
-	D3D11_TEXTURE2D_DESC TexDesc = {};
-	TexDesc.Width = Width;
-	TexDesc.Height = Height;
-	TexDesc.MipLevels = 1;
-	TexDesc.ArraySize = 1;
-	TexDesc.SampleDesc.Count = 1;
-	TexDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-	if (Channels == 1)
-	{
-		TexDesc.Format = DXGI_FORMAT_R8_UNORM;
-	}
-	else if (Channels == 2)
-	{
-		TexDesc.Format = DXGI_FORMAT_R8G8_UNORM;
-	}
-	else if (Channels == 3)
-	{
-		ImageDataRgba = new unsigned char[Width * Height * 4];
-
-		for (int i = 0; i < Width * Height; i++)
-		{
-			ImageDataRgba[i * 4 + 0] = ImageData[i * 3 + 0];
-			ImageDataRgba[i * 4 + 1] = ImageData[i * 3 + 1];
-			ImageDataRgba[i * 4 + 2] = ImageData[i * 3 + 2];
-			ImageDataRgba[i * 4 + 3] = 255;
-		}
-
-		Channels = 4;
-		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	}
-	else
-	{
-		TexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	}
-
-	D3D11_SUBRESOURCE_DATA InitData = {};
-	InitData.pSysMem = ImageDataRgba;
-	InitData.SysMemPitch = Width * Channels;
-
-	assert(FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
-
-	if (NeedsAlpha)
-	{
-		delete[] ImageDataRgba;
-	}
-	stbi_image_free(ImageData);
-
-	return Texture;
-}
-
-void* ResourceManager::LoadPng(const std::string& Filepath, ResourceType Type)
-{
-	if (Type == Texture2D)
-	{
-		return LoadAsTexture2D(Filepath.c_str());
-	}
-	return LoadTexture(Filepath.c_str());
-}
-
-void* ResourceManager::LoadJpg(const std::string& Filepath, ResourceType Type)
-{
-	if (Type == Texture2D)
-	{
-		return LoadAsTexture2D(Filepath.c_str());
-	}
-	return LoadTexture(Filepath.c_str());
-}
-
-void ResourceManager::UnloadPng(const std::string& Filepath)
-{
-	return;
-}
-
-void ResourceManager::UnloadJpg(const std::string& Filepath)
-{
-	return;
+	ID3D11ShaderResourceView* SRV = reinterpret_cast<ID3D11ShaderResourceView*>(m_TexturesMap[Filepath]->m_pData);
+	SRV->Release();
+	m_TexturesMap.erase(Filepath);
 }

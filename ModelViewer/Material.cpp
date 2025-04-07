@@ -1,5 +1,5 @@
 #include "Material.h"
-#include "Application.h"
+#include "Graphics.h"
 #include "MyMacros.h"
 
 #include "assimp/material.h"
@@ -59,13 +59,13 @@ void Material::LoadTexture(const std::string& Path, int& TextureIndex)
 {
 	m_pOwner->GetTexturePathsSet().insert(Path);
 	std::unordered_map<std::string, UINT>& TextureIndexMap = m_pOwner->GetTextureIndexMap();
-	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& Textures = m_pOwner->GetTextures();
+	std::vector<ID3D11ShaderResourceView*>& Textures = m_pOwner->GetTextures();
 	if (TextureIndexMap.find(Path) == TextureIndexMap.end())
 	{
 		// not loaded, load and add index to map
 		ResourceManager* pResManager = ResourceManager::GetSingletonPtr();
 
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV(reinterpret_cast<ID3D11ShaderResourceView*>(pResManager->LoadResource(Path)));
+		ID3D11ShaderResourceView* SRV = reinterpret_cast<ID3D11ShaderResourceView*>(pResManager->LoadTexture(Path.c_str()));
 		Textures.push_back(SRV);
 
 		UINT Index = (UINT)Textures.size() - 1;
@@ -98,5 +98,5 @@ void Material::CreateConstantBuffer()
 	D3D11_SUBRESOURCE_DATA BufferData = {};
 	BufferData.pSysMem = &Data;
 
-	ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+	ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 }

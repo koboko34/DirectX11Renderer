@@ -92,7 +92,8 @@ private:
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 	std::unique_ptr<PostProcess> m_EmptyPostProcess;
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_TextureResourceView;
+	const char* m_QuadTexturePath = "Textures/image_gamma_linear.png";
+	ID3D11ShaderResourceView* m_TextureResourceView;
 };
 
 #endif

@@ -47,7 +47,7 @@ public:
 	std::vector<std::unique_ptr<Mesh>>& GetOpaqueMeshes() { return m_OpaqueMeshes; }
 	std::vector<std::unique_ptr<Mesh>>& GetTransparentMeshes() { return m_TransparentMeshes; }
 	std::vector<std::shared_ptr<Material>>& GetMaterials() { return m_Materials; }
-	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTextures() { return m_Textures; }
+	std::vector<ID3D11ShaderResourceView*>& GetTextures() { return m_Textures; }
 	std::unordered_map<std::string, UINT>& GetTextureIndexMap() { return m_TextureIndexMap; }
 	std::unordered_set<std::string>& GetTexturePathsSet() { return m_TexturePathsSet; }
 
@@ -77,7 +77,7 @@ private:
 	std::vector<std::unique_ptr<Mesh>> m_TransparentMeshes;
 	std::unique_ptr<Node> m_RootNode;
 	std::vector<std::shared_ptr<Material>> m_Materials;
-	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_Textures;
+	std::vector<ID3D11ShaderResourceView*> m_Textures;
 	std::unordered_map<std::string, UINT> m_TextureIndexMap;
 	std::unordered_set<std::string> m_TexturePathsSet;
 

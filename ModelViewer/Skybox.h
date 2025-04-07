@@ -27,7 +27,7 @@ private:
 private:
 	std::string m_TexturesDir = "Textures/skybox/";
 	std::vector<std::string> m_FileNames { "right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg" };
-	std::vector<Microsoft::WRL::ComPtr<ID3D11Texture2D>> m_Textures;
+	std::vector<ID3D11Texture2D*> m_Textures;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
@@ -36,6 +36,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
 };
 
 #endif

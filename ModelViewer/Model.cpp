@@ -36,7 +36,7 @@ void Model::Shutdown()
 
 void Model::Render()
 {
-	ID3D11DeviceContext* DeviceContext = Application::GetSingletonPtr()->GetGraphics()->GetDeviceContext();
+	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	UINT Strides[2] = { sizeof(Vertex), sizeof(InstanceData) };
 	UINT Offsets[2] = { 0u, 0u };
 	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), Application::GetSingletonPtr()->GetInstancedShader()->GetInstanceBuffer().Get() };
@@ -45,11 +45,11 @@ void Model::Render()
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	Application::GetSingletonPtr()->GetGraphics()->EnableDepthWrite();
-	Application::GetSingletonPtr()->GetGraphics()->DisableBlending();
+	Graphics::GetSingletonPtr()->EnableDepthWrite();
+	Graphics::GetSingletonPtr()->DisableBlending();
 	RenderMeshes(m_OpaqueMeshes);
-	Application::GetSingletonPtr()->GetGraphics()->DisableDepthWrite();
-	Application::GetSingletonPtr()->GetGraphics()->EnableBlending();
+	Graphics::GetSingletonPtr()->DisableDepthWrite();
+	Graphics::GetSingletonPtr()->EnableBlending();
 	RenderMeshes(m_TransparentMeshes);
 }
 
@@ -98,7 +98,7 @@ void Model::ReleaseModel()
 
 	for (const std::string& Path : m_TexturePathsSet)
 	{
-		ResourceManager::GetSingletonPtr()->UnloadResource(Path);
+		ResourceManager::GetSingletonPtr()->UnloadTexture(Path);
 	}
 	m_TexturePathsSet.clear();
 
@@ -129,7 +129,7 @@ bool Model::CreateBuffers()
 
 	VertexData.pSysMem = m_Vertices.data();
 
-	HFALSE_IF_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&vbDesc, &VertexData, &m_VertexBuffer));
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&vbDesc, &VertexData, &m_VertexBuffer));
 
 	D3D11_BUFFER_DESC ibDesc = {};
 	D3D11_SUBRESOURCE_DATA IndexData = {};
@@ -140,7 +140,7 @@ bool Model::CreateBuffers()
 
 	IndexData.pSysMem = m_Indices.data();
 
-	HFALSE_IF_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&ibDesc, &IndexData, &m_IndexBuffer));
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&ibDesc, &IndexData, &m_IndexBuffer));
 
 	return true;
 }
@@ -157,7 +157,7 @@ void Model::LoadMaterials(const aiScene* Scene)
 
 void Model::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 {
-	ID3D11DeviceContext* DeviceContext = Application::GetSingletonPtr()->GetGraphics()->GetDeviceContext();
+	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 
 	for (const std::unique_ptr<Mesh>& m : Meshes)
 	{
@@ -168,16 +168,16 @@ void Model::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 
 		if (Mat->m_DiffuseSRV >= 0)
 		{
-			DeviceContext->PSSetShaderResources(0u, 1u, m_Textures[Mat->m_DiffuseSRV].GetAddressOf());
+			DeviceContext->PSSetShaderResources(0u, 1u, &m_Textures[Mat->m_DiffuseSRV]);
 		}
 
 		if (Mat->m_SpecularSRV >= 0)
 		{
-			DeviceContext->PSSetShaderResources(1u, 1u, m_Textures[Mat->m_SpecularSRV].GetAddressOf());
+			DeviceContext->PSSetShaderResources(1u, 1u, &m_Textures[Mat->m_SpecularSRV]);
 		}
 
-		//Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(!Mat->m_bTwoSided); // this doesn't actually work in some cases, investigate
-		Application::GetSingletonPtr()->GetGraphics()->SetRasterStateBackFaceCull(true);
+		//Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(!Mat->m_bTwoSided); // this doesn't actually work in some cases, investigate
+		Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(true);
 
 		DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)GetTransforms().size(), m->m_IndicesOffset, 0, 0);
 	}
