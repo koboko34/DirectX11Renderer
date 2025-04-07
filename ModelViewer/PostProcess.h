@@ -8,6 +8,7 @@
 
 #include "Shader.h"
 #include "MyMacros.h"
+#include "Graphics.h"
 #include "Application.h"
 
 class PostProcess
@@ -16,9 +17,9 @@ public:
 	void ApplyPostProcess(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV, ID3D11DepthStencilView* DSV)
 	{
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		Application::GetSingletonPtr()->GetGraphics()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
+		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
 		ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
-		Application::GetSingletonPtr()->GetGraphics()->GetDeviceContext()->PSSetShaderResources(0u, 2u, NullSRVs);
+		Graphics::GetSingletonPtr()->GetDeviceContext()->PSSetShaderResources(0u, 2u, NullSRVs);
 		ApplyPostProcessImpl(DeviceContext, RTV, SRV, DSV);
 	}
 
@@ -113,7 +114,7 @@ protected:
 			return false;
 		}
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &PixelShader));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &PixelShader));
 
 		return true;
 	}
@@ -285,7 +286,7 @@ public:
 		BufferDesc.ByteWidth = sizeof(BlurData);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		BlurData Data = {};
 		Data.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
 		Data.BlurStrength = BlurStrength;
@@ -293,7 +294,7 @@ public:
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_HorizontalPS, L"Shaders/BoxBlurPS.hlsl", "HorizontalPS");
 		SetupPixelShader(m_VerticalPS, L"Shaders/BoxBlurPS.hlsl", "VerticalPS");
@@ -309,9 +310,9 @@ public:
 		TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 
 		ID3D11Texture2D* IntermediateTexture;
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
 	}
 
 private:
@@ -369,7 +370,7 @@ public:
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		BlurData Data = {};
 		Data.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
 		Data.BlurStrength = BlurStrength;
@@ -377,7 +378,7 @@ public:
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		std::vector<float> GaussianWeights(BlurStrength + 1, 0.f);
 		BufferDesc.ByteWidth = sizeof(float) * (UINT)GaussianWeights.size();
@@ -405,14 +406,14 @@ public:
 		BufferData = {};
 		BufferData.pSysMem = GaussianWeights.data();
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_GaussianWeightsBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_GaussianWeightsBuffer));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC GaussianSRVDesc = {};
 		GaussianSRVDesc.Format = DXGI_FORMAT_UNKNOWN; // set to this when using a structured buffer
 		GaussianSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 		GaussianSRVDesc.Buffer.NumElements = (UINT)GaussianWeights.size();
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(m_GaussianWeightsBuffer.Get(), &GaussianSRVDesc, &m_GaussianWeightsSRV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GaussianWeightsBuffer.Get(), &GaussianSRVDesc, &m_GaussianWeightsSRV));
 		
 		SetupPixelShader(m_HorizontalPS, L"Shaders/GaussianBlurPS.hlsl", "HorizontalPS");
 		SetupPixelShader(m_VerticalPS, L"Shaders/GaussianBlurPS.hlsl", "VerticalPS");
@@ -428,9 +429,9 @@ public:
 		TextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 
 		ID3D11Texture2D* IntermediateTexture;
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
 	}
 
 private:
@@ -491,12 +492,12 @@ public:
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, pixelSize, 0.f);
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_PixelShader, L"Shaders/PixelationPS.hlsl");
 	}
@@ -536,12 +537,12 @@ public:
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_LuminancePS, L"Shaders/BloomPS.hlsl", "LuminancePS");
 		SetupPixelShader(m_BloomPS, L"Shaders/BloomPS.hlsl", "BloomPS");
 
-		std::pair<int, int> Dimensions = Application::GetSingletonPtr()->GetGraphics()->GetRenderTargetDimensions();
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		D3D11_TEXTURE2D_DESC TextureDesc = {};
 		TextureDesc.Width = Dimensions.first;
 		TextureDesc.Height = Dimensions.second;
@@ -554,14 +555,14 @@ public:
 		
 		ID3D11Texture2D* LuminousTexture;
 		ID3D11Texture2D* BlurredTexture;
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &LuminousTexture));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &BlurredTexture));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &LuminousTexture));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &BlurredTexture));
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateRenderTargetView(LuminousTexture, NULL, &m_LuminousRTV));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateRenderTargetView(BlurredTexture, NULL, &m_BlurredRTV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(LuminousTexture, NULL, &m_LuminousRTV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(BlurredTexture, NULL, &m_BlurredRTV));
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(LuminousTexture, NULL, &m_LuminousSRV));
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateShaderResourceView(BlurredTexture, NULL, &m_BlurredSRV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(LuminousTexture, NULL, &m_LuminousSRV));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(BlurredTexture, NULL, &m_BlurredSRV));
 
 		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(50, 8.f);
 	}
@@ -585,7 +586,7 @@ private:
 
 		// add bloom to original
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		Application::GetSingletonPtr()->GetGraphics()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
+		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
 
 		DeviceContext->PSSetShader(m_BloomPS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
@@ -646,7 +647,7 @@ public:
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
 	}
@@ -686,7 +687,7 @@ public:
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
-		ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		
 		SetupPixelShader(m_PixelShader, L"Shaders/GammaCorrectionPS.hlsl");
 	}

@@ -1,6 +1,6 @@
 #include "Node.h"
 #include "Model.h"
-#include "Application.h"
+#include "Graphics.h"
 #include "MyMacros.h"
 
 Node::Node(Model* pModel, Node* pOwner) : m_pModel(pModel), m_pOwner(pOwner)
@@ -60,5 +60,5 @@ void Node::CreateConstantBuffer()
 	D3D11_SUBRESOURCE_DATA Data;
 	Data.pSysMem = &m_AccumulatedTransform;
 
-	ASSERT_NOT_FAILED(Application::GetSingletonPtr()->GetGraphics()->GetDevice()->CreateBuffer(&BufferDesc, &Data, &m_ConstantBuffer));
+	ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &Data, &m_ConstantBuffer));
 }

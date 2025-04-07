@@ -276,7 +276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 			else {
 				SystemClass::ConfineCursorToWindow();
 			}
-			break;
+			return 0;
 		case WM_DESTROY:
 		{
 			PostQuitMessage(0);

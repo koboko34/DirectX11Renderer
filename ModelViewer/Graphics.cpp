@@ -303,7 +303,37 @@ void Graphics::Shutdown()
 		m_SwapChain->SetFullscreenState(false, NULL);
 	}
 
+	m_DepthStencilBuffer.Reset();
+	m_DepthStencilStateWriteEnabled.Reset();
+	m_DepthStencilStateWriteDisabled.Reset();
+	m_DepthStencilStateWriteDisabledAlwaysPass.Reset();
+	m_DepthStencilView.Reset();
+	m_BlendStateOpaque.Reset();
+	m_BlendStateTransparent.Reset();
+	m_RasterStateBackFaceCullOn.Reset();
+	m_RasterStateBackFaceCullOff.Reset();
+	m_SamplerState.Reset();
+	m_BackBufferRTV.Reset();
+	m_PostProcessRTVFirst.Reset();
+	m_PostProcessRTVSecond.Reset();
+	m_PostProcessSRVFirst.Reset();
+	m_PostProcessSRVSecond.Reset();
+
+	m_DeviceContext->ClearState();
+	m_DeviceContext->Flush();
+
 	ImGui_ImplDX11_Shutdown();
+
+	Microsoft::WRL::ComPtr<ID3D11Debug> d3dDebug;
+	if (SUCCEEDED(m_Device->QueryInterface(IID_PPV_ARGS(&d3dDebug))))
+	{
+		d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+	}
+
+	m_SwapChain.Reset();
+	m_DeviceContext.Reset();
+	m_Device.Reset();
+
 }
 
 void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)
