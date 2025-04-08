@@ -2,19 +2,21 @@ Texture2D diffuseTexture : register(t0);
 Texture2D specularTexture : register(t1);
 SamplerState samplerState : register(s0);
 
-struct LightingData
+#define MAX_POINT_LIGHTS 8
+
+struct PointLight
 {
-	float3 CameraPos;
 	float Radius;
 	float3 LightPos;
 	float SpecularPower;
 	float3 LightColor;
-	float Padding;
 };
 
 cbuffer Lighting : register(b0)
 {
-	LightingData Lighting;
+	PointLight PointLights[MAX_POINT_LIGHTS];
+	float3 CameraPos;
+	int PointLightCount;
 };
 
 struct MaterialData
@@ -50,36 +52,41 @@ float4 main(PS_In p) : SV_TARGET
 		Color = float4(Mat.DiffuseColor, 1.f);
 	}
 	
-	clip(Color.a < 0.1f ? -1.f : 1.f);
+	clip(Color.a < 0.1f ? -1.f : 1.f); // play around with this number
 	
+	float BaseAlpha = Color.a;
 	float AmbientFactor = 0.05f;
 	float4 Ambient = float4(Color * AmbientFactor);
 	
-	float Distance = distance(p.WorldPos, Lighting.LightPos);
-	if (Distance > Lighting.Radius)
+	float3 PixelToCam = normalize(CameraPos - p.WorldPos);
+	float4 LightTotal = float4(0.f, 0.f, 0.f, 0.f);
+	for (int i = 0; i < PointLightCount; i++)
 	{
-		return Ambient;
-	}
+		float Distance = distance(p.WorldPos, PointLights[i].LightPos);
+		if (Distance > PointLights[i].Radius)
+		{
+			continue;
+		}
 	
-	float3 PixelToLight = normalize(Lighting.LightPos - p.WorldPos);
-	float DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));	
+		float3 PixelToLight = normalize(PointLights[i].LightPos - p.WorldPos);
+		float DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));	
 	
-	float4 Diffuse = float4(0.f, 0.f, 0.f, 0.f);
-    float4 Specular = float4(0.f, 0.f, 0.f, 0.f);
-	if (DiffuseFactor > 0.f)
-    {
-		Diffuse = float4(Lighting.LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
+		if (DiffuseFactor <= 0.f)
+		{
+			continue;
+		}
+
+		float4 Diffuse = float4(PointLights[i].LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
 		
-		float3 PixelToCam = normalize(Lighting.CameraPos - p.WorldPos);
 		float3 HalfwayVec = normalize(PixelToCam + PixelToLight);
-		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), Lighting.SpecularPower);
-		Specular = float4(Lighting.LightColor, 1.f) * SpecularFactor;
+		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), PointLights[i].SpecularPower);
+		float4 Specular = float4(PointLights[i].LightColor, 1.f) * SpecularFactor;
+	
+		float Attenuation = saturate(1.0 - (Distance * Distance) / (PointLights[i].Radius * PointLights[i].Radius)); // less control than constant, linear and quadratic, but guaranteed to reach 0 past max radius
+		LightTotal += Diffuse * Attenuation;
+		LightTotal += Specular * Attenuation;
 	}
 	
-	float Attenuation = saturate(1.0 - (Distance * Distance) / (Lighting.Radius * Lighting.Radius)); // less control than constant, linear and quadratic, but guaranteed to reach 0 past max radius
-	Diffuse *= Attenuation;
-    Specular *= Attenuation;
-	
-	float4 outColor = saturate(Ambient + Diffuse + Specular);
+	float4 outColor = saturate(Ambient + LightTotal);
     return outColor;
 }

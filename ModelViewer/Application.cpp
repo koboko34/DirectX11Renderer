@@ -48,12 +48,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
 
-	std::shared_ptr<Light> PointLight = std::make_shared<Light>();
-	PointLight->SetSpecularPower(256.f);
-	PointLight->SetRadius(10.f);
-	PointLight->SetDiffuseColor(1.f, 1.f, 1.f);
-
-	auto CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
+	std::shared_ptr<Model> CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
 	m_GameObjects.back()->AddComponent(CarModel);
@@ -62,13 +57,28 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->AddComponent(CarModel);
 
-	auto SceneLightModel = LoadModel("Models/sphere.obj");
-	m_LightObject = std::make_shared<GameObject>();
-	m_LightObject->SetPosition(1.7f, 2.5f, -1.7f);
-	m_LightObject->SetScale(0.1f, 0.1f, 0.1f);
-	m_LightObject->AddComponent(SceneLightModel);
-	m_LightObject->AddComponent(PointLight);
-	m_GameObjects.push_back(m_LightObject);
+	std::shared_ptr<PointLight> pPointLight = std::make_shared<PointLight>();
+	pPointLight->SetSpecularPower(256.f);
+	pPointLight->SetRadius(10.f);
+	pPointLight->SetDiffuseColor(1.f, 1.f, 1.f);
+
+	std::shared_ptr<Model> SceneLightModel = LoadModel("Models/sphere.obj");
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
+	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
+	m_GameObjects.back()->AddComponent(SceneLightModel);
+	m_GameObjects.back()->AddComponent(pPointLight);
+
+	pPointLight.reset();
+	pPointLight = std::make_shared<PointLight>();
+	pPointLight->SetSpecularPower(256.f);
+	pPointLight->SetRadius(10.f);
+	pPointLight->SetDiffuseColor(1.f, 1.f, 1.f);
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
+	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
+	m_GameObjects.back()->AddComponent(SceneLightModel);
+	m_GameObjects.back()->AddComponent(pPointLight);
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
@@ -265,12 +275,7 @@ void Application::RenderModels()
 	}
 	
 	for (const auto& pModel : m_Models)
-	{
-		if (pModel.get() == m_LightObject->GetModels()[0] && !m_bShouldRenderLight)
-		{
-			continue;
-		}
-		
+	{		
 		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_InstancedShader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
@@ -278,10 +283,7 @@ void Application::RenderModels()
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
-			Lights[0]->GetRadius(),
-			Lights[0]->GetOwner()->GetPosition(),
-			Lights[0]->GetDiffuseColor(),
-			Lights[0]->GetSpecularPower()
+			Lights
 		);
 
 		pModel->Render();
@@ -314,20 +316,22 @@ void Application::RenderImGui()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	assert(m_LightObject.get() && "Must have a light in the scene before spawning light window!");
-	if (ImGui::Begin("Light"))
+	/*if (m_LightObject.get())
 	{
-		ImGui::SliderFloat("X", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 0, -10.f, 10.f);
-		ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 1, -10.f, 10.f);
-		ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 2, -10.f, 10.f);
+		if (ImGui::Begin("Light"))
+		{
+			ImGui::SliderFloat("X", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 0, -10.f, 10.f);
+			ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 1, -10.f, 10.f);
+			ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 2, -10.f, 10.f);
 
-		ImGui::Dummy(ImVec2(0.f, 10.f));
+			ImGui::Dummy(ImVec2(0.f, 10.f));
 
-		ImGui::Checkbox("Render scene light?", &m_bShouldRenderLight);
+			ImGui::Checkbox("Render scene light?", &m_bShouldRenderLight);
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	}
-	ImGui::End();
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		}
+		ImGui::End();
+	}*/
 
 	ImGui::EndFrame();
 	ImGui::Render();

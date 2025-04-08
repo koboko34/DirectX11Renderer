@@ -5,7 +5,7 @@
 #include <cstring>
 #include <fstream>
 
-#include "MyMacros.h"
+#include "Light.h"
 
 bool InstancedShader::Initialise(ID3D11Device* Device, HWND hWnd)
 {
@@ -217,7 +217,7 @@ void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hW
 }
 
 bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, Model* ModelPtr, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-	DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower)
+	DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -242,11 +242,25 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, Mo
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_LightingBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
-	LightingDataPtr->Radius = Radius;
-	LightingDataPtr->LightPos = LightPos;
-	LightingDataPtr->SpecularPower = SpecularPower;
-	LightingDataPtr->DiffuseColor = DiffuseColor;
-	LightingDataPtr->Padding = 0.f;
+
+	int NumPointLights = 0;
+	for (int i = 0; i < Lights.size(); i++)
+	{
+		PointLight* pLight = dynamic_cast<PointLight*>(Lights[i]);
+		if (pLight)
+		{
+			assert(NumPointLights < MAX_POINT_LIGHTS);
+			LightingDataPtr->PointLights[NumPointLights].LightColor = pLight->GetDiffuseColor();
+			LightingDataPtr->PointLights[NumPointLights].LightPos = pLight->GetPosition();
+			LightingDataPtr->PointLights[NumPointLights].Radius = pLight->GetRadius();
+			LightingDataPtr->PointLights[NumPointLights].SpecularPower = pLight->GetSpecularPower();
+
+			NumPointLights++;
+			continue;
+		}
+	}
+
+	LightingDataPtr->PointLightCount = NumPointLights;
 	DeviceContext->Unmap(m_LightingBuffer.Get(), 0u);
 
 	DeviceContext->PSSetConstantBuffers(psBufferSlot, 1u, m_LightingBuffer.GetAddressOf());

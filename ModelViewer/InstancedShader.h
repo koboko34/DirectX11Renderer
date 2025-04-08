@@ -10,6 +10,9 @@
 #include <wrl.h>
 
 #include "Model.h"
+#include "MyMacros.h"
+
+class Light;
 
 struct InstanceData
 {
@@ -25,14 +28,19 @@ private:
 		DirectX::XMMATRIX ProjectionMatrix;
 	};
 
-	struct LightingBuffer
+	struct PointLightData
 	{
-		DirectX::XMFLOAT3 CameraPos;
 		float Radius;
 		DirectX::XMFLOAT3 LightPos;
 		float SpecularPower;
-		DirectX::XMFLOAT3 DiffuseColor;
-		float Padding;
+		DirectX::XMFLOAT3 LightColor;
+	};
+
+	struct LightingBuffer
+	{
+		PointLightData PointLights[MAX_POINT_LIGHTS];
+		DirectX::XMFLOAT3 CameraPos;
+		int PointLightCount = 0;
 	};
 
 public:
@@ -42,7 +50,7 @@ public:
 	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
 	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, Model* ModelPtr, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-		DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
+		DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights);
 
 	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 
