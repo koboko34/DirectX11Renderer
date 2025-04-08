@@ -5,6 +5,7 @@ size_t GameObject::ms_UID = 0;
 GameObject::GameObject()
 {
 	m_UID = GameObject::ms_UID++;
+	m_Name = "GameObject_" + std::to_string(m_UID);
 }
 
 void GameObject::Shutdown()
@@ -31,25 +32,25 @@ void GameObject::SetTransform(const Transform& NewTransform)
 	m_Transform = NewTransform;
 }
 
-void GameObject::AddComponent(Component* Comp)
+void GameObject::AddComponent(std::shared_ptr<Component> Comp)
 {
-	if (!Comp)
+	if (!Comp.get())
 	{
 		return;
 	}
 
 	Comp->SetOwner(this);
-	m_Components.push_back(std::shared_ptr<Component>(Comp));
+	m_Components.push_back(Comp);
 
-	if (Model* m = dynamic_cast<Model*>(Comp))
+	if (Model* m = dynamic_cast<Model*>(Comp.get()))
 	{
-		m_Models.push_back(std::shared_ptr<Model>(m));
+		m_Models.push_back(m);
 	}
 }
 
 void GameObject::SendTransformToModels()
 {
-	for (auto& m : m_Models)
+	for (Model* m : m_Models)
 	{
 		m->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetWorldMatrix()));
 	}

@@ -46,9 +46,9 @@ public:
 
 	HWND GetWindowHandle() const { return m_hWnd; }
 	Graphics* GetGraphics() const { return m_Graphics; }
-	Camera* GetCamera() const { return m_Camera; }
+	Camera* GetCamera() const { return m_Camera.get(); }
 
-	InstancedShader* GetInstancedShader() { return m_InstancedShader; }
+	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
 
 private:
 	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath = "");
@@ -56,7 +56,6 @@ private:
 	bool RenderScene();
 	void RenderModels();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
-	void RenderPhysicalLight();
 	void RenderImGui();
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
@@ -67,14 +66,14 @@ private:
 private:	
 	HWND m_hWnd;
 
-	Graphics* m_Graphics						= nullptr;
-	Shader* m_Shader							= nullptr;
-	InstancedShader* m_InstancedShader			= nullptr;
-	Camera* m_Camera							= nullptr;
-	Light* m_PointLight							= nullptr;
-	std::shared_ptr<GameObject> m_LightObject;
+	Graphics* m_Graphics = nullptr;
 
-	Skybox* m_Skybox;
+	std::unique_ptr<Shader> m_Shader;
+	std::unique_ptr<InstancedShader> m_InstancedShader;
+	std::unique_ptr<Skybox> m_Skybox;
+	std::unique_ptr<Camera> m_Camera;
+
+	std::shared_ptr<GameObject> m_LightObject;
 
 	std::vector<std::shared_ptr<Model>> m_Models;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;

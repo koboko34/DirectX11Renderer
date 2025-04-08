@@ -126,6 +126,7 @@ ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* File
 	stbi_image_free(ImageData);
 
 	TextureView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
+	Texture->Release();
 
 	return TextureView;
 }

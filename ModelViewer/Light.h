@@ -12,7 +12,7 @@
 class Light : public Component
 {
 public:
-	Light() {}
+	Light();
 	
 	void SetPosition(float x, float y, float z);
 	void SetDiffuseColor(float r, float g, float b);

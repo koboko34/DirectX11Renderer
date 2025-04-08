@@ -30,6 +30,7 @@ private:
 	std::vector<ID3D11Texture2D*> m_Textures;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_CubeTexture;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;

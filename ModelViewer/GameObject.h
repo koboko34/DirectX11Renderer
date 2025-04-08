@@ -26,13 +26,17 @@ public:
 	void SetRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
 	void SetTransform(const Transform& NewTransform);
+	void SetName(const std::string& NewName) { m_Name = NewName; }
 
-	void AddComponent(Component* Comp);
+	void AddComponent(std::shared_ptr<Component> Comp);
 
 	void SendTransformToModels();
 
+	size_t GetUID() const { return m_UID; }
+	const std::string& GetName() const { return m_Name; }
+
 	const std::vector<std::shared_ptr<Component>>& GetComponents() const { return m_Components; }
-	const std::vector<std::shared_ptr<Model>>& GetModels() const { return m_Models; }
+	const std::vector<Model*>& GetModels() const { return m_Models; }
 
 	const DirectX::XMMATRIX GetWorldMatrix() const;
 
@@ -43,13 +47,13 @@ public:
 	DirectX::XMFLOAT3* GetPositionPtr() { return &m_Transform.Position; }
 
 private:
-	Model* m_Model = nullptr;
+	std::string m_Name;
+	size_t m_UID;
+
 	Transform m_Transform;
 
 	std::vector<std::shared_ptr<Component>> m_Components;
-	std::vector<std::shared_ptr<Model>> m_Models;
-
-	size_t m_UID;
+	std::vector<Model*> m_Models;
 
 	static size_t ms_UID;
 };

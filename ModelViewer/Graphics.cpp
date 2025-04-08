@@ -147,6 +147,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	);
 	ASSERT_NOT_FAILED(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBufferPtr));
 	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(BackBufferPtr, NULL, &m_BackBufferRTV));
+	m_BackBufferRTV->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Back buffer RTV"), "Back buffer RTV");
 
 	BackBufferPtr->Release();
 	BackBufferPtr = 0;
@@ -164,6 +165,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthBufferDesc.MiscFlags = 0;
 
 	ASSERT_NOT_FAILED(m_Device->CreateTexture2D(&DepthBufferDesc, NULL, &m_DepthStencilBuffer));
+	m_DepthStencilBuffer->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil buffer"), "Depth stencil buffer");
 
 	DepthStencilDesc.DepthEnable = true;
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -184,11 +186,13 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
 	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteEnabled));
-
+	m_DepthStencilStateWriteEnabled->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil state write enabled"), "Depth stencil state write enabled");
+	
 	DepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	DepthStencilDesc.StencilWriteMask = 0;
 
 	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabled));
+	m_DepthStencilStateWriteDisabled->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil state write disabled"), "Depth stencil state write disabled");
 
 	DepthStencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
 	DepthStencilDesc.StencilEnable = false;
@@ -196,6 +200,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 
 	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilState(&DepthStencilDesc, &m_DepthStencilStateWriteDisabledAlwaysPass));
+	m_DepthStencilStateWriteDisabledAlwaysPass->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil state write disabled always pass"), "Depth stencil state write disabled always pass");
 
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStencilStateWriteEnabled.Get(), 1);
 
@@ -204,6 +209,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthStencilViewDesc.Texture2D.MipSlice = 0;
 
 	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
+	m_DepthStencilView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil view"), "Depth stencil view");
 
 	m_DeviceContext->OMSetRenderTargets(1, m_BackBufferRTV.GetAddressOf(), m_DepthStencilView.Get());
 
@@ -214,6 +220,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 	ASSERT_NOT_FAILED(m_Device->CreateBlendState(&BlendDesc, &m_BlendStateOpaque));
+	m_BlendStateOpaque->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Blend state opaque"), "Blend state opaque");
 	m_DeviceContext->OMSetBlendState(m_BlendStateOpaque.Get(), nullptr, 0xFFFFFFFF);
 
 	BlendDesc.RenderTarget[0].BlendEnable = true;
@@ -225,6 +232,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 
 	ASSERT_NOT_FAILED(m_Device->CreateBlendState(&BlendDesc, &m_BlendStateTransparent));
+	m_BlendStateTransparent->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Blend state transparent"), "Blend state transparent");
 
 	RasterDesc.AntialiasedLineEnable = false;
 	RasterDesc.CullMode = D3D11_CULL_BACK;
@@ -238,12 +246,14 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	RasterDesc.SlopeScaledDepthBias = 0.f;
 
 	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOn));
+	m_RasterStateBackFaceCullOn->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Raster state back face cull on"), "Raster state back face cull on");
 
 	m_DeviceContext->RSSetState(m_RasterStateBackFaceCullOn.Get());
 
 	RasterDesc.CullMode = D3D11_CULL_NONE;
 
 	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOff));
+	m_RasterStateBackFaceCullOff->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Raster state back face cull off"), "Raster state back face cull off");
 
 	m_Viewport.Width = (float)ScreenWidth;
 	m_Viewport.Height = (float)ScreenHeight;
@@ -276,9 +286,13 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessRTVFirst));
 	ASSERT_NOT_FAILED(m_Device->CreateRenderTargetView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessRTVSecond));
+	m_PostProcessRTVFirst->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Post process RTV 1"), "Post process RTV 1");
+	m_PostProcessRTVSecond->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Post process RTV 2"), "Post process RTV 2");
 
 	ASSERT_NOT_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTFirst.Get(), NULL, &m_PostProcessSRVFirst));
 	ASSERT_NOT_FAILED(m_Device->CreateShaderResourceView(PostProcessRTTSecond.Get(), NULL, &m_PostProcessSRVSecond));
+	m_PostProcessSRVFirst->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Post process SRV 1"), "Post process SRV 1");
+	m_PostProcessSRVSecond->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Post process SRV 2"), "Post process SRV 2");
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -289,6 +303,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	ASSERT_NOT_FAILED(m_Device->CreateSamplerState(&SamplerDesc, &m_SamplerState));
+	m_SamplerState->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Sampler state"), "Sampler state");
 	m_DeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());
 
 	ImGui_ImplDX11_Init(m_Device.Get(), m_DeviceContext.Get());
@@ -302,6 +317,12 @@ void Graphics::Shutdown()
 	{
 		m_SwapChain->SetFullscreenState(false, NULL);
 	}
+
+	m_DeviceContext->ClearState();
+	m_DeviceContext->Flush();
+
+	m_DeviceContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+	m_DeviceContext->RSSetState(nullptr);
 
 	m_DepthStencilBuffer.Reset();
 	m_DepthStencilStateWriteEnabled.Reset();
@@ -319,10 +340,12 @@ void Graphics::Shutdown()
 	m_PostProcessSRVFirst.Reset();
 	m_PostProcessSRVSecond.Reset();
 
+	ImGui_ImplDX11_Shutdown();
+
+	m_SwapChain.Reset();
+
 	m_DeviceContext->ClearState();
 	m_DeviceContext->Flush();
-
-	ImGui_ImplDX11_Shutdown();
 
 	Microsoft::WRL::ComPtr<ID3D11Debug> d3dDebug;
 	if (SUCCEEDED(m_Device->QueryInterface(IID_PPV_ARGS(&d3dDebug))))
@@ -330,10 +353,8 @@ void Graphics::Shutdown()
 		d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 	}
 
-	m_SwapChain.Reset();
 	m_DeviceContext.Reset();
 	m_Device.Reset();
-
 }
 
 void Graphics::BeginScene(float Red, float Green, float Blue, float Alpha)

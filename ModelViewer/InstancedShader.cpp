@@ -168,6 +168,7 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* v
 
 void InstancedShader::ShutdownShader()
 {
+
 }
 
 void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename)

@@ -37,7 +37,6 @@ const UINT CubeIndices[] =
 bool Skybox::Init()
 {
 	HRESULT hResult;
-	ID3D11Texture2D* pTexture;
 	D3D11_TEXTURE2D_DESC CubeDesc = {};
 	ID3D11Device* Device = Graphics::GetSingletonPtr()->GetDevice();
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
@@ -62,6 +61,7 @@ bool Skybox::Init()
 
 		ID3D11Texture2D* StagingTex = nullptr;
 		HFALSE_IF_FAILED(Device->CreateTexture2D(&Desc, nullptr, &StagingTex));
+		StagingTex->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox staging texture"), "Skybox staging texture");
 		DeviceContext->CopyResource(StagingTex, OriginalTex);
 
 		D3D11_MAPPED_SUBRESOURCE Mapped;
@@ -78,20 +78,27 @@ bool Skybox::Init()
 		Data[i].SysMemPitch = Mapped.RowPitch;
 	}
 
+	for (auto* Tex : m_Textures)
+	{
+		Tex->Release();
+	}
+	m_Textures.clear();
+
 	for (const std::string& Filename : m_FileNames)
 	{
 		ResourceManager::GetSingletonPtr()->UnloadTexture(m_TexturesDir + Filename);
 	}
-	m_Textures.clear();
 
-	HFALSE_IF_FAILED(Device->CreateTexture2D(&CubeDesc, Data, &pTexture));
+	HFALSE_IF_FAILED(Device->CreateTexture2D(&CubeDesc, Data, &m_CubeTexture));
+	m_CubeTexture->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox cube texture"), "Skybox cube texture");
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 	SRVDesc.Format = CubeDesc.Format;
 	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 	SRVDesc.Texture2D.MostDetailedMip = 0u;
 	SRVDesc.Texture2D.MipLevels = 1u;
-	HFALSE_IF_FAILED(Device->CreateShaderResourceView(pTexture, &SRVDesc, &m_SRV));
+	HFALSE_IF_FAILED(Device->CreateShaderResourceView(m_CubeTexture.Get(), &SRVDesc, &m_SRV));
+	m_SRV->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox SRV"), "Skybox SRV");
 
 	bool Result;
 	FALSE_IF_FAILED(CreateBuffers());
@@ -106,6 +113,8 @@ bool Skybox::Init()
 
 	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
 	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
+	m_VertexShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox shader"), "Skybox shader");
+	m_PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox shader"), "Skybox shader");
 
 	D3D11_INPUT_ELEMENT_DESC Layout[] =
 	{
@@ -113,6 +122,7 @@ bool Skybox::Init()
 	};
 
 	HFALSE_IF_FAILED(Device->CreateInputLayout(Layout, 1u, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	m_InputLayout->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox input layout"), "Skybox input layout");
 	
 	return true;
 }
@@ -167,6 +177,14 @@ void Skybox::Render()
 
 void Skybox::Shutdown()
 {
+	m_SRV.Reset();
+	m_CubeTexture.Reset();
+	m_InputLayout.Reset();
+	m_VertexShader.Reset();
+	m_PixelShader.Reset();
+	m_VertexBuffer.Reset();
+	m_IndexBuffer.Reset();
+	m_ConstantBuffer.Reset();
 }
 
 bool Skybox::LoadTextures()
@@ -186,7 +204,10 @@ bool Skybox::LoadTextures()
 		HRESULT hResult;
 		
 		HFALSE_IF_FAILED(Resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&Texture));
+		Texture->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)(m_TexturesDir + Filename).length(), (m_TexturesDir + Filename).c_str());
 		m_Textures.push_back(Texture);
+
+		Resource->Release();
 	}
 	return true;
 }

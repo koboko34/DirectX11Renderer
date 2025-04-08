@@ -25,6 +25,15 @@ public:
 
 	virtual ~PostProcess() {}
 
+	static void ShutdownStatics()
+	{
+		ms_QuadVertexShader.Reset();
+		ms_QuadInputLayout.Reset();
+		ms_QuadVertexBuffer.Reset();
+		ms_QuadIndexBuffer.Reset();
+		ms_bInitialised = false;
+	}
+
 	static Microsoft::WRL::ComPtr<ID3D11VertexShader> GetQuadVertexShader(ID3D11Device* Device)
 	{
 		if (ms_bInitialised)
@@ -115,6 +124,7 @@ protected:
 		}
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &PixelShader));
+		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)wcslen(PSFilepath), PSFilepath);
 
 		return true;
 	}
@@ -313,6 +323,8 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+
+		IntermediateTexture->Release();
 	}
 
 private:
@@ -432,6 +444,8 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+
+		IntermediateTexture->Release();
 	}
 
 private:
@@ -563,6 +577,9 @@ public:
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(LuminousTexture, NULL, &m_LuminousSRV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(BlurredTexture, NULL, &m_BlurredSRV));
+
+		LuminousTexture->Release();
+		BlurredTexture->Release();
 
 		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(50, 8.f);
 	}

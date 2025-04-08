@@ -35,39 +35,40 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Graphics = Graphics::GetSingletonPtr();
 	assert(m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR));
 
-	m_Shader = new Shader();
+	m_Shader = std::make_unique<Shader>();
 	assert(m_Shader->Initialise(m_Graphics->GetDevice(), hWnd));
 
-	m_InstancedShader = new InstancedShader();
+	m_InstancedShader = std::make_unique<InstancedShader>();
 	assert(m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd));
 
-	m_Skybox = new Skybox();
+	m_Skybox = std::make_unique<Skybox>();
 	assert(m_Skybox->Init());
 
-	m_Camera = new Camera();
+	m_Camera = std::make_unique<Camera>();
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
 
-	m_PointLight = new Light();
-	m_PointLight->SetSpecularPower(256.f);
-	m_PointLight->SetRadius(10.f);
-	m_PointLight->SetDiffuseColor(1.f, 1.f, 1.f);
+	std::shared_ptr<Light> PointLight = std::make_shared<Light>();
+	PointLight->SetSpecularPower(256.f);
+	PointLight->SetRadius(10.f);
+	PointLight->SetDiffuseColor(1.f, 1.f, 1.f);
 
 	auto CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
-	m_GameObjects.back()->AddComponent(CarModel.get());
+	m_GameObjects.back()->AddComponent(CarModel);
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
-	m_GameObjects.back()->AddComponent(CarModel.get());
+	m_GameObjects.back()->AddComponent(CarModel);
 
 	auto SceneLightModel = LoadModel("Models/sphere.obj");
 	m_LightObject = std::make_shared<GameObject>();
 	m_LightObject->SetPosition(1.7f, 2.5f, -1.7f);
 	m_LightObject->SetScale(0.1f, 0.1f, 0.1f);
-	m_LightObject->AddComponent(SceneLightModel.get());
-	m_LightObject->AddComponent(m_PointLight);
+	m_LightObject->AddComponent(SceneLightModel);
+	m_LightObject->AddComponent(PointLight);
+	m_GameObjects.push_back(m_LightObject);
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
@@ -100,29 +101,30 @@ void Application::Shutdown()
 	}
 	m_Models.clear();
 
-	if (m_Skybox)
+	if (m_Skybox.get())
 	{
 		m_Skybox->Shutdown();
 	}
+	m_Skybox.reset();
+
+	PostProcess::ShutdownStatics();
+	m_PostProcesses.clear();
 
 	if (m_InstancedShader)
 	{
 		m_InstancedShader->Shutdown();
-		delete m_InstancedShader;
-		m_InstancedShader = 0;
+		m_InstancedShader.reset();
 	}
 
 	if (m_Shader)
 	{
 		m_Shader->Shutdown();
-		delete m_Shader;
-		m_Shader = 0;
+		m_Shader.reset();
 	}
 
 	if (m_Camera)
 	{
-		delete m_Camera;
-		m_Camera = 0;
+		m_Camera.reset();
 	}
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
@@ -130,7 +132,7 @@ void Application::Shutdown()
 	if (m_Graphics)
 	{
 		m_Graphics->Shutdown();
-		delete m_Graphics;
+		//delete m_Graphics; // should I be calling this on a singleton?
 		m_Graphics = 0;
 	}
 }
@@ -186,7 +188,7 @@ bool Application::Render(double DeltaTime)
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV = m_Graphics->m_PostProcessSRVSecond;
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
 
-	m_Graphics->BeginScene(0.5f, 0.8f, 1.f, 1.f);
+	m_Graphics->BeginScene(0.f, 0.f, 0.f, 1.f);
 
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, NullSRVs);
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
@@ -225,16 +227,14 @@ bool Application::Render(double DeltaTime)
 
 bool Application::RenderScene()
 {
-	m_Graphics->BeginScene(0.f, 0.f, 1.f, 1.f);
 	m_Camera->CalcViewMatrix();
-	m_Skybox->Render();
+	
+	if (m_Skybox.get())
+	{
+		m_Skybox->Render();
+	}
 
 	RenderModels();
-
-	if (m_bShouldRenderLight)
-	{
-		RenderPhysicalLight();
-	}
 	
 	return true;
 }
@@ -250,27 +250,41 @@ void Application::RenderModels()
 		Model->GetTransforms().clear();
 	}
 
+	std::vector<Light*> Lights;
 	for (auto& Object : m_GameObjects)
 	{
 		Object->SendTransformToModels();
+		for (auto& Comp : Object->GetComponents())
+		{
+			Light* pLight = dynamic_cast<Light*>(Comp.get());
+			if (pLight)
+			{
+				Lights.push_back(pLight);
+			}
+		}
 	}
 	
-	for (auto& Model : m_Models)
+	for (const auto& pModel : m_Models)
 	{
+		if (pModel.get() == m_LightObject->GetModels()[0] && !m_bShouldRenderLight)
+		{
+			continue;
+		}
+		
 		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_InstancedShader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
-			Model.get(),
+			pModel.get(),
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
-			m_PointLight->GetRadius(),
-			m_PointLight->GetOwner()->GetPosition(),
-			m_PointLight->GetDiffuseColor(),
-			m_PointLight->GetSpecularPower()
+			Lights[0]->GetRadius(),
+			Lights[0]->GetOwner()->GetPosition(),
+			Lights[0]->GetDiffuseColor(),
+			Lights[0]->GetSpecularPower()
 		);
 
-		Model->Render();
+		pModel->Render();
 	}
 }
 
@@ -292,33 +306,6 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
 	return true;
-}
-
-void Application::RenderPhysicalLight()
-{
-	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
-	m_Camera->GetViewMatrix(ViewMatrix);
-	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
-
-	auto& Model = m_LightObject->GetModels()[0];
-	Model->GetTransforms().clear();
-
-	m_LightObject->SendTransformToModels();
-
-	m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
-	m_InstancedShader->SetShaderParameters(
-		m_Graphics->GetDeviceContext(),
-		Model.get(),
-		ViewMatrix,
-		ProjectionMatrix,
-		m_Camera->GetPosition(),
-		m_PointLight->GetRadius(),
-		m_PointLight->GetOwner()->GetPosition(),
-		m_PointLight->GetDiffuseColor(),
-		m_PointLight->GetSpecularPower()
-	);
-
-	Model->Render();
 }
 
 void Application::RenderImGui()
