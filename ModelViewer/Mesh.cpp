@@ -1,8 +1,9 @@
+#include "assimp/scene.h"
+
 #include "Mesh.h"
+#include "ModelData.h"
 
-#include "Model.h"
-
-Mesh::Mesh(Model* pModel, Node* pNode) : m_pModel(pModel), m_pNode(pNode)
+Mesh::Mesh(ModelData* pModel, Node* pNode) : m_pModel(pModel), m_pNode(pNode)
 {
 }
 

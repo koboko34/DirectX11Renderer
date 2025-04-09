@@ -13,11 +13,11 @@ class Material;
 
 class Mesh
 {
-	friend class Model;
+	friend class ModelData;
 	friend class Node;
 
 public:
-	Mesh(Model* pModel, Node* pNode);
+	Mesh(ModelData* pModel, Node* pNode);
 
 	void ProcessMesh(aiMesh* SceneMesh);
 
@@ -29,7 +29,7 @@ private:
 	std::shared_ptr<Material> m_Material;
 	std::string m_Name;
 
-	Model* m_pModel;
+	ModelData* m_pModel;
 	Node* m_pNode;
 
 };

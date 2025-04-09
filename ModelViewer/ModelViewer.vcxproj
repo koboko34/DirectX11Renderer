@@ -39,6 +39,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelData.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="PostProcess.cpp" />
     <ClCompile Include="Resource.cpp" />
@@ -50,6 +51,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Common.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Graphics.h" />
@@ -68,6 +70,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ModelData.h" />
     <ClInclude Include="MyMacros.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="PostProcess.h" />

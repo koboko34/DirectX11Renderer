@@ -43,7 +43,7 @@ protected:
 	Component* m_pOwner = nullptr;
 	Transform m_Transform;
 
-	std::vector<std::shared_ptr<Component>> m_Components;
+	std::vector<std::shared_ptr<Component>> m_Components; // I think these should be unique_ptr??? refactor soon
 
 };
 

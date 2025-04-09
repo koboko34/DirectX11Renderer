@@ -5,9 +5,9 @@
 #include "assimp/material.h"
 
 #include "ResourceManager.h"
-#include "Model.h"
+#include "ModelData.h"
 
-Material::Material(UINT Index, Model* pOwner) : m_uIndex(Index), m_pOwner(pOwner)
+Material::Material(UINT Index, ModelData* pOwner) : m_uIndex(Index), m_pOwner(pOwner)
 {
 }
 

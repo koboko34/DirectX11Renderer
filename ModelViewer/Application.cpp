@@ -9,6 +9,7 @@
 #include "ImGui/imgui_impl_dx11.h"
 
 #include "MyMacros.h"
+#include "Common.h"
 #include "Camera.h"
 #include "Shader.h"
 #include "InstancedShader.h"
@@ -19,6 +20,8 @@
 #include "SystemClass.h"
 #include "InputClass.h"
 #include "Skybox.h"
+#include "Resource.h"
+#include "ModelData.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -48,25 +51,23 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
 
-	std::shared_ptr<Model> CarModel = LoadModel("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/");
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
-	m_GameObjects.back()->AddComponent(CarModel);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
-	m_GameObjects.back()->AddComponent(CarModel);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	std::shared_ptr<PointLight> pPointLight = std::make_shared<PointLight>();
 	pPointLight->SetSpecularPower(256.f);
 	pPointLight->SetRadius(10.f);
 	pPointLight->SetDiffuseColor(1.f, 1.f, 1.f);
 
-	std::shared_ptr<Model> SceneLightModel = LoadModel("Models/sphere.obj");
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
-	m_GameObjects.back()->AddComponent(SceneLightModel);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
 	m_GameObjects.back()->AddComponent(pPointLight);
 
 	pPointLight.reset();
@@ -77,7 +78,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
-	m_GameObjects.back()->AddComponent(SceneLightModel);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
 	m_GameObjects.back()->AddComponent(pPointLight);
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
@@ -100,16 +101,7 @@ void Application::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadTexture(m_QuadTexturePath);
 	m_TextureResourceView = nullptr;
 	
-	for (auto& Object : m_GameObjects)
-	{
-		Object->Shutdown();
-	}
-	
-	for (auto& Model : m_Models)
-	{
-		Model->Shutdown();
-	}
-	m_Models.clear();
+	m_GameObjects.clear();
 
 	if (m_Skybox.get())
 	{
@@ -171,19 +163,6 @@ bool Application::Frame()
 	}
 	
 	return true;
-}
-
-std::shared_ptr<Model> Application::LoadModel(const char* ModelFilename, const char* TexturesPath)
-{
-	m_Models.emplace_back(std::make_shared<Model>());
-	if (!m_Models.back()->Initialise(m_Graphics->GetDevice(), m_Graphics->GetDeviceContext(), ModelFilename, TexturesPath))
-	{
-		m_Models.back()->Shutdown();
-		m_Models.pop_back();
-		return std::shared_ptr<Model>();
-	}
-		
-	return m_Models.back();
 }
 
 bool Application::Render(double DeltaTime)
@@ -255,9 +234,15 @@ void Application::RenderModels()
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
-	for (auto& Model : m_Models)
+	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
+
+	for (const auto& ModelPair : Models)
 	{
-		Model->GetTransforms().clear();
+		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		if (!pModelData)
+			continue;
+
+		pModelData->GetTransforms().clear();
 	}
 
 	std::vector<Light*> Lights;
@@ -274,19 +259,23 @@ void Application::RenderModels()
 		}
 	}
 	
-	for (const auto& pModel : m_Models)
+	for (const auto& ModelPair : Models)
 	{		
+		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		if (!pModelData)
+			continue;
+		
 		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_InstancedShader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
-			pModel.get(),
+			pModelData->GetTransforms(),
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
 			Lights
 		);
 
-		pModel->Render();
+		pModelData->Render();
 	}
 }
 

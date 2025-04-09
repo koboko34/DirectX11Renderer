@@ -3,14 +3,15 @@
 #ifndef INSTANCED_SHADER_H
 #define INSTANCED_SHADER_H
 
+#include <vector>
+
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 
 #include <wrl.h>
 
-#include "Model.h"
-#include "MyMacros.h"
+#include "Common.h"
 
 class Light;
 
@@ -49,7 +50,7 @@ public:
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
 	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
-	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, Model* ModelPtr, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
+	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
 		DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights);
 
 	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);

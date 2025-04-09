@@ -11,8 +11,6 @@ class GameObject : public Component
 public:
 	GameObject();
 
-	void Shutdown();
-
 	void SetName(const std::string& NewName) { m_Name = NewName; }
 
 	void SendTransformToModels();

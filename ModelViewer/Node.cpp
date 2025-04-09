@@ -1,9 +1,12 @@
+#include "assimp/scene.h"
+
 #include "Node.h"
-#include "Model.h"
+#include "ModelData.h"
 #include "Graphics.h"
 #include "MyMacros.h"
+#include "Material.h"
 
-Node::Node(Model* pModel, Node* pOwner) : m_pModel(pModel), m_pOwner(pOwner)
+Node::Node(ModelData* pModel, Node* pOwner) : m_pModel(pModel), m_pOwner(pOwner)
 {
 }
 

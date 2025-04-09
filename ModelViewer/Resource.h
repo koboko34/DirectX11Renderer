@@ -17,6 +17,8 @@ public:
 	UINT AddRef() { return ++m_RefCount; }
 	UINT RemoveRef();
 
+	void* GetDataPtr() const { return m_pData; }
+
 private:
 	UINT m_RefCount = 0;
 	void* m_pData = nullptr;

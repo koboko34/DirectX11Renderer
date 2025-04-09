@@ -7,6 +7,7 @@
 #include "stb_image.h"
 
 #include "Graphics.h"
+#include "ModelData.h"
 
 ResourceManager* ResourceManager::ms_Instance = nullptr;
 
@@ -22,15 +23,16 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 void ResourceManager::Shutdown()
 {
 	m_TexturesMap.clear();
+	m_ModelsMap.clear();
 }
 
 ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepath)
 {
-	auto itRes = m_TexturesMap.find(Filepath);
-	if (itRes != m_TexturesMap.end() && itRes->second.get())
+	auto it = m_TexturesMap.find(Filepath);
+	if (it != m_TexturesMap.end() && it->second.get())
 	{
-		itRes->second->AddRef();
-		return reinterpret_cast<ID3D11ShaderResourceView*>(itRes->second->m_pData);
+		it->second->AddRef();
+		return reinterpret_cast<ID3D11ShaderResourceView*>(it->second->m_pData);
 	}
 
 	ID3D11ShaderResourceView* pData = Internal_LoadTexture(Filepath.c_str());
@@ -43,24 +45,61 @@ ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepa
 	return pData;
 }
 
-bool ResourceManager::UnloadTexture(const std::string& Filepath)
+ModelData* ResourceManager::LoadModel(const std::string& ModelPath, const std::string& TexturesPath)
 {
-	// returns true if the resource's ref count is still above 0 after decrementing
-	
-	Resource* ResourceToUnload = m_TexturesMap[Filepath].get();
+	auto it = m_ModelsMap.find(ModelPath);
+	if (it != m_ModelsMap.end() && it->second.get())
+	{
+		it->second->AddRef();
+		return reinterpret_cast<ModelData*>(it->second->m_pData);
+	}
+
+	ModelData* pData = Internal_LoadModel(ModelPath.c_str(), TexturesPath.c_str());
+	if (!pData)
+	{
+		return nullptr;
+	}
+
+	m_ModelsMap[ModelPath] = std::make_unique<Resource>(pData, ModelPath);
+	return pData;
+}
+
+UINT ResourceManager::UnloadTexture(const std::string& ModelPath)
+{
+	Resource* ResourceToUnload = m_TexturesMap[ModelPath].get();
 	if (!ResourceToUnload)
 	{
-		return false;
+		m_TexturesMap.erase(ModelPath);
+		return 0;
 	}
 
 	ResourceToUnload->RemoveRef();
 	if (ResourceToUnload->m_RefCount > 0)
 	{
-		return true;
+		return ResourceToUnload->m_RefCount;
 	}
 
-	Internal_UnloadTexture(Filepath);
-	return false;
+	Internal_UnloadTexture(ModelPath);
+	return 0;
+}
+
+UINT ResourceManager::UnloadModel(const std::string& Filepath)
+{
+	Resource* ResourceToUnload = m_ModelsMap[Filepath].get();
+	if (!ResourceToUnload)
+	{
+		m_ModelsMap.erase(Filepath);
+		return 0;
+	}
+
+	ResourceToUnload->RemoveRef();
+	if (ResourceToUnload->m_RefCount > 0)
+	{
+		return ResourceToUnload->m_RefCount;
+	}
+
+	Internal_UnloadModel(Filepath);
+	return 0;
 }
 
 ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* Filepath)
@@ -116,8 +155,8 @@ ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* File
 	InitData.pSysMem = ImageDataRgba;
 	InitData.SysMemPitch = Width * Channels;
 
-	assert(FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)) == false);
-	assert(FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)) == false);
+	assert(SUCCEEDED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TexDesc, &InitData, &Texture)));
+	assert(SUCCEEDED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(Texture, NULL, &TextureView)));
 
 	if (NeedsAlpha)
 	{
@@ -126,9 +165,17 @@ ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* File
 	stbi_image_free(ImageData);
 
 	TextureView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
+	Texture->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
 	Texture->Release();
 
 	return TextureView;
+}
+
+ModelData* ResourceManager::Internal_LoadModel(const char* ModelPath, const char* TexturesPath)
+{
+	ModelData* pData = new ModelData(ModelPath, TexturesPath);
+	
+	return pData;
 }
 
 void ResourceManager::Internal_UnloadTexture(const std::string& Filepath)
@@ -136,4 +183,11 @@ void ResourceManager::Internal_UnloadTexture(const std::string& Filepath)
 	ID3D11ShaderResourceView* SRV = reinterpret_cast<ID3D11ShaderResourceView*>(m_TexturesMap[Filepath]->m_pData);
 	SRV->Release();
 	m_TexturesMap.erase(Filepath);
+}
+
+void ResourceManager::Internal_UnloadModel(const std::string& Filepath)
+{
+	ModelData* pModelData = reinterpret_cast<ModelData*>(m_ModelsMap[Filepath]->m_pData);
+	pModelData->Shutdown();
+	m_ModelsMap.erase(Filepath);
 }

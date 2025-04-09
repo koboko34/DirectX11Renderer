@@ -23,12 +23,12 @@ struct MaterialData
 
 class Material
 {
-	friend class Model;
+	friend class ModelData;
 	friend class Mesh;
 	friend class Node;
 
 public:
-	Material(UINT Index, Model* pOwner);
+	Material(UINT Index, ModelData* pOwner);
 
 	void LoadTextures(aiMaterial* MeshMat);
 	void LoadTexture(const std::string& Path, int& TextureIndex);
@@ -46,7 +46,7 @@ private:
 	std::string m_Name;
 	
 	UINT m_uIndex;
-	Model* m_pOwner;
+	ModelData* m_pOwner;
 
 };
 

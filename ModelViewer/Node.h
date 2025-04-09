@@ -22,10 +22,10 @@ struct aiScene;
 
 class Node
 {
-	friend class Model;
+	friend class ModelData;
 
 public:
-	Node(Model* pModel, Node* pOwner);
+	Node(ModelData* pModel, Node* pOwner);
 
 	void ProcessNode(aiNode* ModelNode, const aiScene* Scene, const DirectX::XMMATRIX& AccumulatedTransform);
 
@@ -44,7 +44,7 @@ private:
 
 	std::string m_NodeName;
 
-	Model* m_pModel;
+	ModelData* m_pModel;
 	Node* m_pOwner;
 };
 

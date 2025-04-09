@@ -8,10 +8,6 @@ GameObject::GameObject()
 	m_Name = "GameObject_" + std::to_string(m_UID);
 }
 
-void GameObject::Shutdown()
-{
-}
-
 void GameObject::AddComponent(std::shared_ptr<Component> Comp)
 {
 	Component::AddComponent(Comp);
@@ -27,7 +23,7 @@ void GameObject::SendTransformToModels()
 	for (Model* m : m_Models)
 	{
 		//m->GetTransforms().push_back(DirectX::XMMatrixTranspose(m->GetAccumulatedWorldMatrix())); // once I add models to resource manager, we can start using this
-		m->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetWorldMatrix()));
+		m->SendTransformToModel(DirectX::XMMatrixTranspose(GetWorldMatrix()));
 	}
 
 	// might want to loop here through Component GameObjects and recurse

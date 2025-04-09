@@ -1,11 +1,11 @@
-#include "InstancedShader.h"
-
 #include <cstdlib>
 #include <cwchar>
 #include <cstring>
 #include <fstream>
 
+#include "InstancedShader.h"
 #include "Light.h"
+#include "MyMacros.h"
 
 bool InstancedShader::Initialise(ID3D11Device* Device, HWND hWnd)
 {
@@ -216,7 +216,7 @@ void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hW
 	delete[] CombinedWstr;
 }
 
-bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, Model* ModelPtr, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
+bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
 	DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights)
 {
 	HRESULT hResult;
@@ -267,7 +267,7 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, Mo
 	psBufferSlot++;
 
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_InstanceBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
-	memcpy(MappedResource.pData, ModelPtr->GetTransforms().data(), sizeof(InstanceData) * ModelPtr->GetTransforms().size());
+	memcpy(MappedResource.pData, Transforms.data(), sizeof(InstanceData) * Transforms.size());
 	DeviceContext->Unmap(m_InstanceBuffer.Get(), 0u);
 
 	return true;

@@ -73,7 +73,6 @@ private:
 	std::unique_ptr<Skybox> m_Skybox;
 	std::unique_ptr<Camera> m_Camera;
 
-	std::vector<std::shared_ptr<Model>> m_Models;
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
 	bool m_bShouldRenderLight = false;

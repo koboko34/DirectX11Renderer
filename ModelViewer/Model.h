@@ -3,88 +3,33 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <unordered_map>
-#include <unordered_set>
-#include <memory>
-
-#include <d3d11.h>
-#include <DirectXMath.h>
-
-#include <wrl.h>
-
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
+#include <string>
 
 #include "Component.h"
-#include "Node.h"
-#include "Mesh.h"
-#include "Material.h"
-#include "GameObject.h"
 
-struct Vertex
-{
-	DirectX::XMFLOAT3 Pos;
-	DirectX::XMFLOAT3 Normal;
-	DirectX::XMFLOAT2 TexCoord;
-};
+class ModelData;
+
+/*
+*	This class should be abstracting as much as possible from the actual ModelData stored by the ResourceManager.
+*	Once the refactor is working, come back and finish the abstractions.
+*/
 
 class Model : public Component
 {
 public:
-	Model();
+	Model(const std::string& ModelPath, const std::string& TexturesPath = "");
 	Model(const Model& Other) = delete;
 	~Model();
 
-	bool Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceContext, std::string ModelFilename, std::string TexturesPath);
 	void Shutdown();
-	void Render();
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
-	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer() const { return m_IndexBuffer; }
-	std::vector<Vertex>& GetVertices() { return m_Vertices; }
-	std::vector<UINT>& GetIndices() { return m_Indices; }
-	std::vector<std::unique_ptr<Mesh>>& GetOpaqueMeshes() { return m_OpaqueMeshes; }
-	std::vector<std::unique_ptr<Mesh>>& GetTransparentMeshes() { return m_TransparentMeshes; }
-	std::vector<std::shared_ptr<Material>>& GetMaterials() { return m_Materials; }
-	std::vector<ID3D11ShaderResourceView*>& GetTextures() { return m_Textures; }
-	std::unordered_map<std::string, UINT>& GetTextureIndexMap() { return m_TextureIndexMap; }
-	std::unordered_set<std::string>& GetTexturePathsSet() { return m_TexturePathsSet; }
+	void SendTransformToModel(const DirectX::XMMATRIX& Transform);
 
-	std::string GetModelPath() const { return m_ModelPath; }
-	std::string GetTexturesPath() const { return m_TexturesPath; }
-
-	std::vector<DirectX::XMMATRIX>& GetTransforms() { return m_Transforms; }
+	ModelData* GetModelData() const { return m_pModelData; }
 
 private:
-	void ShutdownBuffers();
+	ModelData* m_pModelData = nullptr;
 
-	bool LoadModel();
-	void ReleaseModel();
-	void Reset();
-
-	bool CreateBuffers();
-	void LoadMaterials(const aiScene* Scene);
-
-	void RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes);
-
-private:
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
-	std::vector<Vertex> m_Vertices;
-	std::vector<UINT> m_Indices;
-	std::vector<std::unique_ptr<Mesh>> m_OpaqueMeshes;
-	std::vector<std::unique_ptr<Mesh>> m_TransparentMeshes;
-	std::unique_ptr<Node> m_RootNode;
-	std::vector<std::shared_ptr<Material>> m_Materials;
-	std::vector<ID3D11ShaderResourceView*> m_Textures;
-	std::unordered_map<std::string, UINT> m_TextureIndexMap;
-	std::unordered_set<std::string> m_TexturePathsSet;
-
-	std::string m_ModelPath;
-	std::string m_TexturesPath;
-
-	std::vector<DirectX::XMMATRIX> m_Transforms;
 };
 
 #endif
