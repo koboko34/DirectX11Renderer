@@ -23,7 +23,7 @@ public:
 
 	void Shutdown();
 
-	void SendTransformToModel(const DirectX::XMMATRIX& Transform);
+	void SendTransformToModel();
 
 	ModelData* GetModelData() const { return m_pModelData; }
 

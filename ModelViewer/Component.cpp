@@ -1,4 +1,5 @@
 #include "Component.h"
+#include "Model.h"
 
 void Component::SetPosition(float x, float y, float z)
 {
@@ -29,6 +30,24 @@ void Component::AddComponent(std::shared_ptr<Component> Comp)
 
 	Comp->SetOwner(this);
 	m_Components.push_back(Comp);
+
+	if (Model* m = dynamic_cast<Model*>(Comp.get()))
+	{
+		m_Models.push_back(m);
+	}
+}
+
+void Component::SendTransformToModels()
+{
+	for (Model* m : m_Models)
+	{
+		m->SendTransformToModel();
+	}
+
+	for (std::shared_ptr<Component>& Comp : m_Components)
+	{
+		Comp->SendTransformToModels();
+	}
 }
 
 const DirectX::XMMATRIX Component::GetWorldMatrix() const

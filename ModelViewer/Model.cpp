@@ -25,7 +25,7 @@ void Model::Shutdown()
 	m_pModelData = nullptr;
 }
 
-void Model::SendTransformToModel(const DirectX::XMMATRIX& Transform)
+void Model::SendTransformToModel()
 {
-	m_pModelData->GetTransforms().push_back(Transform);
+	m_pModelData->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetAccumulatedWorldMatrix()));
 }
