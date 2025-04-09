@@ -216,8 +216,8 @@ void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hW
 	delete[] CombinedWstr;
 }
 
-bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-	DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights)
+bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
+	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, DirectionalLight* pDirLight)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -227,13 +227,10 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	unsigned int psBufferSlot = 0u;
 
 	// remember to transpose from row major before sending to shaders
-	View = DirectX::XMMatrixTranspose(View);
-	Projection = DirectX::XMMatrixTranspose(Projection);
-
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_MatrixBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
 	MatrixDataPtr = (MatrixBuffer*)MappedResource.pData;
-	MatrixDataPtr->ViewMatrix = View;
-	MatrixDataPtr->ProjectionMatrix = Projection;
+	MatrixDataPtr->ViewMatrix = DirectX::XMMatrixTranspose(View);
+	MatrixDataPtr->ProjectionMatrix = DirectX::XMMatrixTranspose(Projection);
 	DeviceContext->Unmap(m_MatrixBuffer.Get(), 0u);
 
 	DeviceContext->VSSetConstantBuffers(vsBufferSlot, 1u, m_MatrixBuffer.GetAddressOf());
@@ -243,21 +240,28 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
 
-	int NumPointLights = 0;
-	for (int i = 0; i < Lights.size(); i++)
+	if (!pDirLight)
 	{
-		PointLight* pLight = dynamic_cast<PointLight*>(Lights[i]);
-		if (pLight)
-		{
-			assert(NumPointLights < MAX_POINT_LIGHTS);
-			LightingDataPtr->PointLights[NumPointLights].LightColor = pLight->GetDiffuseColor();
-			LightingDataPtr->PointLights[NumPointLights].LightPos = pLight->GetPosition();
-			LightingDataPtr->PointLights[NumPointLights].Radius = pLight->GetRadius();
-			LightingDataPtr->PointLights[NumPointLights].SpecularPower = pLight->GetSpecularPower();
+		LightingDataPtr->DirLight.LightColor = { 0.f, 0.f, 0.f };
+	}
+	else
+	{
+		LightingDataPtr->DirLight.LightColor = pDirLight->GetDiffuseColor();
+		LightingDataPtr->DirLight.LightDir = pDirLight->GetDirection();
+		LightingDataPtr->DirLight.SpecularPower = pDirLight->GetSpecularPower();
+	}
 
-			NumPointLights++;
-			continue;
-		}
+	int NumPointLights = 0;
+	for (int i = 0; i < PointLights.size(); i++)
+	{
+		assert(NumPointLights < MAX_POINT_LIGHTS);
+		LightingDataPtr->PointLights[NumPointLights].LightColor = PointLights[NumPointLights]->GetDiffuseColor();
+		LightingDataPtr->PointLights[NumPointLights].LightPos = PointLights[NumPointLights]->GetPosition();
+		LightingDataPtr->PointLights[NumPointLights].Radius = PointLights[NumPointLights]->GetRadius();
+		LightingDataPtr->PointLights[NumPointLights].SpecularPower = PointLights[NumPointLights]->GetSpecularPower();
+
+		NumPointLights++;
+		continue;
 	}
 
 	LightingDataPtr->PointLightCount = NumPointLights;

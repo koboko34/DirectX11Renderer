@@ -12,9 +12,18 @@ struct PointLight
 	float3 LightColor;
 };
 
+struct DirectionalLight
+{
+	float3 LightDir;
+	float SpecularPower;
+	float3 LightColor;
+	float Padding;
+};
+
 cbuffer Lighting : register(b0)
 {
 	PointLight PointLights[MAX_POINT_LIGHTS];
+	DirectionalLight DirLight;
 	float3 CameraPos;
 	int PointLightCount;
 };
@@ -60,6 +69,20 @@ float4 main(PS_In p) : SV_TARGET
 	
 	float3 PixelToCam = normalize(CameraPos - p.WorldPos);
 	float4 LightTotal = float4(0.f, 0.f, 0.f, 0.f);
+	
+	float DiffuseFactor = saturate(dot(-DirLight.LightDir, p.WorldNormal)); // LightDir isn't normalised before sending to shader, do that
+	if (DiffuseFactor > 0.f)
+	{
+		float4 Diffuse = float4(DirLight.LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
+
+		float3 HalfwayVec = normalize(PixelToCam + DirLight.LightDir);
+		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), DirLight.SpecularPower);
+		float4 Specular = float4(DirLight.LightColor, 1.f) * SpecularFactor;
+		
+		LightTotal += Diffuse;
+		LightTotal += Specular;
+	}
+	
 	for (int i = 0; i < PointLightCount; i++)
 	{
 		float Distance = distance(p.WorldPos, PointLights[i].LightPos);
@@ -69,7 +92,7 @@ float4 main(PS_In p) : SV_TARGET
 		}
 	
 		float3 PixelToLight = normalize(PointLights[i].LightPos - p.WorldPos);
-		float DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));	
+		DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));
 	
 		if (DiffuseFactor <= 0.f)
 		{

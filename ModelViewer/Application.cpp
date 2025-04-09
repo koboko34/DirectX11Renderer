@@ -59,27 +59,20 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
-	std::shared_ptr<PointLight> pPointLight = std::make_shared<PointLight>();
-	pPointLight->SetSpecularPower(256.f);
-	pPointLight->SetRadius(10.f);
-	pPointLight->SetDiffuseColor(1.f, 1.f, 1.f);
-
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
-	m_GameObjects.back()->AddComponent(pPointLight);
+	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
 
-	pPointLight.reset();
-	pPointLight = std::make_shared<PointLight>();
-	pPointLight->SetSpecularPower(256.f);
-	pPointLight->SetRadius(10.f);
-	pPointLight->SetDiffuseColor(1.f, 1.f, 1.f);
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
-	m_GameObjects.back()->AddComponent(pPointLight);
+	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
+
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->AddComponent(std::make_shared<DirectionalLight>());
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
@@ -245,7 +238,8 @@ void Application::RenderModels()
 		pModelData->GetTransforms().clear();
 	}
 
-	std::vector<Light*> Lights;
+	DirectionalLight* DirLight = nullptr;
+	std::vector<PointLight*> PointLights;
 	for (auto& Object : m_GameObjects)
 	{
 		Object->SendTransformToModels();
@@ -254,7 +248,20 @@ void Application::RenderModels()
 			Light* pLight = dynamic_cast<Light*>(Comp.get());
 			if (pLight)
 			{
-				Lights.push_back(pLight);
+				PointLight* pPointLight = dynamic_cast<PointLight*>(pLight);
+				if (pPointLight)
+				{
+					PointLights.push_back(pPointLight);
+					continue;
+				}
+
+				DirectionalLight* pDirLight = dynamic_cast<DirectionalLight*>(pLight);
+				if (pDirLight)
+				{
+					assert(DirLight == nullptr && "Only support one directional light as of now! Found two!");
+					DirLight = pDirLight;
+					continue;
+				}
 			}
 		}
 	}
@@ -272,7 +279,8 @@ void Application::RenderModels()
 			ViewMatrix,
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
-			Lights
+			PointLights,
+			DirLight
 		);
 
 		pModelData->Render();

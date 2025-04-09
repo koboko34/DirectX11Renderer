@@ -13,7 +13,8 @@
 
 #include "Common.h"
 
-class Light;
+class PointLight;
+class DirectionalLight;
 
 struct InstanceData
 {
@@ -37,9 +38,18 @@ private:
 		DirectX::XMFLOAT3 LightColor;
 	};
 
+	struct DirectionalLightData
+	{
+		DirectX::XMFLOAT3 LightDir;
+		float SpecularPower;
+		DirectX::XMFLOAT3 LightColor;
+		float Padding = 0.f;
+	};
+
 	struct LightingBuffer
 	{
 		PointLightData PointLights[MAX_POINT_LIGHTS];
+		DirectionalLightData DirLight;
 		DirectX::XMFLOAT3 CameraPos;
 		int PointLightCount = 0;
 	};
@@ -50,8 +60,8 @@ public:
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
 	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
-	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
-		DirectX::XMFLOAT3 CameraPos, const std::vector<Light*>& Lights);
+	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
+		const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, DirectionalLight* pDirLight);
 
 	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 

@@ -17,7 +17,7 @@ public:
 	void SetDiffuseColor(float r, float g, float b);
 	void SetSpecularPower(float Power);
 
-	DirectX::XMFLOAT3 GetDiffuseColor() const { return m_DiffuseColor; }
+	const DirectX::XMFLOAT3 GetDiffuseColor() const { return m_DiffuseColor; }
 	float GetSpecularPower() const { return m_SpecularPower; }
 
 private:
@@ -39,6 +39,20 @@ public:
 private:
 	// DirectX::XMFLOAT3 m_Position; // can add this back when adding accumulated transform
 	float m_Radius;
+
+};
+
+class DirectionalLight : public Light
+{
+public:
+	DirectionalLight();
+
+	void SetDirection(float x, float y, float z);
+
+	const DirectX::XMFLOAT3 GetDirection() const { return m_Dir; }
+
+private:
+	DirectX::XMFLOAT3 m_Dir;
 
 };
 

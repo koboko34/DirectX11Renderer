@@ -27,3 +27,18 @@ void PointLight::SetRadius(float Radius)
 {
 	m_Radius = Radius;
 }
+
+//////////////////////////////////////////////////////////////
+
+DirectionalLight::DirectionalLight()
+{
+	SetDirection(1.f, -1.f, 1.f);
+}
+
+void DirectionalLight::SetDirection(float x, float y, float z)
+{
+	DirectX::XMFLOAT3 Dir = { x, y, z };
+	DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&Dir);
+	v = DirectX::XMVector3Normalize(v);
+	DirectX::XMStoreFloat3(&m_Dir, v);
+}
