@@ -78,6 +78,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.back()->Deactivate();
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(30));
+	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
@@ -320,10 +322,15 @@ void Application::RenderImGui()
 
 void Application::RenderPostProcessWindow()
 {
-	if (ImGui::Begin("PostProcesses") && !m_PostProcesses.empty())
+	if (ImGui::Begin("Post Processes") && !m_PostProcesses.empty())
 	{
 		for (int i = 0; i < m_PostProcesses.size(); i++)
 		{
+			if (i != 0)
+			{
+				ImGui::Dummy(ImVec2(0.f, 10.f));
+			}
+
 			ImGui::PushID(i);
 			ImGui::Checkbox("", &m_PostProcesses[i]->GetIsActive());
 			ImGui::SameLine();
@@ -334,7 +341,7 @@ void Application::RenderPostProcessWindow()
 			ImGui::PopID();
 		}
 
-		ImGui::Dummy(ImVec2(0.f, 10.f));
+		ImGui::Dummy(ImVec2(0.f, 20.f));
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}
 	ImGui::End();

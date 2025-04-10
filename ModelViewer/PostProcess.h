@@ -297,14 +297,9 @@ class PostProcessFog : public PostProcess
 public:
 	PostProcessFog()
 	{
-		// pass whatever we need into here
 		m_Name = "Fog";
+		// pass whatever we need into here
 	} 
-
-	void RenderControls() override
-	{
-
-	}
 
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
@@ -318,31 +313,35 @@ private:
 
 class PostProcessBoxBlur : public PostProcess
 {
+private:
+	struct BlurData
+	{
+		DirectX::XMFLOAT2 TexelSize;
+		int BlurStrength;
+		float Padding;
+	};
+
 public:
 	PostProcessBoxBlur(int BlurStrength)
 	{
 		assert(BlurStrength > 0);
 		m_Name = "Box Blur";
-
-		struct BlurData {
-			DirectX::XMFLOAT2 TexelSize;
-			int BlurStrength;
-			float padding;
-		};
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(BlurData);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
-		BlurData Data = {};
-		Data.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
-		Data.BlurStrength = BlurStrength;
+		m_BlurData = {};
+		m_BlurData.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
+		m_BlurData.BlurStrength = BlurStrength;
+		m_LastBlurData = m_BlurData;
 
 		D3D11_SUBRESOURCE_DATA BufferData = {};
-		BufferData.pSysMem = &Data;
+		BufferData.pSysMem = &m_BlurData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
@@ -369,7 +368,8 @@ public:
 
 	void RenderControls() override
 	{
-
+		ImGui::Text("Blur Strength is currently hard coded in the shader. Fix it eventually.");
+		ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 1, 32, "%.d", ImGuiSliderFlags_AlwaysClamp);
 	}
 
 private:
@@ -381,6 +381,12 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		if (memcmp(&m_LastBlurData, &m_BlurData, sizeof(BlurData)) != 0)
+		{
+			UpdateBuffer();
+			m_LastBlurData = m_BlurData;
+		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), DSV);
 
@@ -398,65 +404,70 @@ private:
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &m_BlurData, sizeof(BlurData));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_HorizontalPS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_VerticalPS;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_IntermediateRTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_IntermediateSRV;
+
+	BlurData m_BlurData;
+	BlurData m_LastBlurData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
 
 class PostProcessGaussianBlur : public PostProcess
 {
+private:
+	struct BlurData
+	{
+		DirectX::XMFLOAT2 TexelSize;
+		int BlurStrength;
+		float Sigma;
+	};
+
 public:
 	PostProcessGaussianBlur(int BlurStrength, float Sigma)
 	{
-		assert(BlurStrength > 0);
+		assert(BlurStrength > 0 && (UINT)BlurStrength <= m_MaxBlurStrength);
 		m_Name = "Gaussian Blur";
-
-		struct BlurData {
-			DirectX::XMFLOAT2 TexelSize;
-			int BlurStrength;
-			float padding;
-		};
 
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
-		BlurData Data = {};
-		Data.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
-		Data.BlurStrength = BlurStrength;
+		m_BlurData = {};
+		m_BlurData.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
+		m_BlurData.BlurStrength = BlurStrength;
+		m_BlurData.Sigma = Sigma;
+		m_LastBlurData = m_BlurData;
 
 		D3D11_SUBRESOURCE_DATA BufferData = {};
-		BufferData.pSysMem = &Data;
+		BufferData.pSysMem = &m_BlurData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
-		std::vector<float> GaussianWeights(BlurStrength + 1, 0.f);
-		BufferDesc.ByteWidth = sizeof(float) * (UINT)GaussianWeights.size();
-
-		float Sum = 0.f;
-		for (int i = 0; i <= BlurStrength; i++)
-		{
-			GaussianWeights[i] = CalcGaussianWeight(i, Sigma);
-			Sum += GaussianWeights[i];
-		}
-
-		// normalise the weights so that they sum to 1
-		for (int i = 0; i < GaussianWeights.size(); i++)
-		{
-			GaussianWeights[i] /= Sum;
-		}
+		std::vector<float> GaussianWeights(m_MaxBlurStrength + 1, 0.f);
+		FillGaussianWeights(GaussianWeights);
 
 		BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		BufferDesc.ByteWidth = sizeof(float) * (UINT)GaussianWeights.size();
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.ByteWidth = sizeof(float) * ((UINT)m_MaxBlurStrength + 1);
 		BufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		BufferDesc.StructureByteStride = sizeof(float);
 		BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -469,7 +480,7 @@ public:
 		D3D11_SHADER_RESOURCE_VIEW_DESC GaussianSRVDesc = {};
 		GaussianSRVDesc.Format = DXGI_FORMAT_UNKNOWN; // set to this when using a structured buffer
 		GaussianSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		GaussianSRVDesc.Buffer.NumElements = (UINT)GaussianWeights.size();
+		GaussianSRVDesc.Buffer.NumElements = m_MaxBlurStrength + 1;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GaussianWeightsBuffer.Get(), &GaussianSRVDesc, &m_GaussianWeightsSRV));
 		
@@ -496,7 +507,8 @@ public:
 
 	void RenderControls() override
 	{
-
+		ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 0, m_MaxBlurStrength, "%.d", ImGuiSliderFlags_AlwaysClamp);
+		ImGui::SliderFloat("Sigma", &m_BlurData.Sigma, 1.f, 8.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 	}
 
 private:
@@ -509,6 +521,12 @@ private:
 		DeviceContext->PSSetShaderResources(1u, 1u, m_GaussianWeightsSRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		if (memcmp(&m_LastBlurData, &m_BlurData, sizeof(BlurData)) != 0)
+		{
+			UpdateBuffers();
+			m_LastBlurData = m_BlurData;
+		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), DSV);
 
@@ -526,14 +544,48 @@ private:
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
-	float CalcGaussianWeight(int x, float Sigma)
+	void UpdateBuffers()
 	{
-		float AdjustedSigma = Sigma + 0.2f * abs(x);
+		HRESULT hResult;
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &m_BlurData, sizeof(BlurData));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+
+		MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_GaussianWeightsBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		std::vector<float> GaussianWeights(m_BlurData.BlurStrength + 1, 0.f);
+		FillGaussianWeights(GaussianWeights);
+		memcpy(MappedSubresource.pData, GaussianWeights.data(), (m_BlurData.BlurStrength + 1) * sizeof(float));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_GaussianWeightsBuffer.Get(), 0u);
+	}
+
+	float CalcGaussianWeight(int x)
+	{
+		float AdjustedSigma = m_BlurData.Sigma + 0.2f * abs(x);
 		return expf(-0.5f * (x * x) / (AdjustedSigma * AdjustedSigma));
 	}
 
+	void FillGaussianWeights(std::vector<float>& GaussianWeights)
+	{
+		float Sum = 0.f;
+		for (int i = 0; i <= m_BlurData.BlurStrength; i++)
+		{
+			GaussianWeights[i] = CalcGaussianWeight(i);
+			Sum += GaussianWeights[i];
+		}
+
+		// normalise the weights so that they sum to 1
+		for (int i = 0; i <= m_BlurData.BlurStrength; i++)
+		{
+			GaussianWeights[i] /= Sum;
+		}
+	}
+
 private:
-	int m_BlurStrength;
+	BlurData m_BlurData;
+	BlurData m_LastBlurData;
+	const UINT m_MaxBlurStrength = 100;
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_HorizontalPS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_VerticalPS;
@@ -669,6 +721,7 @@ public:
 	void RenderControls() override
 	{
 		ImGui::SliderFloat("Luminance Threshold", &m_LuminanceThreshold, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+		m_BlurPostProcess->RenderControls();
 	}
 
 private:
@@ -737,6 +790,14 @@ private:
 
 class PostProcessToneMapper : public PostProcess
 {
+private:
+	struct ToneMapperData {
+		float WhiteLevel;
+		float Exposure;
+		float Bias;
+		int Formula;
+	};
+
 public:
 	enum ToneMapperFormula {
 		ReinhardBasic,
@@ -751,23 +812,18 @@ public:
 	{
 		assert(Formula >= 0 && Formula < ToneMapperFormula::None);
 		m_Name = "Tone Mapper";
-
-		struct ToneMapperData {
-			float WhiteLevel;
-			float Exposure;
-			float Bias;
-			int Formula;
-		};
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-		ToneMapperData Data = { WhiteLevel, Exposure, Bias, Formula };
+		m_ToneMapperData = { WhiteLevel, Exposure, Bias, Formula };
+		m_LastToneMapperData = m_ToneMapperData;
 		D3D11_SUBRESOURCE_DATA BufferData = {};
-		BufferData.pSysMem = &Data;
+		BufferData.pSysMem = &m_ToneMapperData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
@@ -776,7 +832,26 @@ public:
 
 	void RenderControls() override
 	{
-
+		const char* Formulas[] = { "Reinhard Basic", "Reinhard Extended", "Reinhard Extended Bias", "Narkowicz ACES", "Hill ACES" };
+		
+		ImGui::Combo("Formula", &m_ToneMapperData.Formula, Formulas, IM_ARRAYSIZE(Formulas));
+		switch (m_ToneMapperData.Formula)
+		{
+		case ReinhardBasic:
+			break;
+		case ReinhardExtended:
+			ImGui::SliderFloat("White Level", &m_ToneMapperData.WhiteLevel, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			break;
+		case ReinhardExtendedBias:
+			ImGui::SliderFloat("Bias", &m_ToneMapperData.Bias, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			break;
+		case NarkowiczACES:
+			break;
+		case HillACES:
+			break;
+		default:
+			break;
+		}
 	}
 
 private:
@@ -788,13 +863,31 @@ private:
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
+		if (memcmp(&m_LastToneMapperData, &m_ToneMapperData, sizeof(ToneMapperData)) != 0)
+		{
+			UpdateBuffer();
+			m_LastToneMapperData = m_ToneMapperData;
+		}
+
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &m_ToneMapperData, sizeof(ToneMapperData));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
+	ToneMapperData m_ToneMapperData;
+	ToneMapperData m_LastToneMapperData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -802,17 +895,18 @@ private:
 class PostProcessGammaCorrection : public PostProcess
 {
 public:
-	PostProcessGammaCorrection(float Gamma)
+	PostProcessGammaCorrection(float Gamma) : m_Gamma(Gamma), m_LastGamma(Gamma)
 	{
 		m_Name = "Gamma Correction";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-		DirectX::XMFLOAT4 Data = { Gamma, 0.f, 0.f, 0.f };
+		DirectX::XMFLOAT4 Data = { m_Gamma, 0.f, 0.f, 0.f };
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
@@ -823,7 +917,7 @@ public:
 
 	void RenderControls() override
 	{
-
+		ImGui::SliderFloat("Gamma", &m_Gamma, 1.f, 3.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 	}
 
 private:
@@ -835,13 +929,32 @@ private:
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
+		if (m_LastGamma != m_Gamma)
+		{
+			UpdateBuffer();
+			m_LastGamma = m_Gamma;
+		}
+
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(m_Gamma, 0.f, 0.f, 0.f);
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &Data, sizeof(DirectX::XMFLOAT4));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
+	float m_Gamma;
+	float m_LastGamma;
 };
 
 #endif
