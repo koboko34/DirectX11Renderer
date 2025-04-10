@@ -670,7 +670,7 @@ private:
 class PostProcessBloom : public PostProcess
 {
 public:
-	PostProcessBloom(float LuminanceThreshold) : m_LuminanceThreshold(LuminanceThreshold), m_LastLuminanceThreshold(LuminanceThreshold)
+	PostProcessBloom(float LuminanceThreshold, int BlurStrength, float Sigma) : m_LuminanceThreshold(LuminanceThreshold), m_LastLuminanceThreshold(LuminanceThreshold)
 	{
 		m_Name = "Bloom";
 		
@@ -715,7 +715,7 @@ public:
 		LuminousTexture->Release();
 		BlurredTexture->Release();
 
-		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(50, 8.f);
+		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(BlurStrength, Sigma);
 	}
 
 	void RenderControls() override
@@ -955,6 +955,85 @@ private:
 
 	float m_Gamma;
 	float m_LastGamma;
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+
+class PostProcessColorCorrection : public PostProcess
+{
+private:
+	struct ColorData
+	{
+		float Contrast;
+		float Brightness;
+		float Saturation;
+		float Padding;
+	};
+
+public:
+	PostProcessColorCorrection(float Contrast, float Brightness, float Saturation)
+	{
+		m_Name = "Color Correction";
+
+		HRESULT hResult;
+		D3D11_BUFFER_DESC BufferDesc = {};
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.ByteWidth = sizeof(ColorData);
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
+		m_ColorData = { Contrast, Brightness, Saturation, 0.f };
+		m_LastColorData = m_ColorData;
+		D3D11_SUBRESOURCE_DATA BufferData = {};
+		BufferData.pSysMem = &m_ColorData;
+
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+
+		SetupPixelShader(m_PixelShader, L"Shaders/ColorCorrectionPS.hlsl");
+	}
+
+	void RenderControls() override
+	{
+		ImGui::SliderFloat("Contrast", &m_ColorData.Contrast, 0.f, 2.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		ImGui::SliderFloat("Brightness", &m_ColorData.Brightness, -1.f, 1.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		ImGui::SliderFloat("Saturation", &m_ColorData.Saturation, 0.f, 5.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+	}
+
+private:
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
+		ID3D11DepthStencilView* DSV) override
+	{
+		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
+
+		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		if (memcmp(&m_LastColorData, &m_ColorData, sizeof(ColorData)) != 0)
+		{
+			UpdateBuffer();
+			m_LastColorData = m_ColorData;
+		}
+
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+
+		DeviceContext->DrawIndexed(6u, 0u, 0);
+	}
+
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &m_ColorData, sizeof(ColorData));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
+private:
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
+	ColorData m_ColorData;
+	ColorData m_LastColorData;
 };
 
 #endif

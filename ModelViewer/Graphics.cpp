@@ -94,7 +94,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SwapChainDesc.BufferCount = 1;
 	SwapChainDesc.BufferDesc.Width = ScreenWidth;
 	SwapChainDesc.BufferDesc.Height = ScreenHeight;
-	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // not _SRGB since I'm applying gamma correction manually as a post process
 	SwapChainDesc.BufferCount = 1; // create a second buffer and change swapchain swap effect
 
 	if (m_VSync_Enabled)

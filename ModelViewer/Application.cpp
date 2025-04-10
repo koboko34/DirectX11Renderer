@@ -82,8 +82,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
 	m_PostProcesses.back()->Deactivate();
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.9f, 16, 8.f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::HillACES));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessColorCorrection>(1.f, 0.f, 1.15f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
 
 	return true;
@@ -176,8 +177,8 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
-	//FALSE_IF_FAILED(RenderScene());
-	FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
+	FALSE_IF_FAILED(RenderScene());
+	//FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
 	
 	// apply post processes (if any) and keep track of which shader resource view is the latest
 	DrawingForward = !DrawingForward;
