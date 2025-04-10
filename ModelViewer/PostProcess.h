@@ -6,10 +6,14 @@
 #include <iostream>
 #include <cassert>
 
+#include "ImGui/imgui.h"
+
 #include "Shader.h"
 #include "MyMacros.h"
 #include "Graphics.h"
 #include "Application.h"
+
+class PostProcessEmpty;
 
 class PostProcess
 {
@@ -25,60 +29,82 @@ public:
 
 	virtual ~PostProcess() {}
 
+	virtual void RenderControls()
+	{
+		ImGui::Text("Controls not set up for this post process!");
+	}
+
 	static void ShutdownStatics()
 	{
 		ms_QuadVertexShader.Reset();
 		ms_QuadInputLayout.Reset();
 		ms_QuadVertexBuffer.Reset();
 		ms_QuadIndexBuffer.Reset();
+		ms_EmptyPostProcess.reset();
 		ms_bInitialised = false;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11VertexShader> GetQuadVertexShader(ID3D11Device* Device)
+	static Microsoft::WRL::ComPtr<ID3D11VertexShader> GetQuadVertexShader()
 	{
 		if (ms_bInitialised)
 		{
 			return PostProcess::ms_QuadVertexShader;
 		}
 
-		InitialiseShaderResources(Device);
+		InitialiseShaderResources();
 		return PostProcess::ms_QuadVertexShader;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadVertexBuffer(ID3D11Device* Device)
+	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadVertexBuffer()
 	{
 		if (ms_bInitialised)
 		{
 			return PostProcess::ms_QuadVertexBuffer;
 		}
 
-		InitialiseShaderResources(Device);
+		InitialiseShaderResources();
 		return PostProcess::ms_QuadVertexBuffer;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadIndexBuffer(ID3D11Device* Device)
+	static Microsoft::WRL::ComPtr<ID3D11Buffer> GetQuadIndexBuffer()
 	{
 		if (ms_bInitialised)
 		{
 			return PostProcess::ms_QuadIndexBuffer;
 		}
 
-		InitialiseShaderResources(Device);
+		InitialiseShaderResources();
 		return PostProcess::ms_QuadIndexBuffer;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11InputLayout> GetQuadInputLayout(ID3D11Device* Device)
+	static Microsoft::WRL::ComPtr<ID3D11InputLayout> GetQuadInputLayout()
 	{
 		if (ms_bInitialised)
 		{
 			return PostProcess::ms_QuadInputLayout;
 		}
 
-		InitialiseShaderResources(Device);
+		InitialiseShaderResources();
 		return PostProcess::ms_QuadInputLayout;
 	}
 
+	static std::shared_ptr<PostProcessEmpty> GetEmptyPostProcess()
+	{
+		if (ms_EmptyPostProcess.get())
+		{
+			return PostProcess::ms_EmptyPostProcess;
+		}
+
+		ms_EmptyPostProcess = std::make_shared<PostProcessEmpty>();
+		return PostProcess::ms_EmptyPostProcess;
+	}
+
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetPixelShader() const { return m_PixelShader; };
+
+	void Activate() { m_bActive = true; }
+	void Deactivate() { m_bActive = false; }
+	bool& GetIsActive() { return m_bActive; }
+	const std::string& GetName() const { return m_Name; }
 
 protected:
 	struct Vertex
@@ -89,6 +115,8 @@ protected:
 	};
 	
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	bool m_bActive = true;
+	std::string m_Name = "";
 	
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) = 0;
@@ -130,7 +158,7 @@ protected:
 	}
 
 private:
-	static void InitialiseShaderResources(ID3D11Device* Device)
+	static void InitialiseShaderResources()
 	{
 		wchar_t vsFilename[128];
 		int Error;
@@ -163,7 +191,7 @@ private:
 			return;
 		}
 
-		ASSERT_NOT_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &ms_QuadVertexShader));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &ms_QuadVertexShader));
 
 		VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 		VertexLayout[0].SemanticName = "POSITION";
@@ -190,7 +218,7 @@ private:
 		VertexLayout[2].InstanceDataStepRate = 0;
 
 		NumElements = sizeof(VertexLayout) / sizeof(VertexLayout[0]);
-		ASSERT_NOT_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &ms_QuadInputLayout));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &ms_QuadInputLayout));
 
 		Vertex QuadVertices[] = {
 			{ DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), DirectX::XMFLOAT2(0.0f, 0.0f), },
@@ -208,7 +236,7 @@ private:
 		D3D11_SUBRESOURCE_DATA InitData = {};
 		InitData.pSysMem = QuadVertices;
 
-		ASSERT_NOT_FAILED(Device->CreateBuffer(&BufferDesc, &InitData, &ms_QuadVertexBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &InitData, &ms_QuadVertexBuffer));
 
 		unsigned int QuadIndices[] = {
 			1, 2, 0,
@@ -224,7 +252,7 @@ private:
 		InitData = {};
 		InitData.pSysMem = QuadIndices;
 
-		ASSERT_NOT_FAILED(Device->CreateBuffer(&BufferDesc, &InitData, &ms_QuadIndexBuffer));
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &InitData, &ms_QuadIndexBuffer));
 
 		ms_bInitialised = true;
 	}
@@ -233,6 +261,7 @@ private:
 	static Microsoft::WRL::ComPtr<ID3D11InputLayout> ms_QuadInputLayout;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadVertexBuffer;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadIndexBuffer;
+	static std::shared_ptr<PostProcessEmpty> ms_EmptyPostProcess;
 	static bool ms_bInitialised;
 };
 
@@ -244,6 +273,7 @@ class PostProcessEmpty : public PostProcess
 public:
 	PostProcessEmpty()
 	{
+		m_Name = "Empty";
 		SetupPixelShader(m_PixelShader, L"Shaders/QuadPS.hlsl");
 	}
 
@@ -265,8 +295,17 @@ private:
 class PostProcessFog : public PostProcess
 {
 public:
-	PostProcessFog() {} // pass whatever we need into here
-	
+	PostProcessFog()
+	{
+		// pass whatever we need into here
+		m_Name = "Fog";
+	} 
+
+	void RenderControls() override
+	{
+
+	}
+
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 							ID3D11DepthStencilView* DSV) override
@@ -283,7 +322,8 @@ public:
 	PostProcessBoxBlur(int BlurStrength)
 	{
 		assert(BlurStrength > 0);
-		
+		m_Name = "Box Blur";
+
 		struct BlurData {
 			DirectX::XMFLOAT2 TexelSize;
 			int BlurStrength;
@@ -325,6 +365,11 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
 
 		IntermediateTexture->Release();
+	}
+
+	void RenderControls() override
+	{
+
 	}
 
 private:
@@ -369,6 +414,7 @@ public:
 	PostProcessGaussianBlur(int BlurStrength, float Sigma)
 	{
 		assert(BlurStrength > 0);
+		m_Name = "Gaussian Blur";
 
 		struct BlurData {
 			DirectX::XMFLOAT2 TexelSize;
@@ -448,6 +494,11 @@ public:
 		IntermediateTexture->Release();
 	}
 
+	void RenderControls() override
+	{
+
+	}
+
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) override
@@ -498,22 +549,30 @@ private:
 class PostProcessPixelation : public PostProcess
 {
 public:
-	PostProcessPixelation(float pixelSize)
+	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize), m_LastPixelSize(pixelSize)
 	{
+		m_Name = "Pixelation";
+		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
-		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, pixelSize, 0.f);
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, m_PixelSize, 0.f);
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &Data;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_PixelShader, L"Shaders/PixelationPS.hlsl");
+	}
+
+	void RenderControls() override
+	{
+		ImGui::SliderFloat("Pixel Size", &m_PixelSize, 1.f, 32.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
 	}
 
 private:
@@ -525,13 +584,33 @@ private:
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
+		if (m_LastPixelSize != m_PixelSize)
+		{
+			UpdateBuffer();
+			m_LastPixelSize = m_PixelSize;
+		}
+
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second, m_PixelSize, 0.f);
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &Data, sizeof(DirectX::XMFLOAT4));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
+	float m_PixelSize;
+	float m_LastPixelSize;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -539,11 +618,14 @@ private:
 class PostProcessBloom : public PostProcess
 {
 public:
-	PostProcessBloom(float LuminanceThreshold) : m_LuminanceThreshold(LuminanceThreshold)
+	PostProcessBloom(float LuminanceThreshold) : m_LuminanceThreshold(LuminanceThreshold), m_LastLuminanceThreshold(LuminanceThreshold)
 	{
+		m_Name = "Bloom";
+		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
-		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		BufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
@@ -584,6 +666,11 @@ public:
 		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(50, 8.f);
 	}
 
+	void RenderControls() override
+	{
+		ImGui::SliderFloat("Luminance Threshold", &m_LuminanceThreshold, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+	}
+
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
 		ID3D11DepthStencilView* DSV) override
@@ -593,6 +680,12 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		if (m_LastLuminanceThreshold != m_LuminanceThreshold)
+		{
+			UpdateBuffer();
+			m_LastLuminanceThreshold = m_LuminanceThreshold;
+		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_LuminousRTV.GetAddressOf(), DSV);
 
@@ -616,8 +709,19 @@ private:
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		DirectX::XMFLOAT4 Data = DirectX::XMFLOAT4(m_LuminanceThreshold, 0.f, 0.f, 0.f);
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &Data, sizeof(DirectX::XMFLOAT4));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
 private:
 	float m_LuminanceThreshold;
+	float m_LastLuminanceThreshold;
 	std::unique_ptr<PostProcess> m_BlurPostProcess;
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_LuminancePS;
@@ -646,7 +750,8 @@ public:
 	PostProcessToneMapper(float WhiteLevel, float Exposure, float Bias, ToneMapperFormula Formula)
 	{
 		assert(Formula >= 0 && Formula < ToneMapperFormula::None);
-		
+		m_Name = "Tone Mapper";
+
 		struct ToneMapperData {
 			float WhiteLevel;
 			float Exposure;
@@ -667,6 +772,11 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 
 		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
+	}
+
+	void RenderControls() override
+	{
+
 	}
 
 private:
@@ -694,6 +804,8 @@ class PostProcessGammaCorrection : public PostProcess
 public:
 	PostProcessGammaCorrection(float Gamma)
 	{
+		m_Name = "Gamma Correction";
+		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
 		BufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -707,6 +819,11 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		
 		SetupPixelShader(m_PixelShader, L"Shaders/GammaCorrectionPS.hlsl");
+	}
+
+	void RenderControls() override
+	{
+
 	}
 
 private:

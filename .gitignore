@@ -399,3 +399,4 @@ FodyWeavers.xsd
 *.sln.iml
 ModelViewer/shader-error.txt
 /ModelViewer/Models
+ModelViewer/imgui.ini

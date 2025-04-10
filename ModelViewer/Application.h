@@ -51,12 +51,14 @@ public:
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
 
 private:
-	std::shared_ptr<Model> LoadModel(const char* ModelFilename, const char* TexturesPath = "");
 	bool Render(double DeltaTime);
 	bool RenderScene();
 	void RenderModels();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
+
 	void RenderImGui();
+	void RenderPostProcessWindow();
+
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
 
@@ -75,8 +77,6 @@ private:
 
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 
-	bool m_bShouldRenderLight = false;
-
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
 	float m_CameraSpeed = 0.5f;
@@ -86,7 +86,6 @@ private:
 	bool m_bCursorToggleReleased = true;
 
 	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
-	std::unique_ptr<PostProcess> m_EmptyPostProcess;
 
 	const char* m_QuadTexturePath = "Textures/image_gamma_linear.png";
 	ID3D11ShaderResourceView* m_TextureResourceView;

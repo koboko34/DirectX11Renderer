@@ -76,15 +76,13 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>());
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(25));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
-	//m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
+	m_PostProcesses.back()->Deactivate();
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
+	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.5f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::HillACES));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
-
-	m_EmptyPostProcess = std::make_unique<PostProcessEmpty>();
 
 	return true;
 }
@@ -176,19 +174,19 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
-	FALSE_IF_FAILED(RenderScene());
-	//FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
+	//FALSE_IF_FAILED(RenderScene());
+	FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
 	
 	// apply post processes (if any) and keep track of which shader resource view is the latest
 	DrawingForward = !DrawingForward;
 	unsigned int Stride, Offset;
 	Stride = sizeof(Vertex);
 	Offset = 0u;
-	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
+	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer().GetAddressOf(), &Stride, &Offset);
 	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_Graphics->GetDeviceContext()->IASetInputLayout(PostProcess::GetQuadInputLayout(m_Graphics->GetDevice()).Get());
-	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
-	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->IASetInputLayout(PostProcess::GetQuadInputLayout().Get());
+	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader().Get(), nullptr, 0u);
 	m_Graphics->DisableDepthWriteAlwaysPass(); // simpler for now but might need to refactor when wanting to use depth data in post processes
 	ApplyPostProcesses(CurrentRTV, SecondaryRTV, CurrentSRV, SecondarySRV, DrawingForward);
 
@@ -196,7 +194,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->SetBackBufferRenderTarget();
 
 	// use last used post process texture to draw a full screen quad
-	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->GetPixelShader().Get(), NULL, 0u);
+	m_Graphics->GetDeviceContext()->PSSetShader(PostProcess::GetEmptyPostProcess()->GetPixelShader().Get(), NULL, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
@@ -293,13 +291,13 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 	Stride = sizeof(Vertex);
 	Offset = 0u;
 
-	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer(m_Graphics->GetDevice()).GetAddressOf(), &Stride, &Offset);
-	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer(m_Graphics->GetDevice()).Get(), DXGI_FORMAT_R32_UINT, 0u);
-	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(m_Graphics->GetDevice()).Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer().GetAddressOf(), &Stride, &Offset);
+	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader().Get(), nullptr, 0u);
 	
 	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_Graphics->GetDeviceContext()->IASetInputLayout(m_Shader->GetInputLayout().Get());
-	m_Graphics->GetDeviceContext()->PSSetShader(m_EmptyPostProcess->GetPixelShader().Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->PSSetShader(PostProcess::GetEmptyPostProcess()->GetPixelShader().Get(), nullptr, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0, 1, TextureView.GetAddressOf());
 
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
@@ -313,26 +311,33 @@ void Application::RenderImGui()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	/*if (m_LightObject.get())
-	{
-		if (ImGui::Begin("Light"))
-		{
-			ImGui::SliderFloat("X", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 0, -10.f, 10.f);
-			ImGui::SliderFloat("Y", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 1, -10.f, 10.f);
-			ImGui::SliderFloat("Z", reinterpret_cast<float*>(m_LightObject->GetPositionPtr()) + 2, -10.f, 10.f);
-
-			ImGui::Dummy(ImVec2(0.f, 10.f));
-
-			ImGui::Checkbox("Render scene light?", &m_bShouldRenderLight);
-
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		}
-		ImGui::End();
-	}*/
+	RenderPostProcessWindow();
 
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Application::RenderPostProcessWindow()
+{
+	if (ImGui::Begin("PostProcesses") && !m_PostProcesses.empty())
+	{
+		for (int i = 0; i < m_PostProcesses.size(); i++)
+		{
+			ImGui::PushID(i);
+			ImGui::Checkbox("", &m_PostProcesses[i]->GetIsActive());
+			ImGui::SameLine();
+			if (ImGui::CollapsingHeader(m_PostProcesses[i]->GetName().c_str()))
+			{
+				m_PostProcesses[i]->RenderControls();
+			}
+			ImGui::PopID();
+		}
+
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+	}
+	ImGui::End();
 }
 
 void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
@@ -340,6 +345,11 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 {	
 	for (int i = 0; i < m_PostProcesses.size(); i++)
 	{
+		if (!m_PostProcesses[i]->GetIsActive())
+		{
+			continue;
+		}
+
 		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? SecondaryRTV : CurrentRTV,
 												DrawingForward ? CurrentSRV : SecondarySRV, m_Graphics->GetDepthStencilView());
 
