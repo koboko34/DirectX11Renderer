@@ -25,10 +25,10 @@ float4 LuminancePS(PS_In p) : SV_TARGET
 	float4 color = screenTexture.Sample(samplerState, p.TexCoord);
 	if (CalcLuminance(color.xyz) < luminanceThreshold)
 	{
-		return float4(0.f, 0.f, 0.f, 0.f);
+		return float4(0.f, 0.f, 0.f, 1.f);
 	}
 	
-	return float4(color.xyz, 0.f);
+	return float4(color.xyz, 1.f);
 }
 
 float4 BloomPS(PS_In p) : SV_TARGET
