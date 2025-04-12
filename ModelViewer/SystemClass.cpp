@@ -47,6 +47,7 @@ void SystemClass::Run()
 	bool ShouldClose, Result;
 
 	ZeroMemory(&msg, sizeof(MSG));
+	SetCursorPos(ms_Center.x, ms_Center.y);
 
 	ShouldClose = false;
 	while (!ShouldClose)

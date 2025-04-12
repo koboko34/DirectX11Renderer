@@ -208,5 +208,6 @@
     <None Include="Shaders\SkyboxPS.hlsl" />
     <None Include="Shaders\SkyboxVS.hlsl" />
     <None Include="Shaders\ColorCorrectionPS.hlsl" />
+    <None Include="Shaders\FogPS.hlsl" />
   </ItemGroup>
 </Project>

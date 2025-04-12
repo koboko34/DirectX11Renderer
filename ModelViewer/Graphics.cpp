@@ -35,6 +35,7 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	D3D11_TEXTURE2D_DESC DepthBufferDesc = {};
 	D3D11_DEPTH_STENCIL_DESC DepthStencilDesc = {};
 	D3D11_DEPTH_STENCIL_VIEW_DESC DepthStencilViewDesc = {};
+	D3D11_SHADER_RESOURCE_VIEW_DESC DepthStencilSRVDesc = {};
 	D3D11_RASTERIZER_DESC RasterDesc = {};
 	D3D11_SAMPLER_DESC SamplerDesc = {};
 	float FieldOfView, ScreenAspect;
@@ -127,7 +128,6 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	SwapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	SwapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD; // swap to DXGI_SWAP_FLIP_DISCARD when added a second buffer
-	SwapChainDesc.Flags = 0;
 
 	FeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
@@ -156,13 +156,11 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	DepthBufferDesc.Height = ScreenHeight;
 	DepthBufferDesc.MipLevels = 1;
 	DepthBufferDesc.ArraySize = 1;
-	DepthBufferDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	DepthBufferDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 	DepthBufferDesc.SampleDesc.Count = 1;
 	DepthBufferDesc.SampleDesc.Quality = 0;
 	DepthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	DepthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	DepthBufferDesc.CPUAccessFlags = 0;
-	DepthBufferDesc.MiscFlags = 0;
+	DepthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
 	ASSERT_NOT_FAILED(m_Device->CreateTexture2D(&DepthBufferDesc, NULL, &m_DepthStencilBuffer));
 	m_DepthStencilBuffer->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil buffer"), "Depth stencil buffer");
@@ -206,12 +204,18 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	DepthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	DepthStencilViewDesc.Texture2D.MipSlice = 0;
 
 	ASSERT_NOT_FAILED(m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), &DepthStencilViewDesc, &m_DepthStencilView));
 	m_DepthStencilView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil view"), "Depth stencil view");
 
 	m_DeviceContext->OMSetRenderTargets(1, m_BackBufferRTV.GetAddressOf(), m_DepthStencilView.Get());
+
+	DepthStencilSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	DepthStencilSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	DepthStencilSRVDesc.Texture2D.MipLevels = 1;
+
+	ASSERT_NOT_FAILED(m_Device->CreateShaderResourceView(m_DepthStencilBuffer.Get(), &DepthStencilSRVDesc, &m_DepthStencilSRV));
+	m_DepthStencilSRV->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Depth stencil SRV"), "Depth stencil SRV");
 
 	D3D11_BLEND_DESC BlendDesc = {};
 	BlendDesc.AlphaToCoverageEnable = false;
@@ -268,7 +272,6 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	ScreenAspect = (float)ScreenWidth / (float)ScreenHeight;
 
 	m_ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(FieldOfView, ScreenAspect, ScreenNear, ScreenDepth);
-	m_WorldMatrix = DirectX::XMMatrixIdentity();
 	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)ScreenWidth, (float)ScreenHeight, ScreenNear, ScreenDepth);
 
 	// setting up render target textures, views and shader resource view for post processing

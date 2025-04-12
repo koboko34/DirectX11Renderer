@@ -56,6 +56,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabled;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_DepthStencilStateWriteDisabledAlwaysPass;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_DepthStencilSRV;
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStateOpaque;
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStateTransparent;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOn;
@@ -63,7 +64,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
 
 	DirectX::XMMATRIX m_ProjectionMatrix;
-	DirectX::XMMATRIX m_WorldMatrix;
 	DirectX::XMMATRIX m_OrthoMatrix;
 	D3D11_VIEWPORT m_Viewport;
 
@@ -74,11 +74,12 @@ public:
 	ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext.Get(); }
 
 	ID3D11DepthStencilView* GetDepthStencilView() const { return m_DepthStencilView.Get(); }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthStencilSRV() const { return m_DepthStencilSRV; }
 
 	std::pair<int, int> GetRenderTargetDimensions() const { return m_Dimensions; }
 
-	void GetWorldMatrix(DirectX::XMMATRIX& WorldMatrix) { WorldMatrix = m_WorldMatrix; }
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }
+	const DirectX::XMMATRIX& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 	void GetOrthoMatrix(DirectX::XMMATRIX& OrthoMatrix) { OrthoMatrix = m_OrthoMatrix; }
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVFirst;

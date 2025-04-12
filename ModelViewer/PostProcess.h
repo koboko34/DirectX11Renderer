@@ -12,19 +12,20 @@
 #include "MyMacros.h"
 #include "Graphics.h"
 #include "Application.h"
+#include "Camera.h"
 
 class PostProcessEmpty;
 
 class PostProcess
 {
 public:
-	void ApplyPostProcess(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV, ID3D11DepthStencilView* DSV)
+	void ApplyPostProcess(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV)
 	{
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
+		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr);
 		ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
 		Graphics::GetSingletonPtr()->GetDeviceContext()->PSSetShaderResources(0u, 2u, NullSRVs);
-		ApplyPostProcessImpl(DeviceContext, RTV, SRV, DSV);
+		ApplyPostProcessImpl(DeviceContext, RTV, SRV);
 	}
 
 	virtual ~PostProcess() {}
@@ -118,8 +119,7 @@ protected:
 	bool m_bActive = true;
 	std::string m_Name = "";
 	
-	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) = 0;
+	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) = 0;
 
 	bool SetupPixelShader(Microsoft::WRL::ComPtr<ID3D11PixelShader>& PixelShader, const wchar_t* PSFilepath, const char* entryFunc = "main")
 	{		
@@ -152,7 +152,10 @@ protected:
 		}
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &PixelShader));
-		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)wcslen(PSFilepath), PSFilepath);
+		int SizeNeeded = WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, nullptr, 0, nullptr, nullptr);
+		char* NarrowStr = new char[SizeNeeded];
+		WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, NarrowStr, SizeNeeded, nullptr, nullptr);
+		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(NarrowStr), NarrowStr);
 
 		return true;
 	}
@@ -278,13 +281,12 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
@@ -294,19 +296,104 @@ private:
 
 class PostProcessFog : public PostProcess
 {
-public:
-	PostProcessFog()
+private:
+	struct FogData
 	{
+		DirectX::XMFLOAT3 FogColor;
+		int Formula;
+		float Density;
+		DirectX::XMFLOAT3 Padding;
+	};
+
+public:
+	enum FogFormula
+	{
+		Linear,
+		Exponential,
+		ExponentialSquared,
+		None
+	};
+
+public:
+	PostProcessFog(float r, float g, float b, float Density, FogFormula Formula)
+	{
+		assert(Formula >= 0 && Formula < FogFormula::None);
 		m_Name = "Fog";
-		// pass whatever we need into here
-	} 
+
+		HRESULT hResult;
+		D3D11_BUFFER_DESC BufferDesc = {};
+		BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		BufferDesc.ByteWidth = sizeof(FogData);
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		m_FogData.FogColor = { r, g, b };
+		m_FogData.Formula = Formula;
+		m_FogData.Density = Density;
+		m_FogData.Padding = { 0.f, 0.f, 0.f };
+		m_LastFogData = m_FogData;
+		D3D11_SUBRESOURCE_DATA BufferData = {};
+		BufferData.pSysMem = &m_FogData;
+
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+
+		SetupPixelShader(m_PixelShader, L"Shaders/FogPS.hlsl");
+	}
+
+	virtual void RenderControls()
+	{
+		ImGui::ColorPicker3("Fog Color", reinterpret_cast<float*>(&m_FogData.FogColor));
+		const char* Formulas[] = { "Linear", "Exponential", "Exponential Squared" };
+		ImGui::Combo("Formula", &m_FogData.Formula, Formulas, IM_ARRAYSIZE(Formulas));
+
+		switch (m_FogData.Formula)
+		{
+		case Linear:
+			break;
+		case Exponential:
+			ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+			break;
+		case ExponentialSquared:
+			ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+			break;
+		default:
+			break;
+		}
+	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-							ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		std::cout << "Applying fog..." << std::endl;
+		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+
+		ID3D11ShaderResourceView* SRVs[2] = { SRV.Get(), Graphics::GetSingletonPtr()->GetDepthStencilSRV().Get() };
+		DeviceContext->PSSetShaderResources(0u, 2u, SRVs);
+		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
+
+		if (memcmp(&m_LastFogData, &m_FogData, sizeof(FogData)) != 0)
+		{
+			UpdateBuffer();
+			m_LastFogData = m_FogData;
+		}
+
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
+		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
+
+	void UpdateBuffer()
+	{
+		HRESULT hResult;
+		D3D11_MAPPED_SUBRESOURCE MappedSubresource = {};
+		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDeviceContext()->Map(m_ConstantBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedSubresource));
+		memcpy(MappedSubresource.pData, &m_FogData, sizeof(FogData));
+		Graphics::GetSingletonPtr()->GetDeviceContext()->Unmap(m_ConstantBuffer.Get(), 0u);
+	}
+
+private:
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
+
+	FogData m_FogData;
+	FogData m_LastFogData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -373,8 +460,7 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		// horizontal
 		DeviceContext->PSSetShader(m_HorizontalPS.Get(), nullptr, 0u);
@@ -388,18 +474,18 @@ private:
 			m_LastBlurData = m_BlurData;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 
 		// vertical
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		DeviceContext->OMSetRenderTargets(1u, NullRTVs, DSV);
+		DeviceContext->OMSetRenderTargets(1u, NullRTVs, nullptr);
 
 		DeviceContext->PSSetShader(m_VerticalPS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, m_IntermediateSRV.GetAddressOf());
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
@@ -512,8 +598,7 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		// horizontal
 		DeviceContext->PSSetShader(m_HorizontalPS.Get(), nullptr, 0u);
@@ -528,18 +613,18 @@ private:
 			m_LastBlurData = m_BlurData;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 
 		// vertical
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		DeviceContext->OMSetRenderTargets(1u, NullRTVs, DSV);
+		DeviceContext->OMSetRenderTargets(1u, NullRTVs, nullptr);
 		
 		DeviceContext->PSSetShader(m_VerticalPS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, m_IntermediateSRV.GetAddressOf());
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
@@ -628,12 +713,10 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
-
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
 		if (m_LastPixelSize != m_PixelSize)
@@ -642,8 +725,7 @@ private:
 			m_LastPixelSize = m_PixelSize;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
-
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
@@ -725,13 +807,11 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{		
 		// render luminous pixels
 		DeviceContext->PSSetShader(m_LuminancePS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
-
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
 		if (m_LastLuminanceThreshold != m_LuminanceThreshold)
@@ -740,25 +820,22 @@ private:
 			m_LastLuminanceThreshold = m_LuminanceThreshold;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, m_LuminousRTV.GetAddressOf(), DSV);
-
+		DeviceContext->OMSetRenderTargets(1u, m_LuminousRTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 
 		// blur luminous pixels
-		m_BlurPostProcess->ApplyPostProcess(DeviceContext, m_BlurredRTV, m_LuminousSRV, DSV);
+		m_BlurPostProcess->ApplyPostProcess(DeviceContext, m_BlurredRTV, m_LuminousSRV);
 
 		// add bloom to original
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
-		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, DSV);
+		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr);
 
 		DeviceContext->PSSetShader(m_BloomPS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetShaderResources(1u, 1u, m_BlurredSRV.GetAddressOf());
-
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
-
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
 
@@ -855,8 +932,7 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
@@ -869,7 +945,7 @@ private:
 			m_LastToneMapperData = m_ToneMapperData;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
@@ -921,8 +997,7 @@ public:
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
@@ -935,7 +1010,7 @@ private:
 			m_LastGamma = m_Gamma;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
@@ -996,13 +1071,12 @@ public:
 	void RenderControls() override
 	{
 		ImGui::SliderFloat("Contrast", &m_ColorData.Contrast, 0.f, 2.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SliderFloat("Brightness", &m_ColorData.Brightness, -1.f, 1.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		ImGui::SliderFloat("Brightness", &m_ColorData.Brightness, -0.5f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::SliderFloat("Saturation", &m_ColorData.Saturation, 0.f, 5.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 	}
 
 private:
-	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV,
-		ID3D11DepthStencilView* DSV) override
+	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
@@ -1015,7 +1089,7 @@ private:
 			m_LastColorData = m_ColorData;
 		}
 
-		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), DSV);
+		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}

@@ -76,6 +76,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.01f, PostProcessFog::FogFormula::ExponentialSquared));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(30));
@@ -83,6 +84,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGaussianBlur>(30, 4.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBloom>(0.9f, 16, 8.f));
+	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessToneMapper>(1.5f, 1.f, 1.f, PostProcessToneMapper::ToneMapperFormula::HillACES));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessColorCorrection>(1.f, 0.f, 1.15f));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessGammaCorrection>(2.2f));
@@ -359,7 +361,7 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 		}
 
 		m_PostProcesses[i]->ApplyPostProcess(m_Graphics->GetDeviceContext(), DrawingForward ? SecondaryRTV : CurrentRTV,
-												DrawingForward ? CurrentSRV : SecondarySRV, m_Graphics->GetDepthStencilView());
+												DrawingForward ? CurrentSRV : SecondarySRV);
 
 		DrawingForward = !DrawingForward;
 	}

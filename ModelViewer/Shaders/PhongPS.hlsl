@@ -110,6 +110,5 @@ float4 main(PS_In p) : SV_TARGET
 		LightTotal += Specular * Attenuation;
 	}
 	
-	float4 outColor = saturate(Ambient + LightTotal);
-    return outColor;
+	return saturate(Ambient + LightTotal);
 }
