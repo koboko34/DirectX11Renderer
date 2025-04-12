@@ -241,15 +241,15 @@ void Application::RenderModels()
 		pModelData->GetTransforms().clear();
 	}
 
-	DirectionalLight* DirLight = nullptr;
 	std::vector<PointLight*> PointLights;
+	std::vector<DirectionalLight*> DirLights;
 	for (auto& Object : m_GameObjects)
 	{
 		Object->SendTransformToModels();
 		for (auto& Comp : Object->GetComponents())
 		{
 			Light* pLight = dynamic_cast<Light*>(Comp.get());
-			if (pLight)
+			if (pLight && pLight->IsActive())
 			{
 				PointLight* pPointLight = dynamic_cast<PointLight*>(pLight);
 				if (pPointLight)
@@ -261,8 +261,7 @@ void Application::RenderModels()
 				DirectionalLight* pDirLight = dynamic_cast<DirectionalLight*>(pLight);
 				if (pDirLight)
 				{
-					assert(DirLight == nullptr && "Only support one directional light as of now! Found two!");
-					DirLight = pDirLight;
+					DirLights.push_back(pDirLight);
 					continue;
 				}
 			}
@@ -283,7 +282,7 @@ void Application::RenderModels()
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
 			PointLights,
-			DirLight
+			DirLights
 		);
 
 		pModelData->Render();
@@ -316,38 +315,12 @@ void Application::RenderImGui()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	RenderPostProcessWindow();
+	ImGuiManager::RenderPostProcessWindow();
+	ImGuiManager::RenderWorldHierarchyWindow();
 
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-}
-
-void Application::RenderPostProcessWindow()
-{
-	if (ImGui::Begin("Post Processes") && !m_PostProcesses.empty())
-	{
-		for (int i = 0; i < m_PostProcesses.size(); i++)
-		{
-			if (i != 0)
-			{
-				ImGui::Dummy(ImVec2(0.f, 10.f));
-			}
-
-			ImGui::PushID(i);
-			ImGui::Checkbox("", &m_PostProcesses[i]->GetIsActive());
-			ImGui::SameLine();
-			if (ImGui::CollapsingHeader(m_PostProcesses[i]->GetName().c_str()))
-			{
-				m_PostProcesses[i]->RenderControls();
-			}
-			ImGui::PopID();
-		}
-
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	}
-	ImGui::End();
 }
 
 void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,

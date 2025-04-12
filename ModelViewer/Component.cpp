@@ -8,6 +8,13 @@ void Component::SetPosition(float x, float y, float z)
 
 void Component::SetRotation(float x, float y, float z)
 {
+	x = fmodf(x, 360.f);
+	if (x < 0.f) x += 360.f;
+	y = fmodf(y, 360.f);
+	if (y < 0.f) y += 360.f;
+	z = fmodf(z, 360.f);
+	if (z < 0.f) z += 360.f;
+
 	m_Transform.Rotation = DirectX::XMFLOAT3(x, y, z);
 }
 
@@ -41,12 +48,14 @@ void Component::SendTransformToModels()
 {
 	for (Model* m : m_Models)
 	{
-		m->SendTransformToModel();
+		if (m->IsActive())
+			m->SendTransformToModel();
 	}
 
 	for (std::shared_ptr<Component>& Comp : m_Components)
 	{
-		Comp->SendTransformToModels();
+		if (Comp->IsActive())
+			Comp->SendTransformToModels();
 	}
 }
 

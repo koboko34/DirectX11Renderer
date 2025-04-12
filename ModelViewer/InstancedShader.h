@@ -49,9 +49,11 @@ private:
 	struct LightingBuffer
 	{
 		PointLightData PointLights[MAX_POINT_LIGHTS];
-		DirectionalLightData DirLight;
+		DirectionalLightData DirLights[MAX_DIRECTIONAL_LIGHTS];
 		DirectX::XMFLOAT3 CameraPos;
 		int PointLightCount = 0;
+		int DirLightCount = 0;
+		DirectX::XMFLOAT3 Padding = { 0.f, 0.f, 0.f };
 	};
 
 public:
@@ -61,7 +63,7 @@ public:
 	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
 	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
-		const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, DirectionalLight* pDirLight);
+		const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights);
 
 	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 

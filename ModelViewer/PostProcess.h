@@ -342,7 +342,7 @@ public:
 
 	virtual void RenderControls()
 	{
-		ImGui::ColorPicker3("Fog Color", reinterpret_cast<float*>(&m_FogData.FogColor));
+		ImGui::ColorEdit3("Fog Color", reinterpret_cast<float*>(&m_FogData.FogColor));
 		const char* Formulas[] = { "Linear", "Exponential", "Exponential Squared" };
 		ImGui::Combo("Formula", &m_FogData.Formula, Formulas, IM_ARRAYSIZE(Formulas));
 

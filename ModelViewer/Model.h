@@ -23,6 +23,8 @@ public:
 
 	void Shutdown();
 
+	virtual void RenderControls() override;
+
 	void SendTransformToModel();
 
 	ModelData* GetModelData() const { return m_pModelData; }

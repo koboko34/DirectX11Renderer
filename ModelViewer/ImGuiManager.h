@@ -10,6 +10,9 @@ class ImGuiManager
 public:
 	ImGuiManager();
 	~ImGuiManager();
+
+	static void RenderPostProcessWindow();
+	static void RenderWorldHierarchyWindow();
 };
 
 #endif

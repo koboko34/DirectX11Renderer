@@ -50,6 +50,9 @@ public:
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
 
+	std::vector<std::shared_ptr<GameObject>>& GetGameObjects() { return m_GameObjects; }
+	std::vector<std::unique_ptr<PostProcess>>& GetPostProcesses() { return m_PostProcesses; }
+
 private:
 	bool Render(double DeltaTime);
 	bool RenderScene();
@@ -57,7 +60,6 @@ private:
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
 
 	void RenderImGui();
-	void RenderPostProcessWindow();
 
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);

@@ -13,7 +13,10 @@ class Light : public Component
 {
 public:
 	Light();
-	
+	virtual ~Light() = 0;
+
+	virtual void RenderControls() override;
+
 	void SetDiffuseColor(float r, float g, float b);
 	void SetSpecularPower(float Power);
 
@@ -31,6 +34,8 @@ class PointLight : public Light
 public:
 	PointLight();
 
+	virtual void RenderControls() override;
+
 	void SetRadius(float Radius);
 
 	DirectX::XMFLOAT3 GetPosition() const { return GetOwner()->GetPosition(); }
@@ -46,6 +51,8 @@ class DirectionalLight : public Light
 {
 public:
 	DirectionalLight();
+
+	virtual void RenderControls() override;
 
 	void SetDirection(float x, float y, float z);
 

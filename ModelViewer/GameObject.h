@@ -11,6 +11,8 @@ class GameObject : public Component
 public:
 	GameObject();
 
+	virtual void RenderControls() override;
+
 	void SetName(const std::string& NewName) { m_Name = NewName; }
 
 	size_t GetUID() const { return m_UID; }

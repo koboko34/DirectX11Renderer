@@ -217,7 +217,7 @@ void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hW
 }
 
 bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
-	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, DirectionalLight* pDirLight)
+	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -240,16 +240,19 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
 
-	if (!pDirLight)
+	int NumDirLights = 0;
+	for (int i = 0; i < DirLights.size(); i++)
 	{
-		LightingDataPtr->DirLight.LightColor = { 0.f, 0.f, 0.f };
+		assert(NumDirLights < MAX_POINT_LIGHTS);
+		LightingDataPtr->DirLights[NumDirLights].LightColor = DirLights[NumDirLights]->GetDiffuseColor();
+		LightingDataPtr->DirLights[NumDirLights].LightDir = DirLights[NumDirLights]->GetDirection();
+		LightingDataPtr->DirLights[NumDirLights].SpecularPower = DirLights[NumDirLights]->GetSpecularPower();
+
+		NumDirLights++;
+		continue;
 	}
-	else
-	{
-		LightingDataPtr->DirLight.LightColor = pDirLight->GetDiffuseColor();
-		LightingDataPtr->DirLight.LightDir = pDirLight->GetDirection();
-		LightingDataPtr->DirLight.SpecularPower = pDirLight->GetSpecularPower();
-	}
+
+	LightingDataPtr->DirLightCount = NumDirLights;
 
 	int NumPointLights = 0;
 	for (int i = 0; i < PointLights.size(); i++)

@@ -3,6 +3,7 @@ Texture2D specularTexture : register(t1);
 SamplerState samplerState : register(s0);
 
 #define MAX_POINT_LIGHTS 8
+#define MAX_DIRECTIONAL_LIGHTS 1
 
 struct PointLight
 {
@@ -23,9 +24,10 @@ struct DirectionalLight
 cbuffer Lighting : register(b0)
 {
 	PointLight PointLights[MAX_POINT_LIGHTS];
-	DirectionalLight DirLight;
+	DirectionalLight DirLights[MAX_DIRECTIONAL_LIGHTS];
 	float3 CameraPos;
 	int PointLightCount;
+	int DirectionalLightCount;
 };
 
 struct MaterialData
@@ -70,14 +72,17 @@ float4 main(PS_In p) : SV_TARGET
 	float3 PixelToCam = normalize(CameraPos - p.WorldPos);
 	float4 LightTotal = float4(0.f, 0.f, 0.f, 0.f);
 	
-	float DiffuseFactor = saturate(dot(-DirLight.LightDir, p.WorldNormal)); // LightDir isn't normalised before sending to shader, do that
-	if (DiffuseFactor > 0.f)
+	for (int i = 0; i < DirectionalLightCount; i++)
 	{
-		float4 Diffuse = float4(DirLight.LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
+		float DiffuseFactor = saturate(dot(-DirLights[i].LightDir, p.WorldNormal));
+		if (DiffuseFactor <= 0.f)
+			continue;
+			
+		float4 Diffuse = float4(DirLights[i].LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
 
-		float3 HalfwayVec = normalize(PixelToCam + DirLight.LightDir);
-		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), DirLight.SpecularPower);
-		float4 Specular = float4(DirLight.LightColor, 1.f) * SpecularFactor;
+		float3 HalfwayVec = normalize(PixelToCam + DirLights[i].LightDir);
+		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), DirLights[i].SpecularPower);
+		float4 Specular = float4(DirLights[i].LightColor, 1.f) * SpecularFactor;
 		
 		LightTotal += Diffuse;
 		LightTotal += Specular;
@@ -87,17 +92,13 @@ float4 main(PS_In p) : SV_TARGET
 	{
 		float Distance = distance(p.WorldPos, PointLights[i].LightPos);
 		if (Distance > PointLights[i].Radius)
-		{
 			continue;
-		}
 	
 		float3 PixelToLight = normalize(PointLights[i].LightPos - p.WorldPos);
-		DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));
+		float DiffuseFactor = saturate(dot(PixelToLight, p.WorldNormal));
 	
 		if (DiffuseFactor <= 0.f)
-		{
 			continue;
-		}
 
 		float4 Diffuse = float4(PointLights[i].LightColor, 1.f) * float4(Color.xyz, 0.5f) * DiffuseFactor;
 		
