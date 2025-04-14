@@ -28,6 +28,7 @@ cbuffer Lighting : register(b0)
 	float3 CameraPos;
 	int PointLightCount;
 	int DirectionalLightCount;
+	float3 SkylightColor;
 };
 
 struct MaterialData
@@ -66,8 +67,8 @@ float4 main(PS_In p) : SV_TARGET
 	clip(Color.a < 0.1f ? -1.f : 1.f); // play around with this number
 	
 	float BaseAlpha = Color.a;
-	float AmbientFactor = 0.05f;
-	float4 Ambient = float4(Color * AmbientFactor);
+	float AmbientFactor = 0.5f;
+	float4 Ambient = float4((Color.rgb * SkylightColor), BaseAlpha) * AmbientFactor;
 	
 	float3 PixelToCam = normalize(CameraPos - p.WorldPos);
 	float4 LightTotal = float4(0.f, 0.f, 0.f, 0.f);

@@ -123,6 +123,8 @@ bool Skybox::Init()
 
 	HFALSE_IF_FAILED(Device->CreateInputLayout(Layout, 1u, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
 	m_InputLayout->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Skybox input layout"), "Skybox input layout");
+
+	CalculateAverageSkyColor(TextureData);
 	
 	return true;
 }
@@ -242,4 +244,28 @@ bool Skybox::CreateBuffers()
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_ConstantBuffer));
 	
 	return true;
+}
+
+void Skybox::CalculateAverageSkyColor(const std::vector<std::vector<BYTE>>& TextureData)
+{
+	DirectX::XMFLOAT3 TotalColor = { 0.f, 0.f, 0.f };
+	size_t TotalPixels = 0;
+
+	for (const auto& Face : TextureData)
+	{
+		for (size_t i = 0; i < Face.size(); i += 4)
+		{
+			float r = Face[i + 0] / 255.f;
+			float g = Face[i + 1] / 255.f;
+			float b = Face[i + 2] / 255.f;
+
+			TotalColor.x += r;
+			TotalColor.y += g;
+			TotalColor.z += b;
+			TotalPixels++;
+		}
+	}
+
+	assert(TotalPixels > 0);
+	m_AverageSkyColor = { TotalColor.x / (float)TotalPixels, TotalColor.y / (float)TotalPixels, TotalColor.z / (float)TotalPixels };
 }

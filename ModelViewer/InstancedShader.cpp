@@ -217,7 +217,7 @@ void InstancedShader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hW
 }
 
 bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
-	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights)
+	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -239,6 +239,7 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_LightingBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	LightingDataPtr = (LightingBuffer*)MappedResource.pData;
 	LightingDataPtr->CameraPos = CameraPos;
+	LightingDataPtr->SkylightColor = SkylightColor;
 
 	int NumDirLights = 0;
 	for (int i = 0; i < DirLights.size(); i++)

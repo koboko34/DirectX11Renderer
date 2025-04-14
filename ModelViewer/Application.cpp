@@ -203,7 +203,8 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
-	RenderImGui();
+	if (m_bShowCursor)
+		RenderImGui();
 
 	m_Graphics->EndScene();
 
@@ -282,7 +283,8 @@ void Application::RenderModels()
 			ProjectionMatrix,
 			m_Camera->GetPosition(),
 			PointLights,
-			DirLights
+			DirLights,
+			m_Skybox->GetAverageSkyColor()
 		);
 
 		pModelData->Render();
