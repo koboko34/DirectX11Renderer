@@ -6,7 +6,7 @@
 class InputClass
 {
 private:
-	InputClass() {}
+	InputClass();
 
 	static InputClass* ms_Instance;
 

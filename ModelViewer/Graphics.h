@@ -21,7 +21,7 @@ class Graphics
 private:
 	static Graphics* m_Instance;
 
-	Graphics() {}
+	Graphics();
 
 public:
 	static Graphics* GetSingletonPtr();

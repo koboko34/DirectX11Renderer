@@ -6,6 +6,16 @@
 
 Graphics* Graphics::m_Instance = nullptr;
 
+Graphics::Graphics()
+{
+	m_OrthoMatrix = DirectX::XMMatrixIdentity();
+	m_ProjectionMatrix = DirectX::XMMatrixIdentity();
+	m_VSync_Enabled = true;
+	m_Viewport = {};
+	m_VideoCardMemory = -1;
+	memset(m_VideoCardDescription, 0, sizeof(m_VideoCardDescription));
+}
+
 Graphics* Graphics::GetSingletonPtr()
 {
 	if (!m_Instance)
@@ -21,7 +31,8 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	IDXGIFactory* Factory;
 	IDXGIAdapter* Adapter;
 	IDXGIOutput* AdapterOutput;
-	unsigned int NumModes, Numerator, Denominator;
+	unsigned int NumModes = 0;
+	unsigned int Numerator, Denominator;
 	unsigned long long StringLength;
 	DXGI_MODE_DESC* DisplayModeList;
 	DXGI_ADAPTER_DESC AdapterDesc = {};

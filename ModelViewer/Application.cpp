@@ -29,6 +29,8 @@ Application::Application()
 {
 	m_LastUpdate = std::chrono::steady_clock::now();
 	m_AppTime = 0.0;
+	m_hWnd = {};
+	m_TextureResourceView = {};
 }
 
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)

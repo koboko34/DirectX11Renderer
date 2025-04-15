@@ -1,6 +1,13 @@
+#include <cstring>
+
 #include "InputClass.h"
 
 InputClass* InputClass::ms_Instance = nullptr;
+
+InputClass::InputClass()
+{
+	memset(m_Keys, 0, sizeof(m_Keys));
+}
 
 InputClass* InputClass::GetSingletonPtr()
 {
