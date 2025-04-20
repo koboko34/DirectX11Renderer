@@ -1,0 +1,11 @@
+Model Information:
+* title:	Awm
+* source:	https://sketchfab.com/3d-models/awm-8db7797f63e64a50bf0479e6128d61f8
+* author:	sxnneh (https://sketchfab.com/Sxnneh)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Awm" (https://sketchfab.com/3d-models/awm-8db7797f63e64a50bf0479e6128d61f8) by sxnneh (https://sketchfab.com/Sxnneh) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

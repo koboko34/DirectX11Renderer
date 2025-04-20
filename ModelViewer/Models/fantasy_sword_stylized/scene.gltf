@@ -1,0 +1,478 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 551,
+      "max": [
+        3.275157928466797,
+        21.188152313232422,
+        2.000227212905884
+      ],
+      "min": [
+        -2.3928892612457275,
+        15.966562271118164,
+        -2.000236988067627
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 6612,
+      "componentType": 5126,
+      "count": 551,
+      "max": [
+        0.9854043126106262,
+        0.9777371883392334,
+        0.9946128726005554
+      ],
+      "min": [
+        -0.9969838261604309,
+        -0.9999582171440125,
+        -0.9946128129959106
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 551,
+      "max": [
+        0.3920210003852844,
+        0.08466123044490814
+      ],
+      "min": [
+        0.12956342101097107,
+        0.001953522674739361
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 2880,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 13224,
+      "componentType": 5126,
+      "count": 878,
+      "max": [
+        5.877122402191162,
+        78.4776611328125,
+        0.48557865619659424
+      ],
+      "min": [
+        -10.56024169921875,
+        20.535390853881836,
+        -0.48557865619659424
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 23760,
+      "componentType": 5126,
+      "count": 878,
+      "max": [
+        0.9999532699584961,
+        0.7140059471130371,
+        1.0
+      ],
+      "min": [
+        -0.7120463252067566,
+        -0.7244979739189148,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 4408,
+      "componentType": 5126,
+      "count": 878,
+      "max": [
+        0.998046875,
+        0.8610471487045288
+      ],
+      "min": [
+        0.25832855701446533,
+        0.0019537340849637985
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 11520,
+      "componentType": 5125,
+      "count": 1614,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 34296,
+      "componentType": 5126,
+      "count": 1091,
+      "max": [
+        2.121431350708008,
+        16.319942474365234,
+        1.6999601125717163
+      ],
+      "min": [
+        -1.993149995803833,
+        1.3920164108276367,
+        -1.5611238479614258
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 47388,
+      "componentType": 5126,
+      "count": 1091,
+      "max": [
+        0.999999463558197,
+        0.628235399723053,
+        0.9999683499336243
+      ],
+      "min": [
+        -0.9999997615814209,
+        -0.7848760485649109,
+        -0.9999683499336243
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 11432,
+      "componentType": 5126,
+      "count": 1091,
+      "max": [
+        0.5878725051879883,
+        0.43693792819976807
+      ],
+      "min": [
+        0.4292455315589905,
+        0.21546494960784912
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 17976,
+      "componentType": 5125,
+      "count": 6144,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 60480,
+      "componentType": 5126,
+      "count": 1462,
+      "max": [
+        9.03862190246582,
+        70.92923736572266,
+        1.7139490842819214
+      ],
+      "min": [
+        -9.033072471618652,
+        -3.3171112537384033,
+        -1.7139490842819214
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 78024,
+      "componentType": 5126,
+      "count": 1462,
+      "max": [
+        0.996385395526886,
+        0.9809606075286865,
+        1.0
+      ],
+      "min": [
+        -0.9998566508293152,
+        -0.9979909062385559,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 20160,
+      "componentType": 5126,
+      "count": 1462,
+      "max": [
+        0.5954123139381409,
+        0.8613426089286804
+      ],
+      "min": [
+        0.001953125,
+        0.001953125
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 42552,
+      "componentType": 5125,
+      "count": 5328,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "Ahsan.Faraz (https://sketchfab.com/Ahsan.Faraz)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/fantasy-sword-stylized-7b43c4ba90e847e3b5d93b053175f625",
+      "title": "Fantasy sword (stylized)"
+    },
+    "generator": "Sketchfab-16.61.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 63864,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 31856,
+      "byteOffset": 63864,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 95568,
+      "byteOffset": 95720,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 191288,
+      "uri": "scene.bin"
+    }
+  ],
+  "extensionsUsed": [
+    "KHR_materials_unlit"
+  ],
+  "images": [
+    {
+      "uri": "textures/Fantasy_sword_baseColor.png"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "extensions": {
+        "KHR_materials_unlit": {}
+      },
+      "name": "Fantasy_sword",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0.0
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "guard_low_Fantasy_sword_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Blade_low_Fantasy_sword_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 5,
+            "POSITION": 4,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "wraps_low_Fantasy_sword_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 9,
+            "POSITION": 8,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "ornament_low_Fantasy_sword_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 13,
+            "POSITION": 12,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.9163511867649419,
+        -0.00010477737082125771,
+        -0.00786024978531441,
+        0.0,
+        -0.00786024978531441,
+        4.2551607623558473e-16,
+        -1.9163511867649419,
+        0.0,
+        0.00010477649238660632,
+        1.9163672924041748,
+        -4.297591208886353e-07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "matrix": [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0,
+        -0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "4091fcca860b4112a00dd7f46b667c40.fbx"
+    },
+    {
+      "children": [
+        3
+      ],
+      "name": "RootNode"
+    },
+    {
+      "children": [
+        4,
+        6,
+        8,
+        10
+      ],
+      "name": "low"
+    },
+    {
+      "children": [
+        5
+      ],
+      "name": "guard_low"
+    },
+    {
+      "mesh": 0,
+      "name": "guard_low_Fantasy_sword_0"
+    },
+    {
+      "children": [
+        7
+      ],
+      "name": "Blade_low"
+    },
+    {
+      "mesh": 1,
+      "name": "Blade_low_Fantasy_sword_0"
+    },
+    {
+      "children": [
+        9
+      ],
+      "name": "wraps_low"
+    },
+    {
+      "mesh": 2,
+      "name": "wraps_low_Fantasy_sword_0"
+    },
+    {
+      "children": [
+        11
+      ],
+      "name": "ornament_low"
+    },
+    {
+      "mesh": 3,
+      "name": "ornament_low_Fantasy_sword_0"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    }
+  ]
+}

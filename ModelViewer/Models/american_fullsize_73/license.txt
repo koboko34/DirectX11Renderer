@@ -1,0 +1,11 @@
+Model Information:
+* title:	American Fullsize '73 - Low poly model
+* source:	https://sketchfab.com/3d-models/american-fullsize-73-low-poly-model-f30b644b59b54e809355009dce463d47
+* author:	Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "American Fullsize '73 - Low poly model" (https://sketchfab.com/3d-models/american-fullsize-73-low-poly-model-f30b644b59b54e809355009dce463d47) by Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

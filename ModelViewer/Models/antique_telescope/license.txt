@@ -1,0 +1,11 @@
+Model Information:
+* title:	Antique telescope
+* source:	https://sketchfab.com/3d-models/antique-telescope-391f41447c00421d9cbc5445c0d535b6
+* author:	radioape (https://sketchfab.com/radioape)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Antique telescope" (https://sketchfab.com/3d-models/antique-telescope-391f41447c00421d9cbc5445c0d535b6) by radioape (https://sketchfab.com/radioape) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
