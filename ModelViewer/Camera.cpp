@@ -16,14 +16,6 @@ Camera::Camera()
 	m_LookDir = { 0.f, 0.f, 1.f };
 }
 
-Camera::Camera(const Camera&)
-{
-}
-
-Camera::~Camera()
-{
-}
-
 void Camera::SetPosition(float x, float y, float z)
 {
 	m_PositionX = x;
@@ -84,9 +76,6 @@ void Camera::CalcViewMatrix()
 
 	LookAtVector = DirectX::XMVectorAdd(PositionVector, LookAtVector);
 
-	//m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, LookAtVector, UpVector);
-
-	//m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, ReversePositionVector, UpVector);
 	m_ViewMatrix = DirectX::XMMatrixLookAtLH(PositionVector, LookAtVector, UpVector);
 }
 

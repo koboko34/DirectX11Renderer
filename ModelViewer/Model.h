@@ -26,11 +26,15 @@ public:
 	virtual void RenderControls() override;
 
 	void SendTransformToModel();
+	void SetShouldRender(bool bNewShouldRender) { m_bShouldRender = bNewShouldRender; }
 
 	ModelData* GetModelData() const { return m_pModelData; }
+	bool GetShouldRender() const { return m_bShouldRender; }
 
 private:
 	ModelData* m_pModelData = nullptr;
+
+	bool m_bShouldRender;
 
 };
 

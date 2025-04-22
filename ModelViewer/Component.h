@@ -28,7 +28,6 @@ public:
 	void SetTransform(const Transform& NewTransform);
 
 	void SetOwner(Component* pOwner) { m_pOwner = pOwner; }
-	void SetActive(bool bNewActive) { m_bActive = bNewActive; }
 
 	void AddComponent(std::shared_ptr<Component> Comp);
 
@@ -43,7 +42,6 @@ public:
 	const DirectX::XMMATRIX GetAccumulatedWorldMatrix() const;
 
 	Component* GetOwner() const { return m_pOwner; }
-	bool IsActive() const { return m_bActive; }
 
 	const std::vector<std::shared_ptr<Component>>& GetComponents() const { return m_Components; }
 	const std::vector<Model*>& GetModels() const { return m_Models; }
@@ -55,8 +53,6 @@ protected:
 
 	std::vector<std::shared_ptr<Component>> m_Components; // I think these should be unique_ptr??? refactor soon
 	std::vector<Model*> m_Models;
-
-	bool m_bActive = true;
 
 };
 

@@ -9,8 +9,8 @@ class Camera
 {
 public:
 	Camera();
-	Camera(const Camera&);
-	~Camera();
+	Camera(const Camera&) {}
+	~Camera() {}
 
 	void SetPosition(float, float, float);
 	void SetRotation(float Pitch, float Yaw);

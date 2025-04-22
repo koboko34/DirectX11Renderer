@@ -9,6 +9,7 @@ Model::Model(const std::string& ModelPath, const std::string& TexturesPath)
 	m_pModelData = ResourceManager::GetSingletonPtr()->LoadModel(ModelPath, TexturesPath);
 	assert(m_pModelData);
 
+	m_bShouldRender = true;
 	m_ComponentName = "Model";
 }
 
@@ -31,10 +32,11 @@ void Model::Shutdown()
 void Model::RenderControls()
 {
 	ImGui::Text(m_ComponentName.c_str());
-	ImGui::Checkbox("Should Render?", &m_bActive);
+	ImGui::Checkbox("Should Render", &m_bShouldRender);
 }
 
 void Model::SendTransformToModel()
 {
-	m_pModelData->GetTransforms().push_back(DirectX::XMMatrixTranspose(GetAccumulatedWorldMatrix()));
+	DirectX::XMMATRIX Transform = DirectX::XMMatrixTranspose(GetAccumulatedWorldMatrix());
+	m_pModelData->GetTransforms().push_back(Transform);
 }

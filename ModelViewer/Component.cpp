@@ -48,14 +48,13 @@ void Component::SendTransformToModels()
 {
 	for (Model* m : m_Models)
 	{
-		if (m->IsActive())
+		if (m->GetShouldRender())
 			m->SendTransformToModel();
 	}
 
 	for (std::shared_ptr<Component>& Comp : m_Components)
 	{
-		if (Comp->IsActive())
-			Comp->SendTransformToModels();
+		Comp->SendTransformToModels();
 	}
 }
 

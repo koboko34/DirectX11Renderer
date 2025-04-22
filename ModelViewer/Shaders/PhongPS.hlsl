@@ -73,6 +73,9 @@ float4 main(PS_In p) : SV_TARGET
 	float3 PixelToCam = normalize(CameraPos - p.WorldPos);
 	float4 LightTotal = float4(0.f, 0.f, 0.f, 0.f);
 	
+	if (dot(CameraPos, p.WorldNormal) < 0.f) // checking if surface we are looking at is on the opposite side of the normal vector and flipping if that's the case
+		p.WorldNormal = -p.WorldNormal;
+	
 	for (int i = 0; i < DirectionalLightCount; i++)
 	{
 		float DiffuseFactor = saturate(dot(-DirLights[i].LightDir, p.WorldNormal));
@@ -107,7 +110,7 @@ float4 main(PS_In p) : SV_TARGET
 		float SpecularFactor = pow(saturate(dot(p.WorldNormal, HalfwayVec)), PointLights[i].SpecularPower);
 		float4 Specular = float4(PointLights[i].LightColor, 1.f) * SpecularFactor;
 	
-		float Attenuation = saturate(1.0 - (Distance * Distance) / (PointLights[i].Radius * PointLights[i].Radius)); // less control than constant, linear and quadratic, but guaranteed to reach 0 past max radius
+		float Attenuation = saturate(1.f - (Distance * Distance) / (PointLights[i].Radius * PointLights[i].Radius)); // less control than constant, linear and quadratic, but guaranteed to reach 0 past max radius
 		LightTotal += Diffuse * Attenuation;
 		LightTotal += Specular * Attenuation;
 	}

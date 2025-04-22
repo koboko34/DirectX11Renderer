@@ -135,6 +135,7 @@ void Skybox::Render()
 	UINT Offsets[] = { 0u };
 
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
+	DeviceContext->OMSetRenderTargets(1u, Graphics::GetSingletonPtr()->m_PostProcessRTVFirst.GetAddressOf(), nullptr);
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
