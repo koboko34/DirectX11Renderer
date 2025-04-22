@@ -22,6 +22,7 @@ class Camera;
 class PostProcess;
 class GameObject;
 class Skybox;
+class TessellatedPlane;
 
 class Application
 {
@@ -75,6 +76,7 @@ private:
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
 	std::unique_ptr<Skybox> m_Skybox;
+	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::unique_ptr<Camera> m_Camera;
 
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;

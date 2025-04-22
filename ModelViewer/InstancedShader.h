@@ -60,19 +60,15 @@ public:
 	InstancedShader() {};
 
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
-	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
 	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
 		const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor);
-
-	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetInputLayout() const { return m_InputLayout; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer>& GetInstanceBuffer() { return m_InstanceBuffer; }
 
 private:
 	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
-	void ShutdownShader();
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;

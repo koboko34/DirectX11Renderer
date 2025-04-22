@@ -22,6 +22,7 @@
 #include "Skybox.h"
 #include "Resource.h"
 #include "ModelData.h"
+#include "TessellatedPlane.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -36,22 +37,34 @@ Application::Application()
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 {
 	m_hWnd = hWnd;
-	
+	bool bResult;
+
 	m_Graphics = Graphics::GetSingletonPtr();
-	assert(m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR));
+	bResult = m_Graphics->Initialise(ScreenWidth, ScreenHeight, VSYNC_ENABLED, hWnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
+	assert(bResult);
 
 	m_Shader = std::make_unique<Shader>();
-	assert(m_Shader->Initialise(m_Graphics->GetDevice(), hWnd));
+	bResult = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
+	assert(bResult);
 
 	m_InstancedShader = std::make_unique<InstancedShader>();
-	assert(m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd));
+	bResult = m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd);
+	assert(bResult);
 
 	m_Skybox = std::make_unique<Skybox>();
-	assert(m_Skybox->Init());
+	bResult = m_Skybox->Init();
+	assert(bResult);
+
+	m_Plane = std::make_shared<TessellatedPlane>();
+	bResult = m_Plane->Init();
+	assert(bResult);
 
 	m_Camera = std::make_unique<Camera>();
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
+
+	m_GameObjects.push_back(m_Plane);
+	m_GameObjects.back()->SetScale(128.f, 128.f, 128.f);
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
@@ -61,19 +74,26 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
+	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetName("Plane");
+	m_GameObjects.back()->SetScale(50.f, 50.f, 50.f);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/plane.obj"));
+
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
-	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
+	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());*/
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetName("Point Light");
 	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
 	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetName("Directional Light");
 	m_GameObjects.back()->AddComponent(std::make_shared<DirectionalLight>());
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
@@ -112,7 +132,6 @@ void Application::Shutdown()
 
 	if (m_InstancedShader)
 	{
-		m_InstancedShader->Shutdown();
 		m_InstancedShader.reset();
 	}
 
@@ -132,7 +151,6 @@ void Application::Shutdown()
 	if (m_Graphics)
 	{
 		m_Graphics->Shutdown();
-		//delete m_Graphics; // should I be calling this on a singleton?
 		m_Graphics = 0;
 	}
 }
@@ -146,8 +164,8 @@ bool Application::Frame()
 	m_AppTime += DeltaTime;
 
 	float RotationAngle = (float)fmod(m_AppTime, 360.f);
-	m_GameObjects[0]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
-	m_GameObjects[1]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
+	m_GameObjects[1]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
+	m_GameObjects[2]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
 
 	if (GetForegroundWindow() == m_hWnd)
 	{
@@ -198,6 +216,7 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->SetBackBufferRenderTarget();
 
 	// use last used post process texture to draw a full screen quad
+	m_Graphics->SetRasterStateBackFaceCull(true);
 	m_Graphics->GetDeviceContext()->PSSetShader(PostProcess::GetEmptyPostProcess()->GetPixelShader().Get(), NULL, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
@@ -216,19 +235,24 @@ bool Application::RenderScene()
 	
 	if (m_Skybox.get())
 	{
-		m_Skybox->Render();
+		m_Skybox->Render(); // this should probably be rendered last to reduce overdraw
 	}
 
 	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
+	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, m_Graphics->m_PostProcessRTVFirst.GetAddressOf(), m_Graphics->GetDepthStencilView());
+
 	RenderModels();
+
+	if (m_Plane.get() && m_Plane->ShouldRender())
+	{
+		m_Plane->Render();
+	}
 	
 	return true;
 }
 
 void Application::RenderModels()
-{
-	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, m_Graphics->m_PostProcessRTVFirst.GetAddressOf(), m_Graphics->GetDepthStencilView());
-	
+{	
 	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);

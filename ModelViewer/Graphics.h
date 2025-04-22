@@ -42,6 +42,7 @@ public:
 	void DisableBlending();
 	void ResetViewport();
 	void SetRasterStateBackFaceCull(bool bShouldCull);
+	void SetWireframeRasterState();
 
 private:
 	bool m_VSync_Enabled;
@@ -61,6 +62,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStateTransparent;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOn;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOff;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_WireframeRasterState;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
 
 	DirectX::XMMATRIX m_ProjectionMatrix;

@@ -183,7 +183,8 @@ void ModelData::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 		}
 
 		//Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(!Mat->m_bTwoSided); // this doesn't actually work in some cases, investigate
-		Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(true);
+		//Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(true);
+		Graphics::GetSingletonPtr()->SetWireframeRasterState(); // swap back to line above when done or refactor to support switching
 
 		DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)GetTransforms().size(), m->m_IndicesOffset, 0, 0);
 	}

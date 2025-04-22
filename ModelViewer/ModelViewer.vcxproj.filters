@@ -99,6 +99,9 @@
     <ClCompile Include="ModelData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TessellatedPlane.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -191,6 +194,9 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TessellatedPlane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\BoxBlurPS.hlsl" />
@@ -209,5 +215,9 @@
     <None Include="Shaders\SkyboxVS.hlsl" />
     <None Include="Shaders\ColorCorrectionPS.hlsl" />
     <None Include="Shaders\FogPS.hlsl" />
+    <None Include="Shaders\TessellatedPlaneDS.hlsl" />
+    <None Include="Shaders\TessellatedPlaneHS.hlsl" />
+    <None Include="Shaders\TessellatedPlanePS.hlsl" />
+    <None Include="Shaders\TessellatedPlaneVS.hlsl" />
   </ItemGroup>
 </Project>

@@ -272,6 +272,11 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_RasterStateBackFaceCullOff));
 	m_RasterStateBackFaceCullOff->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Raster state back face cull off"), "Raster state back face cull off");
 
+	RasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+
+	ASSERT_NOT_FAILED(m_Device->CreateRasterizerState(&RasterDesc, &m_WireframeRasterState));
+	NAME_D3D_RESOURCE(m_WireframeRasterState, "Wireframe rasterizer state");
+
 	m_Viewport.Width = (float)ScreenWidth;
 	m_Viewport.Height = (float)ScreenHeight;
 	m_Viewport.MinDepth = 0.f;
@@ -443,4 +448,9 @@ void Graphics::ResetViewport()
 void Graphics::SetRasterStateBackFaceCull(bool bShouldCull)
 {
 	GetDeviceContext()->RSSetState(bShouldCull ? m_RasterStateBackFaceCullOn.Get() : m_RasterStateBackFaceCullOff.Get());
+}
+
+void Graphics::SetWireframeRasterState()
+{
+	GetDeviceContext()->RSSetState(m_WireframeRasterState.Get());
 }
