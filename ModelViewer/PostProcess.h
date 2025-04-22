@@ -302,7 +302,9 @@ private:
 		DirectX::XMFLOAT3 FogColor;
 		int Formula;
 		float Density;
-		DirectX::XMFLOAT3 Padding;
+		float NearPlane;
+		float FarPlane;
+		float Padding;
 	};
 
 public:
@@ -330,8 +332,9 @@ public:
 		m_FogData.FogColor = { r, g, b };
 		m_FogData.Formula = Formula;
 		m_FogData.Density = Density;
-		m_FogData.Padding = { 0.f, 0.f, 0.f };
-		m_LastFogData = m_FogData;
+		m_FogData.NearPlane = Graphics::GetSingletonPtr()->GetNearPlane();
+		m_FogData.FarPlane = Graphics::GetSingletonPtr()->GetFarPlane();
+		m_FogData.Padding = 0.f;
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &m_FogData;
 
@@ -342,23 +345,33 @@ public:
 
 	virtual void RenderControls()
 	{
-		ImGui::ColorEdit3("Fog Color", reinterpret_cast<float*>(&m_FogData.FogColor));
+		bool bDirty = false;
+		
+		if (ImGui::ColorEdit3("Fog Color", reinterpret_cast<float*>(&m_FogData.FogColor)))
+			bDirty = true;
+
 		const char* Formulas[] = { "Linear", "Exponential", "Exponential Squared" };
-		ImGui::Combo("Formula", &m_FogData.Formula, Formulas, IM_ARRAYSIZE(Formulas));
+		if (ImGui::Combo("Formula", &m_FogData.Formula, Formulas, IM_ARRAYSIZE(Formulas)))
+			bDirty = true;
 
 		switch (m_FogData.Formula)
 		{
 		case Linear:
 			break;
 		case Exponential:
-			ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+				bDirty = true;
 			break;
 		case ExponentialSquared:
-			ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+				bDirty = true;
 			break;
 		default:
 			break;
 		}
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -369,12 +382,6 @@ private:
 		ID3D11ShaderResourceView* SRVs[2] = { SRV.Get(), Graphics::GetSingletonPtr()->GetDepthStencilSRV().Get() };
 		DeviceContext->PSSetShaderResources(0u, 2u, SRVs);
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (memcmp(&m_LastFogData, &m_FogData, sizeof(FogData)) != 0)
-		{
-			UpdateBuffer();
-			m_LastFogData = m_FogData;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
@@ -393,7 +400,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	FogData m_FogData;
-	FogData m_LastFogData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -425,7 +431,6 @@ public:
 		m_BlurData = {};
 		m_BlurData.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
 		m_BlurData.BlurStrength = BlurStrength;
-		m_LastBlurData = m_BlurData;
 
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &m_BlurData;
@@ -455,8 +460,14 @@ public:
 
 	void RenderControls() override
 	{
+		bool bDirty = false;
+		
 		ImGui::Text("Blur Strength is currently hard coded in the shader. Fix it eventually.");
-		ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 1, 32, "%.d", ImGuiSliderFlags_AlwaysClamp);
+		if (ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 1, 32, "%.d", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -467,12 +478,6 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (memcmp(&m_LastBlurData, &m_BlurData, sizeof(BlurData)) != 0)
-		{
-			UpdateBuffer();
-			m_LastBlurData = m_BlurData;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
@@ -507,7 +512,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_IntermediateSRV;
 
 	BlurData m_BlurData;
-	BlurData m_LastBlurData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -540,7 +544,6 @@ public:
 		m_BlurData.TexelSize = DirectX::XMFLOAT2(1.f / (float)Dimensions.first, 1.f / (float)Dimensions.second);
 		m_BlurData.BlurStrength = BlurStrength;
 		m_BlurData.Sigma = Sigma;
-		m_LastBlurData = m_BlurData;
 
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &m_BlurData;
@@ -593,8 +596,15 @@ public:
 
 	void RenderControls() override
 	{
-		ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 0, m_MaxBlurStrength, "%.d", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SliderFloat("Sigma", &m_BlurData.Sigma, 1.f, 8.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+		bool bDirty = true;
+		
+		if (ImGui::SliderInt("Blur Strength", &m_BlurData.BlurStrength, 0, m_MaxBlurStrength, "%.d", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+		if (ImGui::SliderFloat("Sigma", &m_BlurData.Sigma, 1.f, 8.f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffers();
 	}
 
 private:
@@ -606,12 +616,6 @@ private:
 		DeviceContext->PSSetShaderResources(1u, 1u, m_GaussianWeightsSRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (memcmp(&m_LastBlurData, &m_BlurData, sizeof(BlurData)) != 0)
-		{
-			UpdateBuffers();
-			m_LastBlurData = m_BlurData;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
@@ -669,7 +673,6 @@ private:
 
 private:
 	BlurData m_BlurData;
-	BlurData m_LastBlurData;
 	const UINT m_MaxBlurStrength = 100;
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_HorizontalPS;
@@ -686,7 +689,7 @@ private:
 class PostProcessPixelation : public PostProcess
 {
 public:
-	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize), m_LastPixelSize(pixelSize)
+	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize)
 	{
 		m_Name = "Pixelation";
 		
@@ -709,7 +712,13 @@ public:
 
 	void RenderControls() override
 	{
-		ImGui::SliderFloat("Pixel Size", &m_PixelSize, 1.f, 32.f, "%.0f", ImGuiSliderFlags_AlwaysClamp);
+		bool bDirty = false;
+		
+		if (ImGui::SliderFloat("Pixel Size", &m_PixelSize, 1.f, 32.f, "%.0f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -718,12 +727,6 @@ private:
 		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (m_LastPixelSize != m_PixelSize)
-		{
-			UpdateBuffer();
-			m_LastPixelSize = m_PixelSize;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
@@ -744,7 +747,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	float m_PixelSize;
-	float m_LastPixelSize;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -752,7 +754,7 @@ private:
 class PostProcessBloom : public PostProcess
 {
 public:
-	PostProcessBloom(float LuminanceThreshold, int BlurStrength, float Sigma) : m_LuminanceThreshold(LuminanceThreshold), m_LastLuminanceThreshold(LuminanceThreshold)
+	PostProcessBloom(float LuminanceThreshold, int BlurStrength, float Sigma) : m_LuminanceThreshold(LuminanceThreshold)
 	{
 		m_Name = "Bloom";
 		
@@ -802,7 +804,14 @@ public:
 
 	void RenderControls() override
 	{
-		ImGui::SliderFloat("Luminance Threshold", &m_LuminanceThreshold, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+		bool bDirty = false;
+		
+		if (ImGui::SliderFloat("Luminance Threshold", &m_LuminanceThreshold, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffer();
+
 		m_BlurPostProcess->RenderControls();
 	}
 
@@ -813,12 +822,6 @@ private:
 		DeviceContext->PSSetShader(m_LuminancePS.Get(), nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (m_LastLuminanceThreshold != m_LuminanceThreshold)
-		{
-			UpdateBuffer();
-			m_LastLuminanceThreshold = m_LuminanceThreshold;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, m_LuminousRTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
@@ -851,7 +854,6 @@ private:
 
 private:
 	float m_LuminanceThreshold;
-	float m_LastLuminanceThreshold;
 	std::unique_ptr<PostProcess> m_BlurPostProcess;
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_LuminancePS;
@@ -898,7 +900,6 @@ public:
 		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 		m_ToneMapperData = { WhiteLevel, Exposure, Bias, Formula };
-		m_LastToneMapperData = m_ToneMapperData;
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &m_ToneMapperData;
 
@@ -909,18 +910,23 @@ public:
 
 	void RenderControls() override
 	{
+		bool bDirty = false;
 		const char* Formulas[] = { "Reinhard Basic", "Reinhard Extended", "Reinhard Extended Bias", "Narkowicz ACES", "Hill ACES" };
 		
-		ImGui::Combo("Formula", &m_ToneMapperData.Formula, Formulas, IM_ARRAYSIZE(Formulas));
+		if (ImGui::Combo("Formula", &m_ToneMapperData.Formula, Formulas, IM_ARRAYSIZE(Formulas)))
+			bDirty = true;
+		
 		switch (m_ToneMapperData.Formula)
 		{
 		case ReinhardBasic:
 			break;
 		case ReinhardExtended:
-			ImGui::SliderFloat("White Level", &m_ToneMapperData.WhiteLevel, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::SliderFloat("White Level", &m_ToneMapperData.WhiteLevel, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+				bDirty = true;
 			break;
 		case ReinhardExtendedBias:
-			ImGui::SliderFloat("Bias", &m_ToneMapperData.Bias, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::SliderFloat("Bias", &m_ToneMapperData.Bias, 0.f, 10.f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+				bDirty = true;
 			break;
 		case NarkowiczACES:
 			break;
@@ -929,6 +935,9 @@ public:
 		default:
 			break;
 		}
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -938,12 +947,6 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (memcmp(&m_LastToneMapperData, &m_ToneMapperData, sizeof(ToneMapperData)) != 0)
-		{
-			UpdateBuffer();
-			m_LastToneMapperData = m_ToneMapperData;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
@@ -963,7 +966,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	ToneMapperData m_ToneMapperData;
-	ToneMapperData m_LastToneMapperData;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -971,7 +973,7 @@ private:
 class PostProcessGammaCorrection : public PostProcess
 {
 public:
-	PostProcessGammaCorrection(float Gamma) : m_Gamma(Gamma), m_LastGamma(Gamma)
+	PostProcessGammaCorrection(float Gamma) : m_Gamma(Gamma)
 	{
 		m_Name = "Gamma Correction";
 		
@@ -993,7 +995,13 @@ public:
 
 	void RenderControls() override
 	{
-		ImGui::SliderFloat("Gamma", &m_Gamma, 1.f, 3.f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+		bool bDirty = false;
+
+		if (ImGui::SliderFloat("Gamma", &m_Gamma, 1.f, 3.f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -1003,12 +1011,6 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (m_LastGamma != m_Gamma)
-		{
-			UpdateBuffer();
-			m_LastGamma = m_Gamma;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
@@ -1029,7 +1031,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	float m_Gamma;
-	float m_LastGamma;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -1059,7 +1060,6 @@ public:
 
 		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		m_ColorData = { Contrast, Brightness, Saturation, 0.f };
-		m_LastColorData = m_ColorData;
 		D3D11_SUBRESOURCE_DATA BufferData = {};
 		BufferData.pSysMem = &m_ColorData;
 
@@ -1070,9 +1070,17 @@ public:
 
 	void RenderControls() override
 	{
-		ImGui::SliderFloat("Contrast", &m_ColorData.Contrast, 0.f, 2.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SliderFloat("Brightness", &m_ColorData.Brightness, -0.5f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SliderFloat("Saturation", &m_ColorData.Saturation, 0.f, 5.f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		bool bDirty = false;
+		
+		if (ImGui::SliderFloat("Contrast", &m_ColorData.Contrast, 0.f, 2.f, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+		if (ImGui::SliderFloat("Brightness", &m_ColorData.Brightness, -0.5f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+		if (ImGui::SliderFloat("Saturation", &m_ColorData.Saturation, 0.f, 5.f, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+			bDirty = true;
+
+		if (bDirty)
+			UpdateBuffer();
 	}
 
 private:
@@ -1082,12 +1090,6 @@ private:
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-
-		if (memcmp(&m_LastColorData, &m_ColorData, sizeof(ColorData)) != 0)
-		{
-			UpdateBuffer();
-			m_LastColorData = m_ColorData;
-		}
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
@@ -1107,7 +1109,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	ColorData m_ColorData;
-	ColorData m_LastColorData;
 };
 
 #endif

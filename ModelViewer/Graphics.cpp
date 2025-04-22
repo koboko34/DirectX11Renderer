@@ -53,6 +53,8 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 
 	m_VSync_Enabled = VSync;
 	m_Dimensions = std::make_pair(ScreenWidth, ScreenHeight);
+	m_NearPlane = ScreenNear;
+	m_FarPlane = ScreenDepth;
 
 	ASSERT_NOT_FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&Factory));
 	ASSERT_NOT_FAILED(Factory->EnumAdapters(0, &Adapter));
@@ -309,9 +311,9 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_PostProcessSRVSecond->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Post process SRV 2"), "Post process SRV 2");
 
 	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	SamplerDesc.MinLOD = 0;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;

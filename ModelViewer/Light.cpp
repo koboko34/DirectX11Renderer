@@ -5,6 +5,7 @@ Light::Light()
 {
 	m_DiffuseColor = { 1.f, 1.f, 1.f };
 	m_SpecularPower = 256.f;
+	m_bActive = true;
 
 	m_ComponentName = "Light";
 }

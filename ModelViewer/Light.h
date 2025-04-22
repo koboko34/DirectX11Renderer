@@ -22,10 +22,12 @@ public:
 
 	const DirectX::XMFLOAT3 GetDiffuseColor() const { return m_DiffuseColor; }
 	float GetSpecularPower() const { return m_SpecularPower; }
+	bool IsActive() const { return m_bActive; }
 
 private:
 	DirectX::XMFLOAT3 m_DiffuseColor;
 	float m_SpecularPower;
+	bool m_bActive;
 	
 };
 

@@ -68,6 +68,8 @@ private:
 	D3D11_VIEWPORT m_Viewport;
 
 	std::pair<int, int> m_Dimensions;
+	float m_NearPlane;
+	float m_FarPlane;
 
 public:
 	ID3D11Device* GetDevice() const { return m_Device.Get(); }
@@ -77,6 +79,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthStencilSRV() const { return m_DepthStencilSRV; }
 
 	std::pair<int, int> GetRenderTargetDimensions() const { return m_Dimensions; }
+	float GetNearPlane() const { return m_NearPlane; }
+	float GetFarPlane() const { return m_FarPlane; }
 
 	void GetProjectionMatrix(DirectX::XMMATRIX& ProjectionMatrix) { ProjectionMatrix = m_ProjectionMatrix; }
 	const DirectX::XMMATRIX& GetProjectionMatrix() const { return m_ProjectionMatrix; }

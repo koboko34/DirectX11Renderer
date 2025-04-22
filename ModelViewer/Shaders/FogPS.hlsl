@@ -11,7 +11,9 @@ cbuffer FogBuffer : register(b0)
 	float3 FogColor;
 	int Formula;
 	float Density;
-	float3 Padding;
+	float NearPlane;
+	float FarPlane;
+	float Padding;
 };
 
 
@@ -41,18 +43,16 @@ float4 main(PS_In p) : SV_TARGET
 {
 	float3 Color = screenTexture.Sample(samplerState, p.TexCoord).xyz;
 	
-	float NearZ = 0.1f; // hard coded, pass into shader through constant buffer
-	float FarZ = 1000.f;
 	float NonLinearDepth = depthTexture.Sample(samplerState, p.TexCoord);
 
-	float LinearDepth = (1.f - FarZ / NearZ) * NonLinearDepth + (FarZ / NearZ);
+	float LinearDepth = (1.f - FarPlane / NearPlane) * NonLinearDepth + (FarPlane / NearPlane);
 	LinearDepth = 1.f / LinearDepth;
-	float ViewDistance = LinearDepth * FarZ;
+	float ViewDistance = LinearDepth * FarPlane;
 	
 	float FogFactor = 0.f;
 	if (Formula == LINEAR)
 	{
-		FogFactor = LinearFog(ViewDistance, NearZ, FarZ);
+		FogFactor = LinearFog(ViewDistance, NearPlane, FarPlane);
 	}
 	else if (Formula == EXPONENTIAL)
 	{

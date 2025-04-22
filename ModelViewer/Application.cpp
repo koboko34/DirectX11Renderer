@@ -176,10 +176,7 @@ bool Application::Render(double DeltaTime)
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
 
 	m_Graphics->BeginScene(0.f, 0.f, 0.f, 1.f);
-
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, NullSRVs);
-	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, CurrentRTV.GetAddressOf(), m_Graphics->GetDepthStencilView());
-	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 
 	FALSE_IF_FAILED(RenderScene());
 	//FALSE_IF_FAILED(RenderTexture(m_TextureResourceView));
@@ -222,6 +219,7 @@ bool Application::RenderScene()
 		m_Skybox->Render();
 	}
 
+	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
 	RenderModels();
 	
 	return true;
@@ -229,6 +227,8 @@ bool Application::RenderScene()
 
 void Application::RenderModels()
 {
+	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, m_Graphics->m_PostProcessRTVFirst.GetAddressOf(), m_Graphics->GetDepthStencilView());
+	
 	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
 	m_Camera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
