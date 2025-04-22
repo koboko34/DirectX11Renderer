@@ -1,6 +1,7 @@
-#include "Camera.h"
+#include <algorithm>
+#include <cmath>
 
-#define TO_RADIANS(angle) angle * 0.0174532925f
+#include "Camera.h"
 
 Camera::Camera()
 {
@@ -32,8 +33,9 @@ void Camera::SetPosition(float x, float y, float z)
 
 void Camera::SetRotation(float Pitch, float Yaw)
 {
-	m_RotationX = Pitch;
-	m_RotationY = Yaw;
+	m_RotationX = std::clamp(Pitch, -89.9f, 89.9f);
+	m_RotationY = std::fmod(Yaw, 360.f);
+	m_RotationZ = 0.f;
 }
 
 void Camera::SetLookDir(float x, float y, float z)
@@ -71,9 +73,9 @@ void Camera::CalcViewMatrix()
 
 	LookAtVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
 
-	Pitch = TO_RADIANS(m_RotationX);
-	Yaw = TO_RADIANS(m_RotationY);
-	Roll = TO_RADIANS(0.f);
+	Pitch = DirectX::XMConvertToRadians(m_RotationX);
+	Yaw = DirectX::XMConvertToRadians(m_RotationY);
+	Roll = DirectX::XMConvertToRadians(0.f);
 
 	RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(Pitch, Yaw, Roll);
 
@@ -91,7 +93,7 @@ void Camera::CalcViewMatrix()
 DirectX::XMFLOAT3 Camera::GetRotatedLookDir() const
 {
 	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(TO_RADIANS(m_RotationX), TO_RADIANS(m_RotationY), 0.f);
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_RotationX), DirectX::XMConvertToRadians(m_RotationY), 0.f);
 	
 	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
 	LookVector = DirectX::XMVector3Normalize(LookVector);
@@ -104,7 +106,7 @@ DirectX::XMFLOAT3 Camera::GetRotatedLookDir() const
 DirectX::XMFLOAT3 Camera::GetRotatedLookRight() const
 {
 	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(TO_RADIANS(m_RotationX), TO_RADIANS(m_RotationY), 0.f);
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_RotationX), DirectX::XMConvertToRadians(m_RotationY), 0.f);
 
 	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
 	LookVector = DirectX::XMVector3Normalize(LookVector);
