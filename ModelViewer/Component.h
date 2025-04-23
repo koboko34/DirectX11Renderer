@@ -25,6 +25,7 @@ public:
 	void SetPosition(float x, float y, float z);
 	void SetRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
+	void SetScale(float xyz);
 	void SetTransform(const Transform& NewTransform);
 
 	void SetOwner(Component* pOwner) { m_pOwner = pOwner; }

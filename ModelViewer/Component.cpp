@@ -23,6 +23,11 @@ void Component::SetScale(float x, float y, float z)
 	m_Transform.Scale = DirectX::XMFLOAT3(x, y, z);
 }
 
+void Component::SetScale(float xyz)
+{
+	m_Transform.Scale = { xyz, xyz, xyz };
+}
+
 void Component::SetTransform(const Transform& NewTransform)
 {
 	m_Transform = NewTransform;

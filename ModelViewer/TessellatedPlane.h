@@ -21,7 +21,7 @@ private:
 	struct CameraBuffer
 	{
 		DirectX::XMFLOAT3 CameraPos;
-		float Padding;
+		float TessellationScale;
 	};
 
 	struct MatrixBuffer
@@ -31,7 +31,8 @@ private:
 
 
 public:
-	TessellatedPlane();
+	TessellatedPlane() = delete;
+	TessellatedPlane(UINT NumChunks, float ChunkSize, float TessellationScale);
 
 	bool Init();
 	void Render();
@@ -48,18 +49,26 @@ private:
 
 	void UpdateBuffers();
 
+	void GenerateChunkTransforms();
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
 	Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader;
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_DomainConstantBuffer;
 
 	bool m_bShouldRender;
+	float m_TessellationScale;
+	UINT m_ChunkDimension;
+	UINT m_NumChunks;
+
+	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
 
 };
 

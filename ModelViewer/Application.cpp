@@ -55,7 +55,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Plane = std::make_shared<TessellatedPlane>();
+	m_Plane = std::make_shared<TessellatedPlane>(2u, 50.f, 32.f);
 	bResult = m_Plane->Init();
 	assert(bResult);
 
@@ -64,7 +64,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Camera->SetRotation(0.f, 0.f);
 
 	m_GameObjects.push_back(m_Plane);
-	m_GameObjects.back()->SetScale(128.f, 128.f, 128.f);
+	m_GameObjects.back()->SetScale(128.f);
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
@@ -88,7 +88,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetName("Point Light");
 	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
-	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
+	m_GameObjects.back()->SetScale(0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
 	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
 

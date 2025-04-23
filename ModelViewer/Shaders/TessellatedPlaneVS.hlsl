@@ -1,9 +1,17 @@
-cbuffer TransformBuffer
+#define MAX_PLANE_CHUNKS 64
+
+cbuffer InstanceBuffer
 {
-	float4x4 Transform;
+	float4x4 Transforms[MAX_PLANE_CHUNKS];
 };
 
-float3 main( float3 Pos : POSITION ) : POSITION
+struct VS_In
 {
-	return mul(float4(Pos, 1.f), Transform).xyz;
+	float3 Pos : POSITION;
+	uint InstanceID : SV_InstanceID;
+};
+
+float3 main(VS_In v) : POSITION
+{
+	return mul(float4(v.Pos, 1.f), Transforms[v.InstanceID]).xyz;
 }
