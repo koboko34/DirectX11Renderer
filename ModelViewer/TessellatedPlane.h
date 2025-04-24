@@ -13,28 +13,34 @@
 class TessellatedPlane : public GameObject
 {
 private:
-	struct TransformBuffer
+	struct TransformCBuffer
 	{
 		DirectX::XMMATRIX Transform;
 	};
 	
-	struct CameraBuffer
+	struct CameraCBuffer
 	{
 		DirectX::XMFLOAT3 CameraPos;
 		float TessellationScale;
 	};
 
-	struct MatrixBuffer
+	struct DomainCBuffer
 	{
 		DirectX::XMMATRIX ViewProj;
 	};
 
+	struct PlaneInfoCBuffer
+	{
+		float PlaneDimension;
+		float HeightDisplacement;
+		DirectX::XMFLOAT2 Padding;
+	};
 
 public:
 	TessellatedPlane() = delete;
-	TessellatedPlane(UINT NumChunks, float ChunkSize, float TessellationScale);
+	TessellatedPlane(UINT NumChunks, float ChunkSize, float TessellationScale, float HeightDisplacement);
 
-	bool Init();
+	bool Init(const std::string& HeightMapFilepath);
 	void Render();
 	void Shutdown();
 
@@ -59,12 +65,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_DomainConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_DomainCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_PlaneInfoCBuffer;
+
+	ID3D11ShaderResourceView* m_HeightmapSRV;
 
 	bool m_bShouldRender;
 	float m_TessellationScale;
+	float m_HeightDisplacement;
 	UINT m_ChunkDimension;
 	UINT m_NumChunks;
 

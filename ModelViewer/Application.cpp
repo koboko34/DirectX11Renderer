@@ -55,8 +55,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Plane = std::make_shared<TessellatedPlane>(2u, 50.f, 32.f);
-	bResult = m_Plane->Init();
+	m_Plane = std::make_shared<TessellatedPlane>(2u, 50.f, 32.f, 128.f);
+	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
 	assert(bResult);
 
 	m_Camera = std::make_unique<Camera>();

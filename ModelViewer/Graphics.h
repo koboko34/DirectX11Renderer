@@ -79,6 +79,7 @@ public:
 
 	ID3D11DepthStencilView* GetDepthStencilView() const { return m_DepthStencilView.Get(); }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthStencilSRV() const { return m_DepthStencilSRV; }
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> GetSamplerState() const { return m_SamplerState; }
 
 	std::pair<int, int> GetRenderTargetDimensions() const { return m_Dimensions; }
 	float GetNearPlane() const { return m_NearPlane; }
