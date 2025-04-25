@@ -45,13 +45,17 @@ public:
 	void Shutdown();
 	bool Frame();
 
+	void SetActiveCamera(int ID);
+
 	HWND GetWindowHandle() const { return m_hWnd; }
 	Graphics* GetGraphics() const { return m_Graphics; }
-	Camera* GetCamera() const { return m_Camera.get(); }
+	Camera* GetActiveCamera() const { return m_ActiveCamera; }
+	int GetActiveCameraID() { return m_ActiveCameraID; }
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
 
 	std::vector<std::shared_ptr<GameObject>>& GetGameObjects() { return m_GameObjects; }
+	std::vector<std::shared_ptr<Camera>>& GetCameras() { return m_Cameras; }
 	std::vector<std::unique_ptr<PostProcess>>& GetPostProcesses() { return m_PostProcesses; }
 
 private:
@@ -71,25 +75,27 @@ private:
 private:	
 	HWND m_hWnd;
 
-	Graphics* m_Graphics = nullptr;
+	Graphics* m_Graphics;
+	Camera* m_ActiveCamera;
 
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
 	std::unique_ptr<Skybox> m_Skybox;
 	std::shared_ptr<TessellatedPlane> m_Plane;
-	std::unique_ptr<Camera> m_Camera;
+	std::shared_ptr<Camera> m_MainCamera;
 
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
+	std::vector<std::shared_ptr<Camera>> m_Cameras;
+	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
 	float m_CameraSpeed = 0.5f;
 	float m_CameraSpeedMin = 0.125f;
 	float m_CameraSpeedMax = 2.f;
+	int m_ActiveCameraID;
 	bool m_bShowCursor = false;
 	bool m_bCursorToggleReleased = true;
-
-	std::vector<std::unique_ptr<PostProcess>> m_PostProcesses;
 
 	const char* m_QuadTexturePath = "Textures/image_gamma_linear.png";
 	ID3D11ShaderResourceView* m_TextureResourceView;

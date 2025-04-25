@@ -5,34 +5,39 @@
 
 #include <DirectXMath.h>
 
-class Camera
+#include "GameObject.h"
+
+class Camera : public GameObject
 {
 public:
-	Camera();
-	Camera(const Camera&) {}
-	~Camera() {}
+	Camera() = delete;
+	Camera(const DirectX::XMMATRIX& Proj);
 
-	void SetPosition(float, float, float);
-	void SetRotation(float Pitch, float Yaw);
+	virtual void RenderControls() override;
+
+	virtual void SetRotation(float x, float y, float z) override;
 	void SetLookDir(float, float, float);
 
 	void CalcViewMatrix();
 
-private:
-	float m_PositionX, m_PositionY, m_PositionZ;
-	float m_RotationX, m_RotationY, m_RotationZ;
-	DirectX::XMFLOAT3 m_LookDir;
-
-	DirectX::XMMATRIX m_ViewMatrix;
-
-public:
-	DirectX::XMFLOAT3 GetPosition() const { return DirectX::XMFLOAT3(m_PositionX, m_PositionY, m_PositionZ); }
-	DirectX::XMFLOAT3 GetRotation() const { return DirectX::XMFLOAT3(m_RotationX, m_RotationY, m_RotationZ); }
 	DirectX::XMFLOAT3 GetLookDir() const { return m_LookDir; }
 	DirectX::XMFLOAT3 GetRotatedLookDir() const;
 	DirectX::XMFLOAT3 GetRotatedLookRight() const;
+
 	void GetViewMatrix(DirectX::XMMATRIX& ViewMatrix) { ViewMatrix = m_ViewMatrix; }
 	DirectX::XMMATRIX GetViewMatrix() const { return m_ViewMatrix; }
+	void GetProjMatrix(DirectX::XMMATRIX& ProjMatrix) { ProjMatrix = m_ProjMatrix; }
+	DirectX::XMMATRIX GetProjMatrix() const { return m_ProjMatrix; }
+
+	bool ShouldVisualiseFrustum() const { return m_bVisualiseFrustum; }
+
+private:
+	DirectX::XMFLOAT3 m_LookDir;
+	DirectX::XMMATRIX m_ViewMatrix;
+	DirectX::XMMATRIX m_ProjMatrix;
+
+	bool m_bVisualiseFrustum;
+
 };
 
 #endif

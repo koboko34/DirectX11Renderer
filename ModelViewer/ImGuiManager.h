@@ -13,6 +13,7 @@ public:
 
 	static void RenderPostProcessWindow();
 	static void RenderWorldHierarchyWindow();
+	static void RenderCamerasWindow();
 };
 
 #endif

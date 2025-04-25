@@ -1,33 +1,38 @@
 #include <algorithm>
 #include <cmath>
+#include <format>
+
+#include "ImGui/imgui.h"
 
 #include "Camera.h"
 
-Camera::Camera()
+Camera::Camera(const DirectX::XMMATRIX& Proj) : m_ProjMatrix(Proj)
 {
-	m_PositionX = 0.0f;
-	m_PositionY = 0.0f;
-	m_PositionZ = 0.0f;
-
-	m_RotationX = 0.0f;
-	m_RotationY = 0.0f;
-	m_RotationZ = 0.0f;
-
+	SetRotation(0.f, 0.f, 0.f);
 	m_LookDir = { 0.f, 0.f, 1.f };
+	m_bVisualiseFrustum = true;
+	SetName(std::format("Camera_{}", GetUID()));
 }
 
-void Camera::SetPosition(float x, float y, float z)
+void Camera::RenderControls()
 {
-	m_PositionX = x;
-	m_PositionY = y;
-	m_PositionZ = z;
+	ImGui::Text("Transform");
+
+	ImGui::DragFloat3("Position", reinterpret_cast<float*>(&m_Transform.Position), 0.1f);
+	ImGui::DragFloat2("Rotation", reinterpret_cast<float*>(&m_Transform.Rotation), 0.1f);
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
+
+	ImGui::Checkbox("Visualise View Frustum?", &m_bVisualiseFrustum);
 }
 
-void Camera::SetRotation(float Pitch, float Yaw)
+void Camera::SetRotation(float x, float y, float z)
 {
-	m_RotationX = std::clamp(Pitch, -89.9f, 89.9f);
-	m_RotationY = std::fmod(Yaw, 360.f);
-	m_RotationZ = 0.f;
+	x = std::clamp(x, -89.9f, 89.9f);
+	y = std::fmod(y, 360.f);
+	z = 0.f;
+
+	m_Transform.Rotation = { x, y, z };
 }
 
 void Camera::SetLookDir(float x, float y, float z)
@@ -40,7 +45,7 @@ void Camera::SetLookDir(float x, float y, float z)
 
 void Camera::CalcViewMatrix()
 {
-	DirectX::XMFLOAT3 Up, Position;
+	DirectX::XMFLOAT3 Up, ReversePosition;
 	DirectX::XMVECTOR UpVector, PositionVector, LookAtVector, ReversePositionVector;
 	DirectX::XMMATRIX RotationMatrix;
 	float Yaw, Pitch, Roll;
@@ -51,22 +56,18 @@ void Camera::CalcViewMatrix()
 
 	UpVector = DirectX::XMLoadFloat3(&Up);
 
-	Position.x = m_PositionX;
-	Position.y = m_PositionY;
-	Position.z = m_PositionZ;
+	PositionVector = DirectX::XMLoadFloat3(&m_Transform.Position);
 
-	PositionVector = DirectX::XMLoadFloat3(&Position);
+	ReversePosition.x = -m_Transform.Position.x;
+	ReversePosition.y = -m_Transform.Position.y;
+	ReversePosition.z = -m_Transform.Position.z;
 
-	Position.x = -Position.x;
-	Position.y = -Position.y;
-	Position.z = -Position.z;
-
-	ReversePositionVector = DirectX::XMLoadFloat3(&Position);
+	ReversePositionVector = DirectX::XMLoadFloat3(&ReversePosition);
 
 	LookAtVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
 
-	Pitch = DirectX::XMConvertToRadians(m_RotationX);
-	Yaw = DirectX::XMConvertToRadians(m_RotationY);
+	Pitch = DirectX::XMConvertToRadians(m_Transform.Rotation.x);
+	Yaw = DirectX::XMConvertToRadians(m_Transform.Rotation.y);
 	Roll = DirectX::XMConvertToRadians(0.f);
 
 	RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(Pitch, Yaw, Roll);
@@ -82,7 +83,7 @@ void Camera::CalcViewMatrix()
 DirectX::XMFLOAT3 Camera::GetRotatedLookDir() const
 {
 	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_RotationX), DirectX::XMConvertToRadians(m_RotationY), 0.f);
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_Transform.Rotation.x), DirectX::XMConvertToRadians(m_Transform.Rotation.y), 0.f);
 	
 	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
 	LookVector = DirectX::XMVector3Normalize(LookVector);
@@ -95,7 +96,7 @@ DirectX::XMFLOAT3 Camera::GetRotatedLookDir() const
 DirectX::XMFLOAT3 Camera::GetRotatedLookRight() const
 {
 	DirectX::XMVECTOR LookVector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&m_LookDir));
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_RotationX), DirectX::XMConvertToRadians(m_RotationY), 0.f);
+	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(DirectX::XMConvertToRadians(m_Transform.Rotation.x), DirectX::XMConvertToRadians(m_Transform.Rotation.y), 0.f);
 
 	LookVector = DirectX::XMVector3TransformCoord(LookVector, RotationMatrix);
 	LookVector = DirectX::XMVector3Normalize(LookVector);

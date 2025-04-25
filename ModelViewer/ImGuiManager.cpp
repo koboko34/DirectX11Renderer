@@ -85,3 +85,30 @@ void ImGuiManager::RenderWorldHierarchyWindow()
 
 	ImGui::End();
 }
+
+void ImGuiManager::RenderCamerasWindow()
+{
+	Application* pApp = Application::GetSingletonPtr();
+	auto& Cameras = pApp->GetCameras();
+
+	std::vector<const char*> CameraNames;
+	for (const auto& Camera : Cameras)
+	{
+		CameraNames.push_back(Camera->GetName().c_str());
+	}
+
+	int ID = pApp->GetActiveCameraID();
+
+	ImGui::Begin("Cameras");
+
+	if (ImGui::Combo("Active Camera", &ID, CameraNames.data(), (int)Cameras.size()))
+	{
+		pApp->SetActiveCamera(ID);
+	}
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
+
+	pApp->GetActiveCamera()->RenderControls();
+
+	ImGui::End();
+}

@@ -32,6 +32,7 @@ Application::Application()
 	m_AppTime = 0.0;
 	m_hWnd = {};
 	m_TextureResourceView = {};
+	m_ActiveCameraID = 0;
 }
 
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
@@ -60,17 +61,21 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
 	assert(bResult);
 
-	m_Camera = std::make_unique<Camera>();
-	m_Camera->SetPosition(0.f, 2.5f, -7.f);
-	m_Camera->SetRotation(0.f, 0.f);
+	m_MainCamera = std::make_shared<Camera>(m_Graphics->GetProjectionMatrix());
+	m_MainCamera->SetPosition(0.f, 2.5f, -7.f);
+	m_ActiveCamera = m_MainCamera.get();
+	m_Cameras.push_back(m_MainCamera);
 
+	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
+	m_GameObjects.back()->SetName("Car_1");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
+	m_GameObjects.back()->SetName("Car_2");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
@@ -140,9 +145,9 @@ void Application::Shutdown()
 		m_Shader.reset();
 	}
 
-	if (m_Camera)
+	if (m_MainCamera)
 	{
-		m_Camera.reset();
+		m_MainCamera.reset();
 	}
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
@@ -163,8 +168,8 @@ bool Application::Frame()
 	m_AppTime += DeltaTime;
 
 	float RotationAngle = (float)fmod(m_AppTime, 360.f);
-	m_GameObjects[1]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
-	m_GameObjects[2]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
+	//m_GameObjects[1]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
+	//m_GameObjects[2]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
 
 	if (GetForegroundWindow() == m_hWnd)
 	{
@@ -178,6 +183,12 @@ bool Application::Frame()
 	}
 	
 	return true;
+}
+
+void Application::SetActiveCamera(int ID)
+{
+	m_ActiveCameraID = ID;
+	m_ActiveCamera = m_Cameras[ID].get();
 }
 
 bool Application::Render(double DeltaTime)
@@ -230,7 +241,7 @@ bool Application::Render(double DeltaTime)
 
 bool Application::RenderScene()
 {
-	m_Camera->CalcViewMatrix();
+	m_ActiveCamera->CalcViewMatrix();
 	
 	if (m_Skybox.get())
 	{
@@ -253,7 +264,7 @@ bool Application::RenderScene()
 void Application::RenderModels()
 {	
 	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
-	m_Camera->GetViewMatrix(ViewMatrix);
+	m_ActiveCamera->GetViewMatrix(ViewMatrix);
 	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
 
 	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
@@ -306,7 +317,7 @@ void Application::RenderModels()
 			pModelData->GetTransforms(),
 			ViewMatrix,
 			ProjectionMatrix,
-			m_Camera->GetPosition(),
+			m_ActiveCamera->GetPosition(),
 			PointLights,
 			DirLights,
 			m_Skybox->GetAverageSkyColor()
@@ -344,6 +355,7 @@ void Application::RenderImGui()
 
 	ImGuiManager::RenderPostProcessWindow();
 	ImGuiManager::RenderWorldHierarchyWindow();
+	ImGuiManager::RenderCamerasWindow();
 
 	ImGui::EndFrame();
 	ImGui::Render();
@@ -369,35 +381,35 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 
 void Application::ProcessInput()
 {
-	DirectX::XMFLOAT3 LookDir = m_Camera->GetRotatedLookDir();
-	DirectX::XMFLOAT3 LookRight = m_Camera->GetRotatedLookRight();
+	DirectX::XMFLOAT3 LookDir = m_ActiveCamera->GetRotatedLookDir();
+	DirectX::XMFLOAT3 LookRight = m_ActiveCamera->GetRotatedLookRight();
 	
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x + LookDir.x * m_CameraSpeed, m_Camera->GetPosition().y + LookDir.y * m_CameraSpeed, m_Camera->GetPosition().z + LookDir.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookDir.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y + LookDir.y * m_CameraSpeed, m_ActiveCamera->GetPosition().z + LookDir.z * m_CameraSpeed);
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x - LookDir.x * m_CameraSpeed, m_Camera->GetPosition().y - LookDir.y * m_CameraSpeed, m_Camera->GetPosition().z - LookDir.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookDir.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y - LookDir.y * m_CameraSpeed, m_ActiveCamera->GetPosition().z - LookDir.z * m_CameraSpeed);
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x + LookRight.x * m_CameraSpeed, m_Camera->GetPosition().y, m_Camera->GetPosition().z + LookRight.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookRight.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z + LookRight.z * m_CameraSpeed);
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x - LookRight.x * m_CameraSpeed, m_Camera->GetPosition().y, m_Camera->GetPosition().z - LookRight.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookRight.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z - LookRight.z * m_CameraSpeed);
 	}
 	if (GetAsyncKeyState('Q') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x, m_Camera->GetPosition().y - 1.f * m_CameraSpeed, m_Camera->GetPosition().z);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y - 1.f * m_CameraSpeed, m_ActiveCamera->GetPosition().z);
 	}
 	if (GetAsyncKeyState('E') & 0x8000)
 	{
-		m_Camera->SetPosition(m_Camera->GetPosition().x, m_Camera->GetPosition().y + 1.f * m_CameraSpeed, m_Camera->GetPosition().z);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y + 1.f * m_CameraSpeed, m_ActiveCamera->GetPosition().z);
 	}
 
-	m_Camera->SetRotation(m_Camera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_Camera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f);
+	m_ActiveCamera->SetRotation(m_ActiveCamera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_ActiveCamera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f, 0.f);
 
 	if (InputClass::GetSingletonPtr()->IsKeyDown('M'))
 	{
