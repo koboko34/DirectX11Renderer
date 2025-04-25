@@ -102,6 +102,9 @@
     <ClCompile Include="TessellatedPlane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FrustumRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -197,6 +200,9 @@
     <ClInclude Include="TessellatedPlane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FrustumRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\BoxBlurPS.hlsl" />
@@ -219,5 +225,7 @@
     <None Include="Shaders\TessellatedPlaneHS.hlsl" />
     <None Include="Shaders\TessellatedPlanePS.hlsl" />
     <None Include="Shaders\TessellatedPlaneVS.hlsl" />
+    <None Include="Shaders\FrustumRendererPS.hlsl" />
+    <None Include="Shaders\FrustumRendererVS.hlsl" />
   </ItemGroup>
 </Project>

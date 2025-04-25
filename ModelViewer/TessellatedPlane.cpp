@@ -297,7 +297,7 @@ void TessellatedPlane::UpdateBuffers()
 	memcpy(MappedResource.pData, m_ChunkTransforms.data(), sizeof(TransformCBuffer) * m_NumChunks);
 	DeviceContext->Unmap(m_VertexCBuffer.Get(), 0u);
 	
-	Camera* pCamera = Application::GetSingletonPtr()->GetActiveCamera();
+	std::shared_ptr<Camera> pCamera = Application::GetSingletonPtr()->GetActiveCamera();
 	DirectX::XMFLOAT3 CameraPos = pCamera->GetPosition();
 	DirectX::XMMATRIX View, Proj;
 	pCamera->GetViewMatrix(View);

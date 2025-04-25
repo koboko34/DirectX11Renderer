@@ -23,6 +23,7 @@
 #include "Resource.h"
 #include "ModelData.h"
 #include "TessellatedPlane.h"
+#include "FrustumRenderer.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -52,6 +53,10 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd);
 	assert(bResult);
 
+	m_FrustumRenderer = std::make_unique<FrustumRenderer>();
+	bResult = m_FrustumRenderer->Init();
+	assert(bResult);
+
 	m_Skybox = std::make_unique<Skybox>();
 	bResult = m_Skybox->Init();
 	assert(bResult);
@@ -61,10 +66,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
 	assert(bResult);
 
-	m_MainCamera = std::make_shared<Camera>(m_Graphics->GetProjectionMatrix());
-	m_MainCamera->SetPosition(0.f, 2.5f, -7.f);
-	m_ActiveCamera = m_MainCamera.get();
-	m_Cameras.push_back(m_MainCamera);
+	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
+	m_Cameras.back()->SetPosition(0.f, 2.5f, -7.f);
+	m_ActiveCamera = m_Cameras.back();
 
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 
@@ -145,9 +149,9 @@ void Application::Shutdown()
 		m_Shader.reset();
 	}
 
-	if (m_MainCamera)
+	if (m_ActiveCamera)
 	{
-		m_MainCamera.reset();
+		m_ActiveCamera.reset();
 	}
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
@@ -188,7 +192,7 @@ bool Application::Frame()
 void Application::SetActiveCamera(int ID)
 {
 	m_ActiveCameraID = ID;
-	m_ActiveCamera = m_Cameras[ID].get();
+	m_ActiveCamera = m_Cameras[ID];
 }
 
 bool Application::Render(double DeltaTime)
@@ -241,7 +245,10 @@ bool Application::Render(double DeltaTime)
 
 bool Application::RenderScene()
 {
-	m_ActiveCamera->CalcViewMatrix();
+	for (const std::shared_ptr<Camera>& c : m_Cameras)
+	{
+		c->CalcViewMatrix();
+	}
 	
 	if (m_Skybox.get())
 	{
@@ -256,6 +263,14 @@ bool Application::RenderScene()
 	if (m_Plane.get() && m_Plane->ShouldRender())
 	{
 		m_Plane->Render();
+	}
+
+	for (const std::shared_ptr<Camera>& c : m_Cameras)
+	{
+		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
+		{
+			m_FrustumRenderer->RenderFrustum(c);
+		}
 	}
 	
 	return true;

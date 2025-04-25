@@ -23,6 +23,7 @@ class PostProcess;
 class GameObject;
 class Skybox;
 class TessellatedPlane;
+class FrustumRenderer;
 
 class Application
 {
@@ -49,7 +50,8 @@ public:
 
 	HWND GetWindowHandle() const { return m_hWnd; }
 	Graphics* GetGraphics() const { return m_Graphics; }
-	Camera* GetActiveCamera() const { return m_ActiveCamera; }
+
+	std::shared_ptr<Camera> GetActiveCamera() { return m_ActiveCamera; }
 	int GetActiveCameraID() { return m_ActiveCameraID; }
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
@@ -76,13 +78,13 @@ private:
 	HWND m_hWnd;
 
 	Graphics* m_Graphics;
-	Camera* m_ActiveCamera;
 
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
+	std::unique_ptr<FrustumRenderer> m_FrustumRenderer;
 	std::unique_ptr<Skybox> m_Skybox;
 	std::shared_ptr<TessellatedPlane> m_Plane;
-	std::shared_ptr<Camera> m_MainCamera;
+	std::shared_ptr<Camera> m_ActiveCamera;
 
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 	std::vector<std::shared_ptr<Camera>> m_Cameras;
