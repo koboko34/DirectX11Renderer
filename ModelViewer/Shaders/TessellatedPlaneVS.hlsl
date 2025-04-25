@@ -12,8 +12,9 @@ cbuffer PlaneInfoBuffer : register(b1)
 {
 	float PlaneDimension;
 	float HeightDisplacement;
-	float2 Padding;
-}
+	float Padding;
+	bool bVisualiseChunks;
+};
 
 struct VS_In
 {
@@ -25,6 +26,7 @@ struct VS_Out
 {
 	float3 Pos : POSITION;
 	float2 UV : TEXCOORD0;
+	uint ChunkID : TEXCOORD1;
 };
 
 float Remap(float Value, float FromMin, float FromMax, float ToMin, float ToMax)
@@ -50,6 +52,8 @@ VS_Out main(VS_In v)
 	
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.Pos.y = Height;
+	
+	o.ChunkID = v.InstanceID;
 	
 	return o;
 }

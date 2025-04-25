@@ -35,6 +35,7 @@ TessellatedPlane::TessellatedPlane(UINT ChunkDimension, float ChunkSize, float T
 	SetName("Tessellated Plane");
 	SetScale(ChunkSize);
 	m_bShouldRender = true;
+	m_bVisualiseChunks = false;
 	m_HeightmapSRV = nullptr;
 	assert(m_NumChunks >= 0 && m_NumChunks <= MAX_PLANE_CHUNKS);
 	m_ChunkTransforms.resize(m_NumChunks);
@@ -82,8 +83,11 @@ void TessellatedPlane::Render()
 	DeviceContext->DSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
 	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+	DeviceContext->PSSetConstantBuffers(1u, 1u, m_PlaneInfoCBuffer.GetAddressOf());
 	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->PSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
+
+	Graphics::GetSingletonPtr()->EnableDepthWrite();
 
 	GenerateChunkTransforms(); // again, this doesn't really need to be generated every frame, same with sending it to GPU every frame
 	UpdateBuffers();
@@ -105,6 +109,7 @@ void TessellatedPlane::Shutdown()
 	m_VertexCBuffer.Reset();
 	m_HullCBuffer.Reset();
 	m_DomainCBuffer.Reset();
+	m_PlaneInfoCBuffer.Reset();
 
 	ResourceManager::GetSingletonPtr()->UnloadTexture("Textures/uk_heightmap.jpg");
 	m_HeightmapSRV = nullptr;
@@ -124,6 +129,7 @@ void TessellatedPlane::RenderControls()
 	ImGui::DragFloat("Height Displacement", &m_HeightDisplacement, 0.1f, 0.f, 256.f, "%.f", ImGuiSliderFlags_AlwaysClamp);
 
 	ImGui::Checkbox("Should Render?", &m_bShouldRender);
+	ImGui::Checkbox("Visualise Chunks?", &m_bVisualiseChunks);
 }
 
 bool TessellatedPlane::CreateShaders()
@@ -312,7 +318,8 @@ void TessellatedPlane::UpdateBuffers()
 	PlaneInfoCBufferPtr = (PlaneInfoCBuffer*)MappedResource.pData;
 	PlaneInfoCBufferPtr->PlaneDimension = (float)m_ChunkDimension * GetScale().x;
 	PlaneInfoCBufferPtr->HeightDisplacement = m_HeightDisplacement;
-	PlaneInfoCBufferPtr->Padding = {};
+	PlaneInfoCBufferPtr->bVisualiseChunks = m_bVisualiseChunks;
+	PlaneInfoCBufferPtr->Padding = 0.f;
 	DeviceContext->Unmap(m_PlaneInfoCBuffer.Get(), 0u);
 }
 

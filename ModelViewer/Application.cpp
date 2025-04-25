@@ -55,7 +55,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Plane = std::make_shared<TessellatedPlane>(2u, 50.f, 32.f, 128.f);
+	m_Plane = std::make_shared<TessellatedPlane>(8u, 50.f, 256.f, 20.f);
+	m_GameObjects.push_back(m_Plane);
 	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
 	assert(bResult);
 
@@ -63,8 +64,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Camera->SetPosition(0.f, 2.5f, -7.f);
 	m_Camera->SetRotation(0.f, 0.f);
 
-	m_GameObjects.push_back(m_Plane);
-	m_GameObjects.back()->SetScale(128.f);
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
@@ -98,7 +97,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.01f, PostProcessFog::FogFormula::ExponentialSquared));
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.002f, PostProcessFog::FogFormula::ExponentialSquared));
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(30));

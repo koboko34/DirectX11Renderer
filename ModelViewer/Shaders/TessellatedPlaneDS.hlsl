@@ -1,16 +1,18 @@
 Texture2D Heightmap : register(t0);
 SamplerState Sampler : register(s0);
 
-struct DS_Out
-{
-	float4 Pos : SV_POSITION;
-	float2 UV : TEXCOORD0;
-};
-
 struct DS_In
 {
 	float3 Pos : POSITION;
 	float2 UV : TEXCOORD0;
+	uint ChunkID : TEXCOORD1;
+};
+
+struct DS_Out
+{
+	float4 Pos : SV_POSITION;
+	float2 UV : TEXCOORD0;
+	uint ChunkID : TEXCOORD1;
 };
 
 cbuffer DomainBuffer : register(b0)
@@ -22,7 +24,8 @@ cbuffer PlaneInfoBuffer : register(b1)
 {
 	float PlaneDimension;
 	float HeightDisplacement;
-	float2 Padding;
+	float Padding;
+	bool bVisualiseChunks;
 };
 
 struct TessFactors
@@ -77,8 +80,11 @@ DS_Out main(
 	o.UV = lerp(TopUV, BotUV, UV.y);
 
 	float Height = Heightmap.SampleLevel(Sampler, DS_UV, 0.f).r * HeightDisplacement;
+	
 	Pos.y = Height;
 	o.Pos = mul(float4(Pos, 1.f), ViewProj);
+	
+	o.ChunkID = Patch[0].ChunkID;
 
 	return o;
 }

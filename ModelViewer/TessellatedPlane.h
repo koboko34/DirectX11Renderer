@@ -33,7 +33,8 @@ private:
 	{
 		float PlaneDimension;
 		float HeightDisplacement;
-		DirectX::XMFLOAT2 Padding;
+		float Padding;
+		BOOL bVisualiseChunks;
 	};
 
 public:
@@ -73,6 +74,7 @@ private:
 	ID3D11ShaderResourceView* m_HeightmapSRV;
 
 	bool m_bShouldRender;
+	bool m_bVisualiseChunks;
 	float m_TessellationScale;
 	float m_HeightDisplacement;
 	UINT m_ChunkDimension;

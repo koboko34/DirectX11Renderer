@@ -2,12 +2,14 @@ struct HS_In
 {
 	float3 Pos : POSITION;
 	float2 UV : TEXCOORD0;
+	uint ChunkID : TEXCOORD1;
 };
 
 struct HS_Out
 {
 	float3 Pos : POSITION;
 	float2 UV : TEXCOORD0;
+	uint ChunkID : TEXCOORD1;
 };
 
 struct HS_CONSTANT_DATA_OUTPUT
@@ -26,16 +28,17 @@ cbuffer CameraBuffer
 
 float Quantize(float x)
 {
-	return round(x);
+	//return round(x); // I think we only wanna do this when using integer partitioning, not even sure if it's necessary at that point though
+	return x;
 }
 
 float GetEdgeTessFactor(float3 v0, float3 v1)
 {
-	float3 AvgPos = (v0 + v1) / 2.f;
+	float3 AvgPos = (v0 + v1) * 0.5f;
 	float Dist = distance(AvgPos, CameraPos);
 	
 	float TessFactor = saturate(TessellationScale / Dist);
-	TessFactor = lerp(2.f, 64.f, TessFactor);
+	TessFactor = lerp(1.f, 64.f, TessFactor);
 	return Quantize(TessFactor);
 }
 
@@ -52,10 +55,10 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 	
 	float InnerTess = max(max(Tess0, Tess1), max(Tess2, Tess3));
 
-	o.EdgeTessFactor[0] = Tess0;
-	o.EdgeTessFactor[1] = Tess1;
-	o.EdgeTessFactor[2] = Tess2;
-	o.EdgeTessFactor[3] = Tess3;
+	o.EdgeTessFactor[0] = Tess0; // -Z
+	o.EdgeTessFactor[1] = Tess1; // -X
+	o.EdgeTessFactor[2] = Tess2; // +Z
+	o.EdgeTessFactor[3] = Tess3; // +X
 	
 	o.InsideTessFactor[0] = InnerTess;
 	o.InsideTessFactor[1] = InnerTess;
@@ -64,7 +67,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 }
 
 [domain("quad")]
-[partitioning("fractional_odd")]
+[partitioning("integer")]
 [outputtopology("triangle_cw")]
 [outputcontrolpoints(NUM_CONTROL_POINTS)]
 [patchconstantfunc("CalcHSPatchConstants")]
@@ -77,6 +80,7 @@ HS_Out main(
 
 	o.Pos = ip[i].Pos;
 	o.UV = ip[i].UV;
+	o.ChunkID = ip[i].ChunkID;
 
 	return o;
 }
