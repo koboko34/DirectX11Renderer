@@ -359,11 +359,11 @@ public:
 		case Linear:
 			break;
 		case Exponential:
-			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.02f, "%.4f", ImGuiSliderFlags_AlwaysClamp))
 				bDirty = true;
 			break;
 		case ExponentialSquared:
-			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.5f, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+			if (ImGui::SliderFloat("Density", &m_FogData.Density, 0.f, 0.02f, "%.4f", ImGuiSliderFlags_AlwaysClamp))
 				bDirty = true;
 			break;
 		default:

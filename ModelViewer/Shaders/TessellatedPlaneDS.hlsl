@@ -11,6 +11,7 @@ struct DS_In
 struct DS_Out
 {
 	float4 Pos : SV_POSITION;
+	float3 WorldPos : WORLDPOS;
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
 };
@@ -82,6 +83,7 @@ DS_Out main(
 	float Height = Heightmap.SampleLevel(Sampler, DS_UV, 0.f).r * HeightDisplacement;
 	
 	Pos.y = Height;
+	o.WorldPos = Pos;
 	o.Pos = mul(float4(Pos, 1.f), ViewProj);
 	
 	o.ChunkID = Patch[0].ChunkID;

@@ -5,7 +5,7 @@
 
 #define MAX_POINT_LIGHTS 8 // if changing this number, remember to also update it in the pixel shader
 #define MAX_DIRECTIONAL_LIGHTS 1
-#define MAX_PLANE_CHUNKS 64
+#define MAX_PLANE_CHUNKS 1024
 
 #include "DirectXMath.h"
 

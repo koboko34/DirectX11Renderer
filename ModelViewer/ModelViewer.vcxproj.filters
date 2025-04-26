@@ -227,5 +227,6 @@
     <None Include="Shaders\TessellatedPlaneVS.hlsl" />
     <None Include="Shaders\FrustumRendererPS.hlsl" />
     <None Include="Shaders\FrustumRendererVS.hlsl" />
+    <None Include="Shaders\TessellatedPlaneGS.hlsl" />
   </ItemGroup>
 </Project>

@@ -44,7 +44,8 @@ void FrustumRenderer::RenderFrustum(const std::shared_ptr<Camera>& pCamera)
 
 	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 
-	Graphics::GetSingletonPtr()->DisableDepthWrite();
+	Graphics::GetSingletonPtr()->DisableDepthWriteAlwaysPass();
+	Graphics::GetSingletonPtr()->DisableBlending();
 	
 	DeviceContext->DrawIndexed(24u, 0u, 0u);
 }
@@ -139,7 +140,7 @@ bool FrustumRenderer::CreateBuffers()
 	Desc.ByteWidth = sizeof(DirectX::XMMATRIX);
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_VertexCBuffer));
-	NAME_D3D_RESOURCE(m_VertexBuffer, "Frustum renderer vertex constant buffer");
+	NAME_D3D_RESOURCE(m_VertexCBuffer, "Frustum renderer vertex constant buffer");
 
 	return true;
 }

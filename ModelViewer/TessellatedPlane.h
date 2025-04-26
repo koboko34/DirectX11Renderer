@@ -29,6 +29,12 @@ private:
 		DirectX::XMMATRIX ViewProj;
 	};
 
+	struct GeometryCBuffer
+	{
+		DirectX::XMFLOAT4 FrustumPlanes[6];
+		DirectX::XMMATRIX FrustumCameraViewProj; // exposed seperately to view culling from a different camera
+	};
+
 	struct PlaneInfoCBuffer
 	{
 		float PlaneDimension;
@@ -56,19 +62,22 @@ private:
 
 	void UpdateBuffers();
 
-	void GenerateChunkTransforms();
+	void GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTransforms);
+	void PrepCullingBuffer(GeometryCBuffer& CullingBufferData, bool bNormalise = true);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
 	Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader;
 	Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader;
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_GeometryShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_DomainCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GeometryCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_PlaneInfoCBuffer;
 
 	ID3D11ShaderResourceView* m_HeightmapSRV;
@@ -79,8 +88,6 @@ private:
 	float m_HeightDisplacement;
 	UINT m_ChunkDimension;
 	UINT m_NumChunks;
-
-	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
 
 };
 

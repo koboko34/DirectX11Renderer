@@ -12,6 +12,7 @@ cbuffer PlaneInfoBuffer : register(b1)
 struct PS_In
 {
 	float4 Pos : SV_POSITION;
+	float3 WorldPos : WORLDPOS;
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
 };
@@ -38,5 +39,16 @@ float4 main(PS_In p) : SV_TARGET
 	if (bVisualiseChunks)
 		return float4(RandomRGB(p.ChunkID), 1.f);
 
-	return float4(Heightmap.Sample(Sampler, p.UV).rrr, 1.f);
+	float Height = Heightmap.Sample(Sampler, p.UV).r;
+	if (Height < 0.03)
+	{
+		return float4(50.f / 256.f, 123.f / 256.f, 191.f / 256.f, 1.f);
+	}
+	
+	/*float4 BotGreen = float4(9.f / 256.f, 92.f / 256.f, 31.f / 256.f, 1.f);
+	float TopGreen = float4(82.f / 256.f, 186.f / 256.f, 110.f / 256.f, 1.f);
+
+	return lerp(BotGreen, TopGreen, Height);*/
+	return float4(Height.rrr, 1.f);
+
 }

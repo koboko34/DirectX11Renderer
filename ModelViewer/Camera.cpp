@@ -10,7 +10,7 @@ Camera::Camera(const DirectX::XMMATRIX& Proj) : m_ProjMatrix(Proj)
 {
 	SetRotation(0.f, 0.f, 0.f);
 	m_LookDir = { 0.f, 0.f, 1.f };
-	m_bVisualiseFrustum = true;
+	m_bVisualiseFrustum = false;
 	SetName(std::format("Camera_{}", GetUID()));
 }
 

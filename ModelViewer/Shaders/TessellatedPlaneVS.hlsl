@@ -1,7 +1,7 @@
 Texture2D Heightmap : register(t0);
 SamplerState Sampler : register(s0);
 
-#define MAX_PLANE_CHUNKS 64
+#define MAX_PLANE_CHUNKS 1024
 
 cbuffer InstanceBuffer : register(b0)
 {

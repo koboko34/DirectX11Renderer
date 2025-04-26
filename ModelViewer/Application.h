@@ -52,6 +52,7 @@ public:
 	Graphics* GetGraphics() const { return m_Graphics; }
 
 	std::shared_ptr<Camera> GetActiveCamera() { return m_ActiveCamera; }
+	std::shared_ptr<Camera> GetMainCamera() { return m_MainCamera; }
 	int GetActiveCameraID() { return m_ActiveCameraID; }
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
@@ -85,6 +86,7 @@ private:
 	std::unique_ptr<Skybox> m_Skybox;
 	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::shared_ptr<Camera> m_ActiveCamera;
+	std::shared_ptr<Camera> m_MainCamera;
 
 	std::vector<std::shared_ptr<GameObject>> m_GameObjects;
 	std::vector<std::shared_ptr<Camera>> m_Cameras;

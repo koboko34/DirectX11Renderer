@@ -38,7 +38,6 @@ TessellatedPlane::TessellatedPlane(UINT ChunkDimension, float ChunkSize, float T
 	m_bVisualiseChunks = false;
 	m_HeightmapSRV = nullptr;
 	assert(m_NumChunks >= 0 && m_NumChunks <= MAX_PLANE_CHUNKS);
-	m_ChunkTransforms.resize(m_NumChunks);
 }
 
 bool TessellatedPlane::Init(const std::string& HeightMapFilepath)
@@ -49,8 +48,6 @@ bool TessellatedPlane::Init(const std::string& HeightMapFilepath)
 	
 	m_HeightmapSRV = ResourceManager::GetSingletonPtr()->LoadTexture(HeightMapFilepath);
 	assert(m_HeightmapSRV);
-
-	GenerateChunkTransforms();
 	
 	return true;
 }
@@ -82,20 +79,24 @@ void TessellatedPlane::Render()
 	DeviceContext->DSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->DSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
+	DeviceContext->GSSetShader(m_GeometryShader.Get(), nullptr, 0u);
+	DeviceContext->GSSetConstantBuffers(0u, 1u, m_GeometryCBuffer.GetAddressOf());
+
 	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
 	DeviceContext->PSSetConstantBuffers(1u, 1u, m_PlaneInfoCBuffer.GetAddressOf());
 	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->PSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
+	Graphics::GetSingletonPtr()->DisableBlending();
 
-	GenerateChunkTransforms(); // again, this doesn't really need to be generated every frame, same with sending it to GPU every frame
 	UpdateBuffers();
 
 	DeviceContext->DrawIndexedInstanced(4u, m_NumChunks, 0u, 0u, 0u);
 
 	DeviceContext->HSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->DSSetShader(nullptr, nullptr, 0u);
+	DeviceContext->GSSetShader(nullptr, nullptr, 0u);
 }
 
 void TessellatedPlane::Shutdown()
@@ -104,11 +105,13 @@ void TessellatedPlane::Shutdown()
 	m_VertexShader.Reset();
 	m_HullShader.Reset();
 	m_DomainShader.Reset();
+	m_GeometryShader.Reset();
 	m_PixelShader.Reset();
 	m_VertexBuffer.Reset();
 	m_VertexCBuffer.Reset();
 	m_HullCBuffer.Reset();
 	m_DomainCBuffer.Reset();
+	m_GeometryCBuffer.Reset();
 	m_PlaneInfoCBuffer.Reset();
 
 	ResourceManager::GetSingletonPtr()->UnloadTexture("Textures/uk_heightmap.jpg");
@@ -139,10 +142,12 @@ bool TessellatedPlane::CreateShaders()
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 	Microsoft::WRL::ComPtr<ID3D10Blob> hsBuffer;
 	Microsoft::WRL::ComPtr<ID3D10Blob> dsBuffer;
+	Microsoft::WRL::ComPtr<ID3D10Blob> gsBuffer;
 	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
 	wchar_t vsFilename[32];
 	wchar_t hsFilename[32];
 	wchar_t dsFilename[32];
+	wchar_t gsFilename[32];
 	wchar_t psFilename[32];
 
 	HWND hWnd = Application::GetSingletonPtr()->GetWindowHandle();
@@ -151,6 +156,7 @@ bool TessellatedPlane::CreateShaders()
 	wcscpy_s(vsFilename, 32, L"Shaders/TessellatedPlaneVS.hlsl");
 	wcscpy_s(hsFilename, 32, L"Shaders/TessellatedPlaneHS.hlsl");
 	wcscpy_s(dsFilename, 32, L"Shaders/TessellatedPlaneDS.hlsl");
+	wcscpy_s(gsFilename, 32, L"Shaders/TessellatedPlaneGS.hlsl");
 	wcscpy_s(psFilename, 32, L"Shaders/TessellatedPlanePS.hlsl");
 
 	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -199,6 +205,21 @@ bool TessellatedPlane::CreateShaders()
 		return false;
 	}
 
+	hResult = D3DCompileFromFile(gsFilename, NULL, NULL, "main", "gs_5_0", CompileFlags, 0, &gsBuffer, &ErrorMessage);
+	if (FAILED(hResult))
+	{
+		if (ErrorMessage.Get())
+		{
+			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, gsFilename);
+		}
+		else
+		{
+			MessageBox(hWnd, gsFilename, L"Missing shader file!", MB_OK);
+		}
+
+		return false;
+	}
+
 	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
 	if (FAILED(hResult))
 	{
@@ -217,11 +238,13 @@ bool TessellatedPlane::CreateShaders()
 	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
 	HFALSE_IF_FAILED(Device->CreateHullShader(hsBuffer->GetBufferPointer(), hsBuffer->GetBufferSize(), NULL, &m_HullShader));
 	HFALSE_IF_FAILED(Device->CreateDomainShader(dsBuffer->GetBufferPointer(), dsBuffer->GetBufferSize(), NULL, &m_DomainShader));
+	HFALSE_IF_FAILED(Device->CreateGeometryShader(gsBuffer->GetBufferPointer(), gsBuffer->GetBufferSize(), NULL, &m_GeometryShader));
 	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
 
 	NAME_D3D_RESOURCE(m_VertexShader, "Tessellated plane vertex shader");
 	NAME_D3D_RESOURCE(m_HullShader, "Tessellated plane hull shader");
 	NAME_D3D_RESOURCE(m_DomainShader, "Tessellated plane domain shader");
+	NAME_D3D_RESOURCE(m_GeometryShader, "Tessellated plane geometry shader");
 	NAME_D3D_RESOURCE(m_PixelShader, "Tessellated plane pixel shader");
 	
 	D3D11_INPUT_ELEMENT_DESC LayoutDesc[1] = {};
@@ -258,14 +281,18 @@ bool TessellatedPlane::CreateBuffers()
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_VertexBuffer));
 	NAME_D3D_RESOURCE(m_VertexBuffer, "Tessellated plane vertex buffer");
 
-	Desc.Usage = D3D11_USAGE_DYNAMIC;
 	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	Desc.ByteWidth = sizeof(TransformCBuffer) * MAX_PLANE_CHUNKS;
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_VertexCBuffer));
+	std::vector<DirectX::XMMATRIX> ChunkTransforms(MAX_PLANE_CHUNKS, DirectX::XMMatrixIdentity());
+	GenerateChunkTransforms(ChunkTransforms);
+	Data.pSysMem = ChunkTransforms.data();
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_VertexCBuffer));
 	NAME_D3D_RESOURCE(m_VertexCBuffer, "Tessellated plane vertex constant buffer");
 
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	Desc.ByteWidth = sizeof(CameraCBuffer);
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_HullCBuffer));
@@ -275,6 +302,11 @@ bool TessellatedPlane::CreateBuffers()
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_DomainCBuffer));
 	NAME_D3D_RESOURCE(m_DomainCBuffer, "Tessellated plane domain constant buffer");
+
+	Desc.ByteWidth = sizeof(GeometryCBuffer);
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_GeometryCBuffer));
+	NAME_D3D_RESOURCE(m_GeometryCBuffer, "Tessellated plane geometry constant buffer");
 
 	Desc.ByteWidth = sizeof(PlaneInfoCBuffer);
 
@@ -292,10 +324,6 @@ void TessellatedPlane::UpdateBuffers()
 	DomainCBuffer* DomainCBufferPtr;
 	PlaneInfoCBuffer* PlaneInfoCBufferPtr;
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
-
-	ASSERT_NOT_FAILED(DeviceContext->Map(m_VertexCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)); // this doesn't have to be updated every frame, just when updated on ImGui
-	memcpy(MappedResource.pData, m_ChunkTransforms.data(), sizeof(TransformCBuffer) * m_NumChunks);
-	DeviceContext->Unmap(m_VertexCBuffer.Get(), 0u);
 	
 	std::shared_ptr<Camera> pCamera = Application::GetSingletonPtr()->GetActiveCamera();
 	DirectX::XMFLOAT3 CameraPos = pCamera->GetPosition();
@@ -314,6 +342,12 @@ void TessellatedPlane::UpdateBuffers()
 	DomainCBufferPtr->ViewProj = DirectX::XMMatrixTranspose(View * Proj);
 	DeviceContext->Unmap(m_DomainCBuffer.Get(), 0u);
 
+	GeometryCBuffer CullingBufferData = {};
+	PrepCullingBuffer(CullingBufferData);
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_GeometryCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	memcpy(MappedResource.pData, &CullingBufferData, sizeof(GeometryCBuffer));
+	DeviceContext->Unmap(m_GeometryCBuffer.Get(), 0u);
+
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_PlaneInfoCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
 	PlaneInfoCBufferPtr = (PlaneInfoCBuffer*)MappedResource.pData;
 	PlaneInfoCBufferPtr->PlaneDimension = (float)m_ChunkDimension * GetScale().x;
@@ -323,7 +357,7 @@ void TessellatedPlane::UpdateBuffers()
 	DeviceContext->Unmap(m_PlaneInfoCBuffer.Get(), 0u);
 }
 
-void TessellatedPlane::GenerateChunkTransforms()
+void TessellatedPlane::GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTransforms)
 {
 	float ChunkSize = GetScale().x;
 	float ChunkHalf = ChunkSize / 2.f;
@@ -340,7 +374,39 @@ void TessellatedPlane::GenerateChunkTransforms()
 			DirectX::XMMATRIX ChunkTransform = DirectX::XMMatrixIdentity();
 			ChunkTransform *= DirectX::XMMatrixScaling(ChunkSize, ChunkSize, ChunkSize);
 			ChunkTransform *= DirectX::XMMatrixTranslation(WorldX, 0.f, WorldZ);
-			m_ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
+			ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
 		}
+	}
+}
+
+void TessellatedPlane::PrepCullingBuffer(GeometryCBuffer& CullingBufferData, bool bNormalise)
+{
+	CullingBufferData.FrustumCameraViewProj = DirectX::XMMatrixTranspose(Application::GetSingletonPtr()->GetMainCamera()->GetViewProjMatrix()); // Row-major access
+
+	// Each row of the matrix
+	DirectX::XMVECTOR row0 = CullingBufferData.FrustumCameraViewProj.r[0];
+	DirectX::XMVECTOR row1 = CullingBufferData.FrustumCameraViewProj.r[1];
+	DirectX::XMVECTOR row2 = CullingBufferData.FrustumCameraViewProj.r[2];
+	DirectX::XMVECTOR row3 = CullingBufferData.FrustumCameraViewProj.r[3];
+
+	DirectX::XMVECTOR FrustumPlanes[6];
+	FrustumPlanes[0] = DirectX::XMVectorAdd(row3, row0); // Left
+	FrustumPlanes[1] = DirectX::XMVectorAdd(row3, row0); // Right
+	FrustumPlanes[2] = DirectX::XMVectorAdd(row3, row1); // Bottom
+	FrustumPlanes[3] = DirectX::XMVectorAdd(row3, row1); // Top
+	FrustumPlanes[4] = DirectX::XMVectorAdd(row3, row2); // Near
+	FrustumPlanes[5] = DirectX::XMVectorAdd(row3, row2); // Far
+
+	if (bNormalise)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			FrustumPlanes[i] = DirectX::XMPlaneNormalize(FrustumPlanes[i]);
+		}
+	}
+
+	for (int i = 0; i < 6; ++i)
+	{
+		DirectX::XMStoreFloat4(&CullingBufferData.FrustumPlanes[i], FrustumPlanes[i]);
 	}
 }

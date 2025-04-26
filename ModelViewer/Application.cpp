@@ -61,15 +61,18 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Plane = std::make_shared<TessellatedPlane>(8u, 50.f, 256.f, 20.f);
+	m_Plane = std::make_shared<TessellatedPlane>(32u, 25.f, 256.f, 20.f);
 	m_GameObjects.push_back(m_Plane);
 	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
 	assert(bResult);
 
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 	m_Cameras.back()->SetPosition(0.f, 2.5f, -7.f);
+	m_Cameras.back()->SetName("Main Camera");
 	m_ActiveCamera = m_Cameras.back();
+	m_MainCamera = m_Cameras.back();
 
+	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
@@ -235,6 +238,14 @@ bool Application::Render(double DeltaTime)
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
 
+	for (const std::shared_ptr<Camera>& c : m_Cameras)
+	{
+		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
+		{
+			m_FrustumRenderer->RenderFrustum(c);
+		}
+	}
+
 	if (m_bShowCursor)
 		RenderImGui();
 
@@ -255,7 +266,7 @@ bool Application::RenderScene()
 		m_Skybox->Render(); // this should probably be rendered last to reduce overdraw
 	}
 
-	m_Graphics->EnableDepthWrite(); // simpler for now but might need to refactor when wanting to use depth data, enables depth test and writing to depth buffer
+	m_Graphics->EnableDepthWrite();
 	m_Graphics->GetDeviceContext()->OMSetRenderTargets(1u, m_Graphics->m_PostProcessRTVFirst.GetAddressOf(), m_Graphics->GetDepthStencilView());
 
 	RenderModels();
@@ -263,14 +274,6 @@ bool Application::RenderScene()
 	if (m_Plane.get() && m_Plane->ShouldRender())
 	{
 		m_Plane->Render();
-	}
-
-	for (const std::shared_ptr<Camera>& c : m_Cameras)
-	{
-		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
-		{
-			m_FrustumRenderer->RenderFrustum(c);
-		}
 	}
 	
 	return true;
