@@ -30,8 +30,7 @@ private:
 	};
 
 public:
-	Shader();
-	Shader(const Shader& Other);
+	Shader() = default;
 	~Shader();
 
 	bool Initialise(ID3D11Device* Device, HWND hWnd);
@@ -46,7 +45,6 @@ public:
 
 private:
 	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
-	void ShutdownShader();
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;

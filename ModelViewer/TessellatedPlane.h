@@ -12,42 +12,19 @@
 
 class TessellatedPlane : public GameObject
 {
+	friend class Landscape;
+
 private:
-	struct TransformCBuffer
-	{
-		DirectX::XMMATRIX Transform;
-	};
-	
-	struct CameraCBuffer
+	struct HullCBuffer
 	{
 		DirectX::XMFLOAT3 CameraPos;
 		float TessellationScale;
 	};
 
-	struct DomainCBuffer
-	{
-		DirectX::XMMATRIX ViewProj;
-	};
-
-	struct GeometryCBuffer
-	{
-		DirectX::XMFLOAT4 FrustumPlanes[6];
-		DirectX::XMMATRIX FrustumCameraViewProj; // exposed seperately to view culling from a different camera
-	};
-
-	struct PlaneInfoCBuffer
-	{
-		float PlaneDimension;
-		float HeightDisplacement;
-		float Padding;
-		BOOL bVisualiseChunks;
-	};
-
 public:
-	TessellatedPlane() = delete;
-	TessellatedPlane(UINT NumChunks, float ChunkSize, float TessellationScale, float HeightDisplacement);
+	TessellatedPlane();
 
-	bool Init(const std::string& HeightMapFilepath);
+	bool Init(const std::string& HeightMapFilepath, float TessellationScale, Landscape* pLandscape);
 	void Render();
 	void Shutdown();
 
@@ -62,9 +39,6 @@ private:
 
 	void UpdateBuffers();
 
-	void GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTransforms);
-	void PrepCullingBuffer(GeometryCBuffer& CullingBufferData, bool bNormalise = true);
-
 private:
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
@@ -74,20 +48,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullCBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_DomainCBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GeometryCBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_PlaneInfoCBuffer;
 
 	ID3D11ShaderResourceView* m_HeightmapSRV;
+	std::string m_HeightMapFilepath;
 
-	bool m_bShouldRender;
-	bool m_bVisualiseChunks;
+	Landscape* m_pLandscape;
 	float m_TessellationScale;
-	float m_HeightDisplacement;
-	UINT m_ChunkDimension;
-	UINT m_NumChunks;
+	bool m_bShouldRender;
 
 };
 

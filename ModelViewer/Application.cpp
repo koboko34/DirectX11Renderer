@@ -22,7 +22,7 @@
 #include "Skybox.h"
 #include "Resource.h"
 #include "ModelData.h"
-#include "TessellatedPlane.h"
+#include "Landscape.h"
 #include "FrustumRenderer.h"
 
 Application* Application::m_Instance = nullptr;
@@ -61,9 +61,9 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Plane = std::make_shared<TessellatedPlane>(32u, 25.f, 256.f, 20.f);
-	m_GameObjects.push_back(m_Plane);
-	bResult = m_Plane->Init("Textures/uk_heightmap.jpg");
+	m_Landscape = std::make_shared<Landscape>(32u, 25.f, 20.f);
+	m_GameObjects.push_back(m_Landscape);
+	bResult = m_Landscape->Init("Textures/perlin_noise.png", 256.f);
 	assert(bResult);
 
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
@@ -71,9 +71,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Cameras.back()->SetName("Main Camera");
 	m_ActiveCamera = m_Cameras.back();
 	m_MainCamera = m_Cameras.back();
+	m_GameObjects.push_back(m_ActiveCamera);
 
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
+	m_GameObjects.push_back(m_Cameras.back());
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
+	m_GameObjects.push_back(m_Cameras.back());
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
@@ -130,39 +133,22 @@ void Application::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadTexture(m_QuadTexturePath);
 	m_TextureResourceView = nullptr;
 	
-	m_GameObjects.clear();
-
-	if (m_Skybox.get())
-	{
-		m_Skybox->Shutdown();
-	}
-	m_Skybox.reset();
-
 	PostProcess::ShutdownStatics();
 	m_PostProcesses.clear();
+	m_GameObjects.clear();
 
-	if (m_InstancedShader)
-	{
-		m_InstancedShader.reset();
-	}
-
-	if (m_Shader)
-	{
-		m_Shader->Shutdown();
-		m_Shader.reset();
-	}
-
-	if (m_ActiveCamera)
-	{
-		m_ActiveCamera.reset();
-	}
+	m_Skybox.reset();
+	m_InstancedShader.reset();
+	m_Shader.reset();
+	m_ActiveCamera.reset();
+	m_Landscape.reset();
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
 
 	if (m_Graphics)
 	{
 		m_Graphics->Shutdown();
-		m_Graphics = 0;
+		m_Graphics = nullptr;
 	}
 }
 
@@ -271,9 +257,9 @@ bool Application::RenderScene()
 
 	RenderModels();
 
-	if (m_Plane.get() && m_Plane->ShouldRender())
+	if (m_Landscape.get() && m_Landscape->ShouldRender())
 	{
-		m_Plane->Render();
+		m_Landscape->Render();
 	}
 	
 	return true;

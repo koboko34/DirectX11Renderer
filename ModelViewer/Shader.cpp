@@ -7,16 +7,9 @@
 
 #include "MyMacros.h"
 
-Shader::Shader()
-{
-}
-
-Shader::Shader(const Shader& Other)
-{
-}
-
 Shader::~Shader()
 {
+	Shutdown();
 }
 
 bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
@@ -45,7 +38,6 @@ bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
 
 void Shader::Shutdown()
 {
-	ShutdownShader();
 }
 
 bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename)
@@ -136,10 +128,6 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	HFALSE_IF_FAILED(Device->CreateBuffer(&LightBufferDesc, NULL, &m_LightingBuffer));
 
 	return true;
-}
-
-void Shader::ShutdownShader()
-{
 }
 
 void Shader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename)

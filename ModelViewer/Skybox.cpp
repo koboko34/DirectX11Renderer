@@ -34,6 +34,11 @@ const UINT CubeIndices[] =
 	3, 0, 4, 4, 7, 3  // -X
 };
 
+Skybox::~Skybox()
+{
+	Shutdown();
+}
+
 bool Skybox::Init()
 {
 	HRESULT hResult;

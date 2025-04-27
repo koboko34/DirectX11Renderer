@@ -22,7 +22,7 @@ class Camera;
 class PostProcess;
 class GameObject;
 class Skybox;
-class TessellatedPlane;
+class Landscape;
 class FrustumRenderer;
 
 class Application
@@ -84,7 +84,7 @@ private:
 	std::unique_ptr<InstancedShader> m_InstancedShader;
 	std::unique_ptr<FrustumRenderer> m_FrustumRenderer;
 	std::unique_ptr<Skybox> m_Skybox;
-	std::shared_ptr<TessellatedPlane> m_Plane;
+	std::shared_ptr<Landscape> m_Landscape;
 	std::shared_ptr<Camera> m_ActiveCamera;
 	std::shared_ptr<Camera> m_MainCamera;
 

@@ -1,6 +1,6 @@
 cbuffer CullingBuffer
 {
-	float4 FrustumPlanes[6];  // left, right, top, bot, near, far
+	float4 FrustumPlanes[6];  // left, right, top, bot, near, far // not using right now, but will use when changing to culling my frustum planes rather than clip space coordinates
 	float4x4 CullCameraViewProj;
 };
 
@@ -42,31 +42,4 @@ void main(
 			output.Append(input[i]);
 		}
 	}
-	
-	/*bool bFullyOutside = false;
-	
-	for (int p = 0; p < 6; ++p)
-	{
-		int outsideCount = 0;
-
-		for (int v = 0; v < 3; ++v)
-		{
-			float d = dot(FrustumPlanes[p], input[v].Pos);
-			if (d < 0)
-				outsideCount++;
-		}
-
-		if (outsideCount == 3)
-		{
-			bFullyOutside = true;
-			break;
-		}
-	}
-		
-	if (!bFullyOutside)
-	{
-		output.Append(input[0]);
-		output.Append(input[1]);
-		output.Append(input[2]);
-	}*/
 }

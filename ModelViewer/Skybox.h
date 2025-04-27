@@ -15,6 +15,7 @@ class Skybox
 {
 public:
 	Skybox() {}
+	~Skybox();
 
 	bool Init();
 	void Render();
