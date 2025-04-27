@@ -8,9 +8,10 @@
 #include <memory>
 
 #include "Graphics.h"
+#include "Common.h"
 
 const bool FULL_SCREEN = false;
-const bool VSYNC_ENABLED = true;
+const bool VSYNC_ENABLED = false;
 const float SCREEN_DEPTH = 1000.f;
 const float SCREEN_NEAR = 0.1f;
 
@@ -61,8 +62,11 @@ public:
 	std::vector<std::shared_ptr<Camera>>& GetCameras() { return m_Cameras; }
 	std::vector<std::unique_ptr<PostProcess>>& GetPostProcesses() { return m_PostProcesses; }
 
+	double GetDeltaTime() const { return m_DeltaTime; }
+	RenderStats& GetRenderStatsRef() { return m_RenderStats; }
+
 private:
-	bool Render(double DeltaTime);
+	bool Render();
 	bool RenderScene();
 	void RenderModels();
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
@@ -74,6 +78,8 @@ private:
 
 	void ProcessInput();
 	void ToggleShowCursor();
+
+	void ClearRenderStats();
 
 private:	
 	HWND m_hWnd;
@@ -94,12 +100,15 @@ private:
 
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	double m_AppTime;
-	float m_CameraSpeed = 0.5f;
-	float m_CameraSpeedMin = 0.125f;
-	float m_CameraSpeedMax = 2.f;
+	double m_DeltaTime; // in seconds
+	float m_CameraSpeed;
+	float m_CameraSpeedMin;
+	float m_CameraSpeedMax;
 	int m_ActiveCameraID;
 	bool m_bShowCursor = false;
 	bool m_bCursorToggleReleased = true;
+
+	RenderStats m_RenderStats;
 
 	const char* m_QuadTexturePath = "Textures/image_gamma_linear.png";
 	ID3D11ShaderResourceView* m_TextureResourceView;

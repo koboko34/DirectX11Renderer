@@ -327,6 +327,11 @@ bool Graphics::Initialise(int ScreenWidth, int ScreenHeight, bool VSync, HWND hw
 	m_SamplerState->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen("Sampler state"), "Sampler state");
 	m_DeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());
 
+	D3D11_QUERY_DESC QueryDesc = {};
+	QueryDesc.Query = D3D11_QUERY_PIPELINE_STATISTICS;
+	ASSERT_NOT_FAILED(m_Device->CreateQuery(&QueryDesc, &m_PipelineStatsQuery));
+	NAME_D3D_RESOURCE(m_PipelineStatsQuery, "Pipeline stats query");
+
 	ImGui_ImplDX11_Init(m_Device.Get(), m_DeviceContext.Get());
 
 	return true;

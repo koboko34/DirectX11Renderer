@@ -64,6 +64,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_RasterStateBackFaceCullOff;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_WireframeRasterState;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
+	Microsoft::WRL::ComPtr<ID3D11Query> m_PipelineStatsQuery;
 
 	DirectX::XMMATRIX m_ProjectionMatrix;
 	DirectX::XMMATRIX m_OrthoMatrix;
@@ -89,6 +90,9 @@ public:
 	const DirectX::XMMATRIX& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 	void GetOrthoMatrix(DirectX::XMMATRIX& OrthoMatrix) { OrthoMatrix = m_OrthoMatrix; }
 
+	Microsoft::WRL::ComPtr<ID3D11Query> GetPipelineStatsQuery() { return m_PipelineStatsQuery; }
+
+public:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVFirst;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_PostProcessRTVSecond;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostProcessSRVFirst;

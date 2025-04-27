@@ -7,6 +7,10 @@
 #define MAX_DIRECTIONAL_LIGHTS 1
 #define MAX_PLANE_CHUNKS 1024
 
+#include <vector>
+#include <utility>
+#include <string>
+
 #include "DirectXMath.h"
 
 struct Vertex
@@ -14,6 +18,15 @@ struct Vertex
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexCoord;
+};
+
+typedef unsigned long long UINT64;
+
+struct RenderStats
+{
+	std::vector<std::pair<std::string, UINT64>> TrianglesRendered;
+	double FrameTime;
+	double FPS;
 };
 
 #endif

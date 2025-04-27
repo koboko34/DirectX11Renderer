@@ -1,3 +1,6 @@
+#include <format>
+#include <locale>
+
 #include "ImGuiManager.h"
 
 #include "Application.h"
@@ -41,9 +44,6 @@ void ImGuiManager::RenderPostProcessWindow()
 			}
 			ImGui::PopID();
 		}
-
-		ImGui::Dummy(ImVec2(0.f, 20.f));
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}
 	ImGui::End();
 }
@@ -109,6 +109,28 @@ void ImGuiManager::RenderCamerasWindow()
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	pApp->GetActiveCamera()->RenderControls();
+
+	ImGui::End();
+}
+
+void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
+{
+	ImGui::Begin("Statistics");
+
+	ImGui::Text("Frame Time: %.3f ms/frame", Stats.FrameTime);
+	ImGui::Text("FPS: %.1f", Stats.FPS);
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
+
+	ImGui::Text("Triangles Rendered:");
+	ImGui::Indent(20.f);
+	for (const std::pair<std::string, UINT64>& Object : Stats.TrianglesRendered)
+	{
+		ImGui::Text("%s: %s", Object.first.c_str(), std::format(std::locale("en_US.UTF-8"), "{:L}", Object.second).c_str());
+	}
+	ImGui::Unindent(20.f);
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	ImGui::End();
 }

@@ -34,6 +34,9 @@ Application::Application()
 	m_hWnd = {};
 	m_TextureResourceView = {};
 	m_ActiveCameraID = 0;
+	m_CameraSpeed = 20.f;
+	m_CameraSpeedMin = 10.f;
+	m_CameraSpeedMax = 200.f;
 }
 
 bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
@@ -154,11 +157,14 @@ void Application::Shutdown()
 
 bool Application::Frame()
 {	
-	double DeltaTime;
 	auto Now = std::chrono::steady_clock::now();
-	DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - m_LastUpdate).count() / 1000000.0;
+	m_DeltaTime = std::chrono::duration_cast<std::chrono::microseconds>(Now - m_LastUpdate).count() / 1000000.0; // in seconds
 	m_LastUpdate = Now;
-	m_AppTime += DeltaTime;
+	m_AppTime += m_DeltaTime;
+
+	ClearRenderStats();
+	m_RenderStats.FrameTime = m_DeltaTime * 1000.0;
+	m_RenderStats.FPS = 1.0 / m_DeltaTime;
 
 	float RotationAngle = (float)fmod(m_AppTime, 360.f);
 	//m_GameObjects[1]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
@@ -169,7 +175,7 @@ bool Application::Frame()
 		ProcessInput();
 	}
 	
-	bool Result = Render(DeltaTime);
+	bool Result = Render();
 	if (!Result)
 	{
 		return false;
@@ -184,7 +190,7 @@ void Application::SetActiveCamera(int ID)
 	m_ActiveCamera = m_Cameras[ID];
 }
 
-bool Application::Render(double DeltaTime)
+bool Application::Render()
 {			
 	bool Result;
 	
@@ -360,6 +366,7 @@ void Application::RenderImGui()
 	ImGuiManager::RenderPostProcessWindow();
 	ImGuiManager::RenderWorldHierarchyWindow();
 	ImGuiManager::RenderCamerasWindow();
+	ImGuiManager::RenderStatsWindow(m_RenderStats);
 
 	ImGui::EndFrame();
 	ImGui::Render();
@@ -387,30 +394,31 @@ void Application::ProcessInput()
 {
 	DirectX::XMFLOAT3 LookDir = m_ActiveCamera->GetRotatedLookDir();
 	DirectX::XMFLOAT3 LookRight = m_ActiveCamera->GetRotatedLookRight();
+	float EffectiveCameraSpeed = m_CameraSpeed * (float)m_DeltaTime;
 	
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookDir.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y + LookDir.y * m_CameraSpeed, m_ActiveCamera->GetPosition().z + LookDir.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookDir.x * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().y + LookDir.y * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().z + LookDir.z * EffectiveCameraSpeed);
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookDir.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y - LookDir.y * m_CameraSpeed, m_ActiveCamera->GetPosition().z - LookDir.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookDir.x * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().y - LookDir.y * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().z - LookDir.z * EffectiveCameraSpeed);
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookRight.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z + LookRight.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x + LookRight.x * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z + LookRight.z * EffectiveCameraSpeed);
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookRight.x * m_CameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z - LookRight.z * m_CameraSpeed);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x - LookRight.x * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().y, m_ActiveCamera->GetPosition().z - LookRight.z * EffectiveCameraSpeed);
 	}
 	if (GetAsyncKeyState('Q') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y - 1.f * m_CameraSpeed, m_ActiveCamera->GetPosition().z);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y - 1.f * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().z);
 	}
 	if (GetAsyncKeyState('E') & 0x8000)
 	{
-		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y + 1.f * m_CameraSpeed, m_ActiveCamera->GetPosition().z);
+		m_ActiveCamera->SetPosition(m_ActiveCamera->GetPosition().x, m_ActiveCamera->GetPosition().y + 1.f * EffectiveCameraSpeed, m_ActiveCamera->GetPosition().z);
 	}
 
 	m_ActiveCamera->SetRotation(m_ActiveCamera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_ActiveCamera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f, 0.f);
@@ -461,4 +469,10 @@ void Application::ToggleShowCursor()
 		SystemClass::m_MouseDelta = { 0.f, 0.f };
 	}
 	m_bShowCursor = !m_bShowCursor;
+}
+
+void Application::ClearRenderStats()
+{
+	m_RenderStats.TrianglesRendered.clear();
+	m_RenderStats = {};
 }

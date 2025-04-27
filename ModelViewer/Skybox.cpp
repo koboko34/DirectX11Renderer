@@ -7,12 +7,12 @@
 #include "Application.h"
 #include "Camera.h"
 
-struct Vertex
+struct CubeVertex
 {
 	DirectX::XMFLOAT3 Position;
 };
 
-const Vertex CubeVertices[] =
+const CubeVertex CubeVertices[] =
 {
 	{{-0.5f,  0.5f, -0.5f}},
 	{{ 0.5f,  0.5f, -0.5f}},
@@ -136,7 +136,7 @@ bool Skybox::Init()
 
 void Skybox::Render()
 {
-	UINT Strides[] = { sizeof(Vertex) };
+	UINT Strides[] = { sizeof(CubeVertex) };
 	UINT Offsets[] = { 0u };
 
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();

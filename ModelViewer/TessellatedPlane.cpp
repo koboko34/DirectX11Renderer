@@ -60,7 +60,8 @@ void TessellatedPlane::Render()
 
 	UpdateBuffers();
 
-	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
+	Graphics* pGraphics = Graphics::GetSingletonPtr();
+	ID3D11DeviceContext* DeviceContext = pGraphics->GetDeviceContext();
 	UINT Strides[] = { sizeof(PlaneVertex), 0u };
 	UINT Offsets[] = { 0u, 0u };
 	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), nullptr };
@@ -93,7 +94,17 @@ void TessellatedPlane::Render()
 	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->PSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
+	DeviceContext->Begin(pGraphics->GetPipelineStatsQuery().Get());
 	DeviceContext->DrawIndexedInstanced(4u, m_pLandscape->m_NumChunks, 0u, 0u, 0u);
+	DeviceContext->End(pGraphics->GetPipelineStatsQuery().Get());
+
+	D3D11_QUERY_DATA_PIPELINE_STATISTICS Stats = {};
+	while (DeviceContext->GetData(pGraphics->GetPipelineStatsQuery().Get(), &Stats, sizeof(Stats), 0) != S_OK)
+	{
+		// sleep or maybe do it on next frame
+	}
+
+	Application::GetSingletonPtr()->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Tessellated Plane", Stats.GSPrimitives));
 
 	DeviceContext->HSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->DSSetShader(nullptr, nullptr, 0u);
@@ -289,7 +300,7 @@ void TessellatedPlane::UpdateBuffers()
 	HullCBuffer* HullCBufferPtr;
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	
-	DirectX::XMFLOAT3 CameraPos = Application::GetSingletonPtr()->GetActiveCamera()->GetPosition();
+	DirectX::XMFLOAT3 CameraPos = Application::GetSingletonPtr()->GetMainCamera()->GetPosition();
 	
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_HullCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
 	HullCBufferPtr = (HullCBuffer*)MappedResource.pData;
