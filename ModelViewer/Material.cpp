@@ -99,4 +99,5 @@ void Material::CreateConstantBuffer()
 	BufferData.pSysMem = &Data;
 
 	ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+	NAME_D3D_RESOURCE(m_ConstantBuffer, (m_pOwner->GetModelPath() + " " + m_Name + " constant buffer").c_str());
 }

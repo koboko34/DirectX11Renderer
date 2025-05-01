@@ -64,4 +64,5 @@ void Node::CreateConstantBuffer()
 	Data.pSysMem = &m_AccumulatedTransform;
 
 	ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &Data, &m_ConstantBuffer));
+	NAME_D3D_RESOURCE(m_ConstantBuffer, (m_pModel->GetModelPath() + " " + m_NodeName + " constant buffer").c_str());
 }

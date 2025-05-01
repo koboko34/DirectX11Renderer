@@ -84,6 +84,8 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 
 	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
 	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
+	NAME_D3D_RESOURCE(m_VertexShader, "Standard shader vertex shader");
+	NAME_D3D_RESOURCE(m_PixelShader, "Standard shader pixel shader");
 
 	VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	VertexLayout[0].SemanticName = "POSITION";
@@ -112,6 +114,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	NumElements = sizeof(VertexLayout) / sizeof(VertexLayout[0]);
 
 	HFALSE_IF_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	NAME_D3D_RESOURCE(m_InputLayout, "Standard shader input layout");
 
 	MatrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	MatrixBufferDesc.ByteWidth = sizeof(MatrixBuffer);
@@ -119,6 +122,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	MatrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&MatrixBufferDesc, NULL, &m_MatrixBuffer));
+	NAME_D3D_RESOURCE(m_MatrixBuffer, "Standard shader matrix buffer");
 
 	LightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	LightBufferDesc.ByteWidth = sizeof(LightingBuffer);
@@ -126,6 +130,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	LightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&LightBufferDesc, NULL, &m_LightingBuffer));
+	NAME_D3D_RESOURCE(m_LightingBuffer, "Standard shader lighting buffer");
 
 	return true;
 }

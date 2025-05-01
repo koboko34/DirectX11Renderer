@@ -8,6 +8,7 @@
 
 #include "Graphics.h"
 #include "ModelData.h"
+#include "MyMacros.h"
 
 ResourceManager* ResourceManager::ms_Instance = nullptr;
 
@@ -22,6 +23,7 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 
 void ResourceManager::Shutdown()
 {
+	assert(m_TexturesMap.empty() && m_ModelsMap.empty() && "Attempting to shutdown when resources are still loaded!");
 	m_TexturesMap.clear();
 	m_ModelsMap.clear();
 }
@@ -105,6 +107,7 @@ UINT ResourceManager::UnloadModel(const std::string& Filepath)
 ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* Filepath)
 {
 	int Width, Height, Channels;
+	std::string FileString(Filepath);
 	unsigned char* ImageData = stbi_load(Filepath, &Width, &Height, &Channels, 0);
 	assert(ImageData);
 
@@ -164,8 +167,9 @@ ID3D11ShaderResourceView* ResourceManager::Internal_LoadTexture(const char* File
 	}
 	stbi_image_free(ImageData);
 
-	TextureView->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
-	Texture->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(Filepath), Filepath);
+	NAME_D3D_RESOURCE(Texture, (FileString + " texture").c_str());
+	NAME_D3D_RESOURCE(TextureView, (FileString + " texture SRV").c_str());
+
 	Texture->Release();
 
 	return TextureView;

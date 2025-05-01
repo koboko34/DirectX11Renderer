@@ -155,7 +155,9 @@ protected:
 		int SizeNeeded = WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, nullptr, 0, nullptr, nullptr);
 		char* NarrowStr = new char[SizeNeeded];
 		WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, NarrowStr, SizeNeeded, nullptr, nullptr);
-		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(NarrowStr), NarrowStr);
+		std::string ResourceName(NarrowStr);
+		ResourceName.append(" pixel shader");
+		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)ResourceName.size(), ResourceName.c_str());
 
 		return true;
 	}
@@ -195,6 +197,7 @@ private:
 		}
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &ms_QuadVertexShader));
+		NAME_D3D_RESOURCE(ms_QuadVertexShader, "Post process quad vertex shader");
 
 		VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 		VertexLayout[0].SemanticName = "POSITION";
@@ -222,6 +225,7 @@ private:
 
 		NumElements = sizeof(VertexLayout) / sizeof(VertexLayout[0]);
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &ms_QuadInputLayout));
+		NAME_D3D_RESOURCE(ms_QuadInputLayout, "Post process quad input layout");
 
 		Vertex QuadVertices[] = {
 			{ DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), DirectX::XMFLOAT2(0.0f, 0.0f), },
@@ -240,6 +244,7 @@ private:
 		InitData.pSysMem = QuadVertices;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &InitData, &ms_QuadVertexBuffer));
+		NAME_D3D_RESOURCE(ms_QuadVertexBuffer, "Post process quad vertex buffer");
 
 		unsigned int QuadIndices[] = {
 			1, 2, 0,
@@ -256,6 +261,7 @@ private:
 		InitData.pSysMem = QuadIndices;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &InitData, &ms_QuadIndexBuffer));
+		NAME_D3D_RESOURCE(ms_QuadIndexBuffer, "Post process quad index buffer");
 
 		ms_bInitialised = true;
 	}
@@ -339,6 +345,7 @@ public:
 		BufferData.pSysMem = &m_FogData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_PixelShader, L"Shaders/FogPS.hlsl");
 	}
@@ -436,6 +443,7 @@ public:
 		BufferData.pSysMem = &m_BlurData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_HorizontalPS, L"Shaders/BoxBlurPS.hlsl", "HorizontalPS");
 		SetupPixelShader(m_VerticalPS, L"Shaders/BoxBlurPS.hlsl", "VerticalPS");
@@ -454,6 +462,10 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+
+		NAME_D3D_RESOURCE(IntermediateTexture, ("Post process " + m_Name + " texture").c_str());
+		NAME_D3D_RESOURCE(m_IntermediateRTV, ("Post process " + m_Name + " texture RTV").c_str());
+		NAME_D3D_RESOURCE(m_IntermediateSRV, ("Post process " + m_Name + " texture SRV").c_str());
 
 		IntermediateTexture->Release();
 	}
@@ -549,6 +561,7 @@ public:
 		BufferData.pSysMem = &m_BlurData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		std::vector<float> GaussianWeights(m_MaxBlurStrength + 1, 0.f);
 		FillGaussianWeights(GaussianWeights);
@@ -565,6 +578,7 @@ public:
 		BufferData.pSysMem = GaussianWeights.data();
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_GaussianWeightsBuffer));
+		NAME_D3D_RESOURCE(m_GaussianWeightsBuffer, ("Post process " + m_Name + " gaussian weights structured buffer").c_str());
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC GaussianSRVDesc = {};
 		GaussianSRVDesc.Format = DXGI_FORMAT_UNKNOWN; // set to this when using a structured buffer
@@ -572,6 +586,7 @@ public:
 		GaussianSRVDesc.Buffer.NumElements = m_MaxBlurStrength + 1;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GaussianWeightsBuffer.Get(), &GaussianSRVDesc, &m_GaussianWeightsSRV));
+		NAME_D3D_RESOURCE(m_GaussianWeightsSRV, ("Post process " + m_Name + " gaussian weights structured buffer SRV").c_str());
 		
 		SetupPixelShader(m_HorizontalPS, L"Shaders/GaussianBlurPS.hlsl", "HorizontalPS");
 		SetupPixelShader(m_VerticalPS, L"Shaders/GaussianBlurPS.hlsl", "VerticalPS");
@@ -590,6 +605,10 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &IntermediateTexture));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(IntermediateTexture, NULL, &m_IntermediateRTV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(IntermediateTexture, NULL, &m_IntermediateSRV));
+
+		NAME_D3D_RESOURCE(IntermediateTexture, ("Post process " + m_Name + " texture").c_str());
+		NAME_D3D_RESOURCE(m_IntermediateRTV, ("Post process " + m_Name + " texture RTV").c_str());
+		NAME_D3D_RESOURCE(m_IntermediateSRV, ("Post process " + m_Name + " texture SRV").c_str());
 
 		IntermediateTexture->Release();
 	}
@@ -706,6 +725,7 @@ public:
 		BufferData.pSysMem = &Data;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_PixelShader, L"Shaders/PixelationPS.hlsl");
 	}
@@ -770,6 +790,7 @@ public:
 		BufferData.pSysMem = &Data;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_LuminancePS, L"Shaders/BloomPS.hlsl", "LuminancePS");
 		SetupPixelShader(m_BloomPS, L"Shaders/BloomPS.hlsl", "BloomPS");
@@ -789,12 +810,17 @@ public:
 		ID3D11Texture2D* BlurredTexture;
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &LuminousTexture));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateTexture2D(&TextureDesc, nullptr, &BlurredTexture));
-
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(LuminousTexture, NULL, &m_LuminousRTV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateRenderTargetView(BlurredTexture, NULL, &m_BlurredRTV));
-
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(LuminousTexture, NULL, &m_LuminousSRV));
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(BlurredTexture, NULL, &m_BlurredSRV));
+
+		NAME_D3D_RESOURCE(LuminousTexture, ("Post process " + m_Name + " luminous texture").c_str());
+		NAME_D3D_RESOURCE(BlurredTexture, ("Post process " + m_Name + " blurred texture").c_str());
+		NAME_D3D_RESOURCE(m_LuminousRTV, ("Post process " + m_Name + " luminous texture RTV").c_str());
+		NAME_D3D_RESOURCE(m_BlurredRTV, ("Post process " + m_Name + " blurred texture RTV").c_str());
+		NAME_D3D_RESOURCE(m_LuminousSRV, ("Post process " + m_Name + " luminous texture SRV").c_str());
+		NAME_D3D_RESOURCE(m_BlurredSRV, ("Post process " + m_Name + " blurred texture SRV").c_str());
 
 		LuminousTexture->Release();
 		BlurredTexture->Release();
@@ -904,6 +930,7 @@ public:
 		BufferData.pSysMem = &m_ToneMapperData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
 	}
@@ -989,6 +1016,7 @@ public:
 		BufferData.pSysMem = &Data;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 		
 		SetupPixelShader(m_PixelShader, L"Shaders/GammaCorrectionPS.hlsl");
 	}
@@ -1064,6 +1092,7 @@ public:
 		BufferData.pSysMem = &m_ColorData;
 
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
+		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
 		SetupPixelShader(m_PixelShader, L"Shaders/ColorCorrectionPS.hlsl");
 	}
