@@ -23,6 +23,7 @@ private:
 
 public:
 	TessellatedPlane();
+	~TessellatedPlane();
 
 	bool Init(const std::string& HeightMapFilepath, float TessellationScale, Landscape* pLandscape);
 	void Render();

@@ -37,6 +37,11 @@ TessellatedPlane::TessellatedPlane()
 	m_HeightmapSRV = nullptr;
 }
 
+TessellatedPlane::~TessellatedPlane()
+{
+	Shutdown();
+}
+
 bool TessellatedPlane::Init(const std::string& HeightMapFilepath, float TessellationScale, Landscape* pLandscape)
 {
 	bool Result;
@@ -105,6 +110,7 @@ void TessellatedPlane::Render()
 	}
 
 	Application::GetSingletonPtr()->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Tessellated Plane", Stats.GSPrimitives));
+	Application::GetSingletonPtr()->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Tessellated Plane chunks", m_pLandscape->m_NumChunks)); // not yet doing frustum culling on chunks
 
 	DeviceContext->HSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->DSSetShader(nullptr, nullptr, 0u);
