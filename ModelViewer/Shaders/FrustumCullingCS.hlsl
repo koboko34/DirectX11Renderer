@@ -8,11 +8,24 @@ cbuffer CullData : register(b0)
 {
 	float4 Corners[8];
 	float4x4 ViewProj;
+	uint SentInstanceCount;
+	uint3 ThreadGroupCounts;
 }
 
-[numthreads(1, 1, 1)]
+static const uint tx = 32u;
+static const uint ty = 1u;
+static const uint tz = 1u;
+
+[numthreads(tx, ty, tz)]
 void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 {
+	uint FlattenedID = DTid.z * ThreadGroupCounts.x * ThreadGroupCounts.y * tx * ty +
+                       DTid.y * ThreadGroupCounts.x * tx +
+                       DTid.x;
+	
+	if (FlattenedID >= SentInstanceCount)
+		return;
+	
 	const float Bias = 0.01f;
 
 	for (int i = 0; i < 8; i++)

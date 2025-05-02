@@ -29,9 +29,14 @@ bool ResourceManager::Init(HWND hWnd)
 
 void ResourceManager::Shutdown()
 {
-	assert(m_TexturesMap.empty() && m_ModelsMap.empty() && "Attempting to shutdown when resources are still loaded!");
+	if (!m_TexturesMap.empty() || !m_ModelsMap.empty() || !m_ShadersMap.empty())
+	{
+		__debugbreak(); // Attempting to shutdown when resources are still loaded!
+	}
+
 	m_TexturesMap.clear();
 	m_ModelsMap.clear();
+	m_ShadersMap.clear();
 }
 
 ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepath)

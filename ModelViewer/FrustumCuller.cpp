@@ -69,11 +69,10 @@ void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transfo
 
 	DeviceContext->CSSetShader(m_CullingShader, nullptr, 0u);
 
-	UpdateBuffers(Transforms, Corners, ViewProj);
-
 	// As each thread group will have 32 threads (as defined in shader), calculate how many thread groups we need using integer division
-	//UINT DispatchCount = (UINT(Transforms.size()) + 31) / 32;
-	UINT DispatchCount = (UINT)Transforms.size(); // TODO: optimise once working
+	UINT DispatchCount = (UINT(Transforms.size()) + 31) / 32;
+
+	UpdateBuffers(Transforms, Corners, ViewProj, DispatchCount);
 	DeviceContext->Dispatch(DispatchCount, 1u, 1u);
 
 	ID3D11Buffer* NullBuffers[] = { nullptr };
@@ -192,7 +191,7 @@ bool FrustumCuller::CreateBufferViews()
 	return true;
 }
 
-void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj)
+void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj, UINT DispatchCount)
 {
 	assert(Transforms.size() <= MAX_INSTANCE_COUNT);
 
@@ -209,5 +208,9 @@ void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transfor
 	CBufferDataPtr = (CBufferData*)MappedResource.pData;
 	memcpy(CBufferDataPtr->Corners, Corners.data(), sizeof(DirectX::XMFLOAT4) * 8);
 	CBufferDataPtr->ViewProj = DirectX::XMMatrixTranspose(ViewProj);
+	CBufferDataPtr->SentInstanceCount = (UINT)Transforms.size();
+	CBufferDataPtr->ThreadGroupCount[0] = DispatchCount;
+	CBufferDataPtr->ThreadGroupCount[1] = 1u;
+	CBufferDataPtr->ThreadGroupCount[2] = 1u;
 	DeviceContext->Unmap(m_CBuffer.Get(), 0u);
 }

@@ -17,6 +17,8 @@ private:
 	{
 		DirectX::XMFLOAT4 Corners[8];
 		DirectX::XMMATRIX ViewProj;
+		UINT SentInstanceCount;
+		UINT ThreadGroupCount[3];
 	};
 
 public:
@@ -37,7 +39,7 @@ private:
 	bool CreateBuffers();
 	bool CreateBufferViews();
 
-	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj);
+	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj, UINT DispatchCount);
 
 private:
 	ID3D11ComputeShader* m_CullingShader;
