@@ -29,6 +29,8 @@ public:
 
 	void ProcessNode(aiNode* ModelNode, const aiScene* Scene, const DirectX::XMMATRIX& AccumulatedTransform);
 
+	const DirectX::XMMATRIX& GetAccumulatedTransform() { return m_AccumulatedTransform; }
+
 private:
 	void CreateConstantBuffer();
 

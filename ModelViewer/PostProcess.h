@@ -8,11 +8,11 @@
 
 #include "ImGui/imgui.h"
 
-#include "Shader.h"
 #include "MyMacros.h"
 #include "Graphics.h"
 #include "Application.h"
 #include "Camera.h"
+#include "ResourceManager.h"
 
 class PostProcessEmpty;
 
@@ -37,15 +37,16 @@ public:
 
 	static void ShutdownStatics()
 	{
-		ms_QuadVertexShader.Reset();
 		ms_QuadInputLayout.Reset();
 		ms_QuadVertexBuffer.Reset();
 		ms_QuadIndexBuffer.Reset();
 		ms_EmptyPostProcess.reset();
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(ms_vsFilename, "main");
+
 		ms_bInitialised = false;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11VertexShader> GetQuadVertexShader()
+	static ID3D11VertexShader* GetQuadVertexShader()
 	{
 		if (ms_bInitialised)
 		{
@@ -115,49 +116,16 @@ protected:
 		DirectX::XMFLOAT2 TexCoord;
 	};
 	
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	ID3D11PixelShader* m_PixelShader = nullptr;
 	bool m_bActive = true;
 	std::string m_Name = "";
 	
 	virtual void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) = 0;
 
-	bool SetupPixelShader(Microsoft::WRL::ComPtr<ID3D11PixelShader>& PixelShader, const wchar_t* PSFilepath, const char* entryFunc = "main")
+	bool SetupPixelShader(ID3D11PixelShader*& PixelShader, const char* PSFilepath, const char* EntryFunc = "main")
 	{		
-		wchar_t psFilename[128];
-		int Error;
-
-		Error = wcscpy_s(psFilename, 128, PSFilepath);
-		if (Error != 0)
-		{
-			return false;
-		}
-
-		HRESULT hResult;
-		Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
-		Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
-
-		UINT CompileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-		hResult = D3DCompileFromFile(psFilename, NULL, NULL, entryFunc, "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-		if (FAILED(hResult))
-		{
-			if (ErrorMessage.Get())
-			{
-				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), Application::GetSingletonPtr()->GetWindowHandle(), psFilename);
-			}
-			else
-			{
-				MessageBox(Application::GetSingletonPtr()->GetWindowHandle(), psFilename, L"Missing shader file!", MB_OK);
-			}
-			return false;
-		}
-
-		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &PixelShader));
-		int SizeNeeded = WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, nullptr, 0, nullptr, nullptr);
-		char* NarrowStr = new char[SizeNeeded];
-		WideCharToMultiByte(CP_UTF8, 0, PSFilepath, -1, NarrowStr, SizeNeeded, nullptr, nullptr);
-		std::string ResourceName(NarrowStr);
-		ResourceName.append(" pixel shader");
-		PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)ResourceName.size(), ResourceName.c_str());
+		PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(PSFilepath, EntryFunc);
+		assert(PixelShader);
 
 		return true;
 	}
@@ -165,39 +133,13 @@ protected:
 private:
 	static void InitialiseShaderResources()
 	{
-		wchar_t vsFilename[128];
-		int Error;
-
-		Error = wcscpy_s(vsFilename, 128, L"Shaders/QuadVS.hlsl");
-		if (Error != 0)
-		{
-			return;
-		}
-
 		HRESULT hResult;
-		Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 		Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 		D3D11_INPUT_ELEMENT_DESC VertexLayout[3] = {};
 		D3D11_DEPTH_STENCIL_DESC DepthStencilDesc = {};
 		unsigned int NumElements;
 
-		UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-		hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
-		if (FAILED(hResult))
-		{
-			if (ErrorMessage.Get())
-			{
-				Shader::OutputShaderErrorMessage(ErrorMessage.Get(), Application::GetSingletonPtr()->GetWindowHandle(), vsFilename);
-			}
-			else
-			{
-				MessageBox(Application::GetSingletonPtr()->GetWindowHandle(), vsFilename, L"Missing shader file!", MB_OK);
-			}
-			return;
-		}
-
-		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &ms_QuadVertexShader));
-		NAME_D3D_RESOURCE(ms_QuadVertexShader, "Post process quad vertex shader");
+		ms_QuadVertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(ms_vsFilename, "main", vsBuffer);
 
 		VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 		VertexLayout[0].SemanticName = "POSITION";
@@ -266,11 +208,12 @@ private:
 		ms_bInitialised = true;
 	}
 
-	static Microsoft::WRL::ComPtr<ID3D11VertexShader> ms_QuadVertexShader;
+	static ID3D11VertexShader* ms_QuadVertexShader;
 	static Microsoft::WRL::ComPtr<ID3D11InputLayout> ms_QuadInputLayout;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadVertexBuffer;
 	static Microsoft::WRL::ComPtr<ID3D11Buffer> ms_QuadIndexBuffer;
 	static std::shared_ptr<PostProcessEmpty> ms_EmptyPostProcess;
+	static const char* ms_vsFilename;
 	static bool ms_bInitialised;
 };
 
@@ -283,19 +226,29 @@ public:
 	PostProcessEmpty()
 	{
 		m_Name = "Empty";
-		SetupPixelShader(m_PixelShader, L"Shaders/QuadPS.hlsl");
+		m_psFilename = "Shaders/QuadPS.hlsl";
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessEmpty()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 	}
 
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
 	}
+
+private:
+	const char* m_psFilename;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -327,6 +280,7 @@ public:
 	{
 		assert(Formula >= 0 && Formula < FogFormula::None);
 		m_Name = "Fog";
+		m_psFilename = "Shaders/FogPS.hlsl";
 
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -347,7 +301,12 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_PixelShader, L"Shaders/FogPS.hlsl");
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessFog()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 	}
 
 	virtual void RenderControls()
@@ -384,7 +343,7 @@ public:
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 
 		ID3D11ShaderResourceView* SRVs[2] = { SRV.Get(), Graphics::GetSingletonPtr()->GetDepthStencilSRV().Get() };
 		DeviceContext->PSSetShaderResources(0u, 2u, SRVs);
@@ -407,6 +366,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	FogData m_FogData;
+	const char* m_psFilename;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -426,6 +387,9 @@ public:
 	{
 		assert(BlurStrength > 0);
 		m_Name = "Box Blur";
+		m_psFilename = "Shaders/BoxBlurPS.hlsl";
+		m_HorizontalEntry = "HorizontalPS";
+		m_VerticalEntry = "VerticalPS";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -445,8 +409,8 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_HorizontalPS, L"Shaders/BoxBlurPS.hlsl", "HorizontalPS");
-		SetupPixelShader(m_VerticalPS, L"Shaders/BoxBlurPS.hlsl", "VerticalPS");
+		SetupPixelShader(m_HorizontalPS, m_psFilename, m_HorizontalEntry);
+		SetupPixelShader(m_VerticalPS, m_psFilename, m_VerticalEntry);
 
 		D3D11_TEXTURE2D_DESC TextureDesc = {};
 		TextureDesc.Width = Dimensions.first;
@@ -470,6 +434,12 @@ public:
 		IntermediateTexture->Release();
 	}
 
+	~PostProcessBoxBlur()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_HorizontalEntry);
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_VerticalEntry);
+	}
+
 	void RenderControls() override
 	{
 		bool bDirty = false;
@@ -486,7 +456,7 @@ private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		// horizontal
-		DeviceContext->PSSetShader(m_HorizontalPS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_HorizontalPS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
@@ -499,7 +469,7 @@ private:
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
 		DeviceContext->OMSetRenderTargets(1u, NullRTVs, nullptr);
 
-		DeviceContext->PSSetShader(m_VerticalPS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_VerticalPS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, m_IntermediateSRV.GetAddressOf());
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
@@ -517,13 +487,17 @@ private:
 	}
 
 private:
+	ID3D11PixelShader* m_HorizontalPS;
+	ID3D11PixelShader* m_VerticalPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_HorizontalPS;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_VerticalPS;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_IntermediateRTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_IntermediateSRV;
 
 	BlurData m_BlurData;
+	const char* m_psFilename;
+	const char* m_HorizontalEntry;
+	const char* m_VerticalEntry;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -543,6 +517,9 @@ public:
 	{
 		assert(BlurStrength > 0 && (UINT)BlurStrength <= m_MaxBlurStrength);
 		m_Name = "Gaussian Blur";
+		m_psFilename = "Shaders/GaussianBlurPS.hlsl";
+		m_HorizontalEntry = "HorizontalPS";
+		m_VerticalEntry = "VerticalPS";
 
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -588,8 +565,8 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GaussianWeightsBuffer.Get(), &GaussianSRVDesc, &m_GaussianWeightsSRV));
 		NAME_D3D_RESOURCE(m_GaussianWeightsSRV, ("Post process " + m_Name + " gaussian weights structured buffer SRV").c_str());
 		
-		SetupPixelShader(m_HorizontalPS, L"Shaders/GaussianBlurPS.hlsl", "HorizontalPS");
-		SetupPixelShader(m_VerticalPS, L"Shaders/GaussianBlurPS.hlsl", "VerticalPS");
+		SetupPixelShader(m_HorizontalPS, m_psFilename, m_HorizontalEntry);
+		SetupPixelShader(m_VerticalPS, m_psFilename, m_VerticalEntry);
 
 		D3D11_TEXTURE2D_DESC TextureDesc = {};
 		TextureDesc.Width = Dimensions.first;
@@ -613,6 +590,12 @@ public:
 		IntermediateTexture->Release();
 	}
 
+	~PostProcessGaussianBlur()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_HorizontalEntry);
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_VerticalEntry);
+	}
+
 	void RenderControls() override
 	{
 		bool bDirty = true;
@@ -630,7 +613,7 @@ private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
 		// horizontal
-		DeviceContext->PSSetShader(m_HorizontalPS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_HorizontalPS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetShaderResources(1u, 1u, m_GaussianWeightsSRV.GetAddressOf());
 
@@ -644,7 +627,7 @@ private:
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
 		DeviceContext->OMSetRenderTargets(1u, NullRTVs, nullptr);
 		
-		DeviceContext->PSSetShader(m_VerticalPS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_VerticalPS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, m_IntermediateSRV.GetAddressOf());
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
@@ -693,9 +676,12 @@ private:
 private:
 	BlurData m_BlurData;
 	const UINT m_MaxBlurStrength = 100;
+	const char* m_psFilename;
+	const char* m_HorizontalEntry;
+	const char* m_VerticalEntry;
 
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_HorizontalPS;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_VerticalPS;
+	ID3D11PixelShader* m_HorizontalPS;
+	ID3D11PixelShader* m_VerticalPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GaussianWeightsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_IntermediateRTV;
@@ -711,6 +697,7 @@ public:
 	PostProcessPixelation(float pixelSize) : m_PixelSize(pixelSize)
 	{
 		m_Name = "Pixelation";
+		m_psFilename = "Shaders/PixelationPS.hlsl";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -727,7 +714,12 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_PixelShader, L"Shaders/PixelationPS.hlsl");
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessPixelation()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
 	}
 
 	void RenderControls() override
@@ -744,7 +736,7 @@ public:
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
@@ -767,6 +759,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	float m_PixelSize;
+	const char* m_psFilename;
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -777,6 +770,9 @@ public:
 	PostProcessBloom(float LuminanceThreshold, int BlurStrength, float Sigma) : m_LuminanceThreshold(LuminanceThreshold)
 	{
 		m_Name = "Bloom";
+		m_psFilename = "Shaders/BloomPS.hlsl";
+		m_LuminanceEntry = "LuminancePS";
+		m_BloomEntry = "BloomPS";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -792,8 +788,8 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_LuminancePS, L"Shaders/BloomPS.hlsl", "LuminancePS");
-		SetupPixelShader(m_BloomPS, L"Shaders/BloomPS.hlsl", "BloomPS");
+		SetupPixelShader(m_LuminancePS, m_psFilename, m_LuminanceEntry);
+		SetupPixelShader(m_BloomPS, m_psFilename, m_BloomEntry);
 
 		std::pair<int, int> Dimensions = Graphics::GetSingletonPtr()->GetRenderTargetDimensions();
 		D3D11_TEXTURE2D_DESC TextureDesc = {};
@@ -828,6 +824,12 @@ public:
 		m_BlurPostProcess = std::make_unique<PostProcessGaussianBlur>(BlurStrength, Sigma);
 	}
 
+	~PostProcessBloom()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_LuminanceEntry);
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, m_BloomEntry);
+	}
+
 	void RenderControls() override
 	{
 		bool bDirty = false;
@@ -845,7 +847,7 @@ private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{		
 		// render luminous pixels
-		DeviceContext->PSSetShader(m_LuminancePS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_LuminancePS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
 
@@ -859,7 +861,7 @@ private:
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
 		Graphics::GetSingletonPtr()->GetDeviceContext()->OMSetRenderTargets(1u, NullRTVs, nullptr);
 
-		DeviceContext->PSSetShader(m_BloomPS.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_BloomPS, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 		DeviceContext->PSSetShaderResources(1u, 1u, m_BlurredSRV.GetAddressOf());
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
@@ -881,9 +883,12 @@ private:
 private:
 	float m_LuminanceThreshold;
 	std::unique_ptr<PostProcess> m_BlurPostProcess;
+	const char* m_psFilename;
+	const char* m_LuminanceEntry;
+	const char* m_BloomEntry;
 
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_LuminancePS;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_BloomPS;
+	ID3D11PixelShader* m_LuminancePS;
+	ID3D11PixelShader* m_BloomPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_LuminousRTV;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_BlurredRTV;
@@ -917,6 +922,7 @@ public:
 	{
 		assert(Formula >= 0 && Formula < ToneMapperFormula::None);
 		m_Name = "Tone Mapper";
+		m_psFilename = "Shaders/ToneMapperPS.hlsl";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -932,7 +938,12 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_PixelShader, L"Shaders/ToneMapperPS.hlsl");
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessToneMapper()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
 	}
 
 	void RenderControls() override
@@ -970,7 +981,7 @@ public:
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
@@ -993,6 +1004,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	ToneMapperData m_ToneMapperData;
+	const char* m_psFilename;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -1003,6 +1016,7 @@ public:
 	PostProcessGammaCorrection(float Gamma) : m_Gamma(Gamma)
 	{
 		m_Name = "Gamma Correction";
+		m_psFilename = "Shaders/GammaCorrectionPS.hlsl";
 		
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -1018,7 +1032,12 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 		
-		SetupPixelShader(m_PixelShader, L"Shaders/GammaCorrectionPS.hlsl");
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessGammaCorrection()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
 	}
 
 	void RenderControls() override
@@ -1035,7 +1054,7 @@ public:
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
@@ -1059,6 +1078,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	float m_Gamma;
+	const char* m_psFilename;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -1078,6 +1099,7 @@ public:
 	PostProcessColorCorrection(float Contrast, float Brightness, float Saturation)
 	{
 		m_Name = "Color Correction";
+		m_psFilename = "Shaders/ColorCorrectionPS.hlsl";
 
 		HRESULT hResult;
 		D3D11_BUFFER_DESC BufferDesc = {};
@@ -1094,7 +1116,12 @@ public:
 		ASSERT_NOT_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&BufferDesc, &BufferData, &m_ConstantBuffer));
 		NAME_D3D_RESOURCE(m_ConstantBuffer, ("Post process " + m_Name + " constant buffer").c_str());
 
-		SetupPixelShader(m_PixelShader, L"Shaders/ColorCorrectionPS.hlsl");
+		SetupPixelShader(m_PixelShader, m_psFilename);
+	}
+
+	~PostProcessColorCorrection()
+	{
+		ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
 	}
 
 	void RenderControls() override
@@ -1115,7 +1142,7 @@ public:
 private:
 	void ApplyPostProcessImpl(ID3D11DeviceContext* DeviceContext, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RTV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SRV) override
 	{
-		DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+		DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 		DeviceContext->PSSetShaderResources(0u, 1u, SRV.GetAddressOf());
 
 		DeviceContext->PSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
@@ -1138,6 +1165,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ConstantBuffer;
 
 	ColorData m_ColorData;
+	const char* m_psFilename;
+
 };
 
 #endif

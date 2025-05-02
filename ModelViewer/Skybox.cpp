@@ -46,6 +46,9 @@ bool Skybox::Init()
 	ID3D11Device* Device = Graphics::GetSingletonPtr()->GetDevice();
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 
+	m_vsFilename = "Shaders/SkyboxVS.hlsl";
+	m_psFilename = "Shaders/SkyboxPS.hlsl";
+
 	LoadTextures();
 	m_Textures[0]->GetDesc(&CubeDesc);
 	CubeDesc.ArraySize = 6u;
@@ -108,18 +111,10 @@ bool Skybox::Init()
 	bool Result;
 	FALSE_IF_FAILED(CreateBuffers());
 
-	Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
 
-	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	HFALSE_IF_FAILED(D3DCompileFromFile(L"Shaders/SkyboxVS.hlsl", NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage));
-	HFALSE_IF_FAILED(D3DCompileFromFile(L"Shaders/SkyboxPS.hlsl", NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage));
-
-	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
-	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
-	NAME_D3D_RESOURCE(m_VertexShader, "Skybox vertex shader");
-	NAME_D3D_RESOURCE(m_PixelShader, "Skybox pixel shader");
+	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
+	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename);
 
 	D3D11_INPUT_ELEMENT_DESC Layout[] =
 	{
@@ -145,9 +140,9 @@ void Skybox::Render()
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
-	DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
+	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	DeviceContext->VSSetConstantBuffers(0u, 1u, m_ConstantBuffer.GetAddressOf());
-	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	DeviceContext->PSSetShaderResources(0u, 1u, m_SRV.GetAddressOf());
 
 	Graphics::GetSingletonPtr()->DisableDepthWriteAlwaysPass();
@@ -188,11 +183,12 @@ void Skybox::Shutdown()
 	m_SRV.Reset();
 	m_CubeTexture.Reset();
 	m_InputLayout.Reset();
-	m_VertexShader.Reset();
-	m_PixelShader.Reset();
 	m_VertexBuffer.Reset();
 	m_IndexBuffer.Reset();
 	m_ConstantBuffer.Reset();
+
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_vsFilename);
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_psFilename);
 }
 
 bool Skybox::LoadTextures()

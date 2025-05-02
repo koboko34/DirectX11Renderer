@@ -28,6 +28,7 @@ public:
 	DirectX::XMMATRIX GetViewMatrix() const { return m_ViewMatrix; }
 	void GetProjMatrix(DirectX::XMMATRIX& ProjMatrix) { ProjMatrix = m_ProjMatrix; }
 	DirectX::XMMATRIX GetProjMatrix() const { return m_ProjMatrix; }
+	void GetViewProjMatrix(DirectX::XMMATRIX& ViewProj) const { ViewProj = m_ViewMatrix * m_ProjMatrix; }
 	DirectX::XMMATRIX GetViewProjMatrix() const { return m_ViewMatrix * m_ProjMatrix; }
 
 	bool ShouldVisualiseFrustum() const { return m_bVisualiseFrustum; }

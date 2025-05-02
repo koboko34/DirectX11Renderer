@@ -33,25 +33,26 @@ public:
 	Shader() = default;
 	~Shader();
 
-	bool Initialise(ID3D11Device* Device, HWND hWnd);
+	bool Initialise(ID3D11Device* Device);
 	void Shutdown();
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
 	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
 								DirectX::XMFLOAT3 CameraPos, float Radius, DirectX::XMFLOAT3 LightPos, DirectX::XMFLOAT3 DiffuseColor, float SpecularPower);
 
-	static void OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename);
-
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetInputLayout() const { return m_InputLayout; }
 
 private:
-	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
+	bool InitialiseShader(ID3D11Device* Device, const char* vsFilename, const char* psFilename);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	ID3D11VertexShader* m_VertexShader;
+	ID3D11PixelShader* m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_MatrixBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LightingBuffer;
+
+	const char* m_vsFilename;
+	const char* m_psFilename;
 };
 
 #endif

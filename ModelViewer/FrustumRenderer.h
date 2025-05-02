@@ -17,8 +17,10 @@ class FrustumRenderer
 {
 public:
 	FrustumRenderer() {}
+	~FrustumRenderer();
 
 	bool Init();
+	void Shutdown();
 
 	void RenderFrustum(const std::shared_ptr<Camera>& pCamera);
 
@@ -30,14 +32,17 @@ private:
 	void UpdateBuffers(const std::shared_ptr<Camera>& pCamera);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	ID3D11VertexShader* m_VertexShader;
+	ID3D11PixelShader* m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexCBuffer;
 
 	std::vector<DirectX::XMFLOAT3> m_FrustumCorners;
+
+	const char* m_vsFilename;
+	const char* m_psFilename;
 
 };
 

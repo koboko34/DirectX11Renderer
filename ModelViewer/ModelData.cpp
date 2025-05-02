@@ -13,6 +13,8 @@
 #include "InstancedShader.h"
 #include "Node.h"
 #include "Material.h"
+#include "Common.h"
+#include "FrustumCuller.h"
 
 ModelData::ModelData(const std::string& ModelPath, const std::string& TexturesPath)
 {
@@ -29,6 +31,7 @@ bool ModelData::Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceCont
 	bool Result;
 	m_ModelPath = ModelFilename;
 	m_TexturesPath = TexturesPath;
+	m_CulledTransforms.resize(MAX_INSTANCE_COUNT);
 
 	FALSE_IF_FAILED(LoadModel());
 
@@ -45,7 +48,9 @@ void ModelData::Render()
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	UINT Strides[2] = { sizeof(Vertex), sizeof(InstanceData) };
 	UINT Offsets[2] = { 0u, 0u };
-	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), Application::GetSingletonPtr()->GetInstancedShader()->GetInstanceBuffer().Get() };
+	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), Application::GetSingletonPtr()->GetInstancedShader()->GetInstanceBuffer().Get() }; // TODO: try bind the culled transforms buffer directly here
+	
+	CopyCulledTransforms(); // instead of this
 
 	DeviceContext->IASetVertexBuffers(0u, 2u, Buffers, Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
@@ -74,9 +79,6 @@ bool ModelData::LoadModel()
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |
-		//aiProcess_FlipWindingOrder
-		//aiProcess_MakeLeftHanded
-		//aiProcess_FlipUVs
 		aiProcess_ConvertToLeftHanded
 	);
 
@@ -86,6 +88,7 @@ bool ModelData::LoadModel()
 	m_RootNode = std::make_unique<Node>(this, nullptr);
 	m_RootNode->ProcessNode(Scene->mRootNode, Scene, DirectX::XMMatrixIdentity());
 	CreateBuffers();
+	m_BoundingBox.CalcCorners();
 
 	return true;
 }
@@ -101,6 +104,7 @@ void ModelData::ReleaseModel()
 	m_TransparentMeshes.clear();
 	m_Vertices.clear();
 	m_Indices.clear();
+	m_BoundingBox = {};
 
 	for (const std::string& Path : m_TexturePathsSet)
 	{
@@ -128,6 +132,7 @@ bool ModelData::CreateBuffers()
 	HRESULT hResult;
 	D3D11_BUFFER_DESC vbDesc = {};
 	D3D11_SUBRESOURCE_DATA VertexData = {};
+	ID3D11Device* Device = Graphics::GetSingletonPtr()->GetDevice();
 
 	vbDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	vbDesc.ByteWidth = (UINT)(sizeof(Vertex) * m_Vertices.size());
@@ -135,7 +140,8 @@ bool ModelData::CreateBuffers()
 
 	VertexData.pSysMem = m_Vertices.data();
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&vbDesc, &VertexData, &m_VertexBuffer));
+	HFALSE_IF_FAILED(Device->CreateBuffer(&vbDesc, &VertexData, &m_VertexBuffer));
+	NAME_D3D_RESOURCE(m_VertexBuffer, (m_ModelPath + " vertex buffer").c_str());
 
 	D3D11_BUFFER_DESC ibDesc = {};
 	D3D11_SUBRESOURCE_DATA IndexData = {};
@@ -146,7 +152,8 @@ bool ModelData::CreateBuffers()
 
 	IndexData.pSysMem = m_Indices.data();
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&ibDesc, &IndexData, &m_IndexBuffer));
+	HFALSE_IF_FAILED(Device->CreateBuffer(&ibDesc, &IndexData, &m_IndexBuffer));
+	NAME_D3D_RESOURCE(m_IndexBuffer, (m_ModelPath + " index buffer").c_str());
 
 	return true;
 }
@@ -167,6 +174,9 @@ void ModelData::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 
 	for (const std::unique_ptr<Mesh>& m : Meshes)
 	{
+		// dispatch to copy instance count into args buffer
+		Application::GetSingletonPtr()->GetFrustumCuller()->SendInstanceCount(m->GetArgsBufferUAV());
+
 		std::shared_ptr<Material> Mat = m.get()->m_Material;
 
 		DeviceContext->VSSetConstantBuffers(1u, 1u, m->m_pNode->m_ConstantBuffer.GetAddressOf());
@@ -186,6 +196,15 @@ void ModelData::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 		Graphics::GetSingletonPtr()->SetRasterStateBackFaceCull(true);
 		//Graphics::GetSingletonPtr()->SetWireframeRasterState(); // swap back to line above when done or refactor to support switching
 
-		DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)GetTransforms().size(), m->m_IndicesOffset, 0, 0);
+		// ensure the dispatch is finished before drawing
+
+		//DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)m_CulledTransforms.size(), m->m_IndicesOffset, 0, 0u);
+		DeviceContext->DrawIndexedInstancedIndirect(m->GetArgsBuffer().Get(), 0u);
 	}
+}
+
+void ModelData::CopyCulledTransforms()
+{
+	Application* pApp = Application::GetSingletonPtr();
+	Graphics::GetSingletonPtr()->GetDeviceContext()->CopyResource(pApp->GetInstancedShader()->GetInstanceBuffer().Get(), pApp->GetFrustumCuller()->GetCulledTransformsBuffer().Get());
 }

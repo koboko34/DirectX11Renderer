@@ -1,82 +1,43 @@
-#include <cstdlib>
-#include <cwchar>
-#include <cstring>
-#include <fstream>
-
 #include "InstancedShader.h"
 #include "Light.h"
 #include "MyMacros.h"
-#include "Shader.h"
+#include "Common.h"
+#include "ResourceManager.h"
 
-bool InstancedShader::Initialise(ID3D11Device* Device, HWND hWnd)
+InstancedShader::~InstancedShader()
+{
+	Shutdown();
+}
+
+bool InstancedShader::Initialise(ID3D11Device* Device)
 {
 	bool Result;
-	wchar_t vsFilename[128];
-	wchar_t psFilename[128];
-	int Error;
+	m_vsFilename = "Shaders/InstancedPhongVS.hlsl";
+	m_psFilename = "Shaders/PhongPS.hlsl";
 
-	Error = wcscpy_s(vsFilename, 128, L"Shaders/InstancedPhongVS.hlsl");
-	if (Error != 0)
-	{
-		return false;
-	}
-
-	Error = wcscpy_s(psFilename, 128, L"Shaders/PhongPS.hlsl");
-	if (Error != 0)
-	{
-		return false;
-	}
-
-	FALSE_IF_FAILED(InitialiseShader(Device, hWnd, vsFilename, psFilename));
+	FALSE_IF_FAILED(InitialiseShader(Device));
 
 	return true;
 }
 
-bool InstancedShader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename)
+void InstancedShader::Shutdown()
+{
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_vsFilename, "main");
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
+}
+
+bool InstancedShader::InitialiseShader(ID3D11Device* Device)
 {
 	HRESULT hResult;
-	Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
 	D3D11_BUFFER_DESC MatrixBufferDesc = {};
 	D3D11_BUFFER_DESC LightBufferDesc = {};
 	D3D11_BUFFER_DESC InstanceBufferDesc = {};
 	D3D11_INPUT_ELEMENT_DESC VertexLayout[7] = {};
 	unsigned int NumElements;
 
-	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, vsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, vsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, psFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, psFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
-	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
+	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
+	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename, "main");
 
 	VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	VertexLayout[0].SemanticName = "POSITION";
@@ -137,6 +98,7 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* v
 	NumElements = _countof(VertexLayout);
 
 	HFALSE_IF_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	NAME_D3D_RESOURCE(m_InputLayout, "Instanced shader input layout");
 
 	MatrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	MatrixBufferDesc.ByteWidth = sizeof(MatrixBuffer);
@@ -144,6 +106,7 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* v
 	MatrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&MatrixBufferDesc, NULL, &m_MatrixBuffer));
+	NAME_D3D_RESOURCE(m_MatrixBuffer, "Instanced shader matrix buffer");
 
 	LightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	LightBufferDesc.ByteWidth = sizeof(LightingBuffer);
@@ -151,19 +114,21 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* v
 	LightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&LightBufferDesc, NULL, &m_LightingBuffer));
+	NAME_D3D_RESOURCE(m_LightingBuffer, "Instanced shader lighting buffer");
 
-	InstanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	InstanceBufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX) * 10; // hard coded value for now to test
+	InstanceBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	InstanceBufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_INSTANCE_COUNT;
 	InstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	InstanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	//InstanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&InstanceBufferDesc, NULL, &m_InstanceBuffer));
+	NAME_D3D_RESOURCE(m_InstanceBuffer, "Instanced shader instance buffer");
 
 	return true;
 }
 
-bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
-	const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor)
+bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection, const DirectX::XMFLOAT3& CameraPos,
+	const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor)
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -173,7 +138,7 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	unsigned int psBufferSlot = 0u;
 
 	// remember to transpose from row major before sending to shaders
-	ASSERT_NOT_FAILED(DeviceContext->Map(m_MatrixBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_MatrixBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	MatrixDataPtr = (MatrixBuffer*)MappedResource.pData;
 	MatrixDataPtr->ViewMatrix = DirectX::XMMatrixTranspose(View);
 	MatrixDataPtr->ProjectionMatrix = DirectX::XMMatrixTranspose(Projection);
@@ -220,9 +185,10 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 	DeviceContext->PSSetConstantBuffers(psBufferSlot, 1u, m_LightingBuffer.GetAddressOf());
 	psBufferSlot++;
 
+	/*assert(Transforms.size() <= MAX_INSTANCE_COUNT);
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_InstanceBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
 	memcpy(MappedResource.pData, Transforms.data(), sizeof(InstanceData) * Transforms.size());
-	DeviceContext->Unmap(m_InstanceBuffer.Get(), 0u);
+	DeviceContext->Unmap(m_InstanceBuffer.Get(), 0u);*/
 
 	return true;
 }
@@ -231,6 +197,6 @@ void InstancedShader::ActivateShader(ID3D11DeviceContext* DeviceContext)
 {
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
 
-	DeviceContext->VSSetShader(m_VertexShader.Get(), NULL, 0u);
-	DeviceContext->PSSetShader(m_PixelShader.Get(), NULL, 0u);
+	DeviceContext->VSSetShader(m_VertexShader, NULL, 0u);
+	DeviceContext->PSSetShader(m_PixelShader, NULL, 0u);
 }

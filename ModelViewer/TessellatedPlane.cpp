@@ -76,25 +76,25 @@ void TessellatedPlane::Render()
 	DeviceContext->IASetVertexBuffers(0u, 2u, Buffers, Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
-	DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
+	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	DeviceContext->VSSetConstantBuffers(0u, 1u, m_pLandscape->m_ChunkTransformsCBuffer.GetAddressOf());
 	DeviceContext->VSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->VSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->VSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
-	DeviceContext->HSSetShader(m_HullShader.Get(), nullptr, 0u);
+	DeviceContext->HSSetShader(m_HullShader, nullptr, 0u);
 	DeviceContext->HSSetConstantBuffers(0u, 1u, m_HullCBuffer.GetAddressOf());
 
-	DeviceContext->DSSetShader(m_DomainShader.Get(), nullptr, 0u);
+	DeviceContext->DSSetShader(m_DomainShader, nullptr, 0u);
 	DeviceContext->DSSetConstantBuffers(0u, 1u, m_pLandscape->m_CameraCBuffer.GetAddressOf());
 	DeviceContext->DSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->DSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->DSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
 
-	DeviceContext->GSSetShader(m_GeometryShader.Get(), nullptr, 0u);
+	DeviceContext->GSSetShader(m_GeometryShader, nullptr, 0u);
 	DeviceContext->GSSetConstantBuffers(0u, 1u, m_pLandscape->m_CullingCBuffer.GetAddressOf());
 
-	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	DeviceContext->PSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
 	DeviceContext->PSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
@@ -121,13 +121,14 @@ void TessellatedPlane::Shutdown()
 {
 	m_InputLayout.Reset();
 	m_IndexBuffer.Reset();
-	m_VertexShader.Reset();
-	m_HullShader.Reset();
-	m_DomainShader.Reset();
-	m_GeometryShader.Reset();
-	m_PixelShader.Reset();
 	m_VertexBuffer.Reset();
 	m_HullCBuffer.Reset();
+
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_vsFilename);
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11HullShader>(m_hsFilename);
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11DomainShader>(m_dsFilename);
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11GeometryShader>(m_gsFilename);
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
 
 	ResourceManager::GetSingletonPtr()->UnloadTexture(m_HeightMapFilepath);
 	m_HeightmapSRV = nullptr;
@@ -145,121 +146,26 @@ void TessellatedPlane::RenderControls()
 bool TessellatedPlane::CreateShaders()
 {
 	HRESULT hResult;
-	Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> hsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> dsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> gsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
-	wchar_t vsFilename[32];
-	wchar_t hsFilename[32];
-	wchar_t dsFilename[32];
-	wchar_t gsFilename[32];
-	wchar_t psFilename[32];
 
-	HWND hWnd = Application::GetSingletonPtr()->GetWindowHandle();
-	ID3D11Device* Device = Graphics::GetSingletonPtr()->GetDevice();
+	m_vsFilename = "Shaders/TessellatedPlaneVS.hlsl";
+	m_hsFilename = "Shaders/TessellatedPlaneHS.hlsl";
+	m_dsFilename = "Shaders/TessellatedPlaneDS.hlsl";
+	m_gsFilename = "Shaders/TessellatedPlaneGS.hlsl";
+	m_psFilename = "Shaders/TessellatedPlanePS.hlsl";
 
-	wcscpy_s(vsFilename, 32, L"Shaders/TessellatedPlaneVS.hlsl");
-	wcscpy_s(hsFilename, 32, L"Shaders/TessellatedPlaneHS.hlsl");
-	wcscpy_s(dsFilename, 32, L"Shaders/TessellatedPlaneDS.hlsl");
-	wcscpy_s(gsFilename, 32, L"Shaders/TessellatedPlaneGS.hlsl");
-	wcscpy_s(psFilename, 32, L"Shaders/TessellatedPlanePS.hlsl");
-
-	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, vsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, vsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(hsFilename, NULL, NULL, "main", "hs_5_0", CompileFlags, 0, &hsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, hsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, hsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(dsFilename, NULL, NULL, "main", "ds_5_0", CompileFlags, 0, &dsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, dsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, dsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(gsFilename, NULL, NULL, "main", "gs_5_0", CompileFlags, 0, &gsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, gsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, gsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, psFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, psFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
-	HFALSE_IF_FAILED(Device->CreateHullShader(hsBuffer->GetBufferPointer(), hsBuffer->GetBufferSize(), NULL, &m_HullShader));
-	HFALSE_IF_FAILED(Device->CreateDomainShader(dsBuffer->GetBufferPointer(), dsBuffer->GetBufferSize(), NULL, &m_DomainShader));
-	HFALSE_IF_FAILED(Device->CreateGeometryShader(gsBuffer->GetBufferPointer(), gsBuffer->GetBufferSize(), NULL, &m_GeometryShader));
-	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
-
-	NAME_D3D_RESOURCE(m_VertexShader, "Tessellated plane vertex shader");
-	NAME_D3D_RESOURCE(m_HullShader, "Tessellated plane hull shader");
-	NAME_D3D_RESOURCE(m_DomainShader, "Tessellated plane domain shader");
-	NAME_D3D_RESOURCE(m_GeometryShader, "Tessellated plane geometry shader");
-	NAME_D3D_RESOURCE(m_PixelShader, "Tessellated plane pixel shader");
+	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
+	m_HullShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11HullShader>(m_hsFilename);
+	m_DomainShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11DomainShader>(m_dsFilename);
+	m_GeometryShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11GeometryShader>(m_gsFilename);
+	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename);
 	
 	D3D11_INPUT_ELEMENT_DESC LayoutDesc[1] = {};
 	LayoutDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	LayoutDesc[0].SemanticName = "POSITION";
 	LayoutDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 
-	HFALSE_IF_FAILED(Device->CreateInputLayout(LayoutDesc, _countof(LayoutDesc), vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateInputLayout(LayoutDesc, _countof(LayoutDesc), vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
 	NAME_D3D_RESOURCE(m_InputLayout, "Tessellated plane input layout");
 
 	return true;

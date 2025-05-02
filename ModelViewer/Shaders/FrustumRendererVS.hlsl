@@ -1,4 +1,4 @@
-cbuffer ViewProjBuffer
+cbuffer ViewProjBuffer : register(b0)
 {
 	float4x4 ViewProj;
 };

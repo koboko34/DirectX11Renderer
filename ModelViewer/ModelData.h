@@ -14,6 +14,7 @@
 #include "DirectXMath.h"
 
 #include "Common.h"
+#include "AABB.h"
 
 class Mesh;
 class Material;
@@ -23,6 +24,7 @@ struct aiScene;
 class ModelData
 {
 public:
+	ModelData() = delete;
 	ModelData(const std::string& ModelPath, const std::string& TexturesPath = "");
 	ModelData(const ModelData& Other) = delete;
 	~ModelData();
@@ -43,6 +45,8 @@ public:
 	std::unordered_set<std::string>& GetTexturePathsSet() { return m_TexturePathsSet; }
 
 	std::vector<DirectX::XMMATRIX>& GetTransforms() { return m_Transforms; }
+	std::vector<DirectX::XMMATRIX>& GetCulledTransforms() { return m_CulledTransforms; }
+	AABB& GetBoundingBox() { return m_BoundingBox; }
 
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
@@ -58,6 +62,7 @@ private:
 	void LoadMaterials(const aiScene* Scene);
 
 	void RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes);
+	void CopyCulledTransforms();
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
@@ -73,6 +78,8 @@ private:
 	std::unordered_set<std::string> m_TexturePathsSet;
 
 	std::vector<DirectX::XMMATRIX> m_Transforms;
+	std::vector<DirectX::XMMATRIX> m_CulledTransforms;
+	AABB m_BoundingBox;
 	
 	std::string m_ModelPath;
 	std::string m_TexturesPath;

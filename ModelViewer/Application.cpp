@@ -24,6 +24,8 @@
 #include "ModelData.h"
 #include "Landscape.h"
 #include "FrustumRenderer.h"
+#include "BoxRenderer.h"
+#include "FrustumCuller.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -49,15 +51,23 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	assert(bResult);
 
 	m_Shader = std::make_unique<Shader>();
-	bResult = m_Shader->Initialise(m_Graphics->GetDevice(), hWnd);
+	bResult = m_Shader->Initialise(m_Graphics->GetDevice());
 	assert(bResult);
 
 	m_InstancedShader = std::make_unique<InstancedShader>();
-	bResult = m_InstancedShader->Initialise(m_Graphics->GetDevice(), hWnd);
+	bResult = m_InstancedShader->Initialise(m_Graphics->GetDevice());
+	assert(bResult);
+
+	m_FrustumCuller = std::make_shared<FrustumCuller>();
+	bResult = m_FrustumCuller->Init();
 	assert(bResult);
 
 	m_FrustumRenderer = std::make_unique<FrustumRenderer>();
 	bResult = m_FrustumRenderer->Init();
+	assert(bResult);
+
+	m_BoxRenderer = std::make_unique<BoxRenderer>();
+	bResult = m_BoxRenderer->Init();
 	assert(bResult);
 
 	m_Skybox = std::make_unique<Skybox>();
@@ -81,15 +91,19 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 	m_GameObjects.push_back(m_Cameras.back());
 
-	m_GameObjects.emplace_back(std::make_shared<GameObject>());
-	m_GameObjects.back()->SetPosition(-1.f, -1.f, 0.f);
+	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
 	m_GameObjects.back()->SetName("Car_1");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->SetName("Car_2");
-	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));*/
+
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
 
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetName("Plane");
@@ -102,12 +116,12 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
 	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());*/
 
-	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetName("Point Light");
 	m_GameObjects.back()->SetPosition(-2.f, 3.f, 0.f);
 	m_GameObjects.back()->SetScale(0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));
-	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());
+	m_GameObjects.back()->AddComponent(std::make_shared<PointLight>());*/
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetName("Directional Light");
@@ -116,6 +130,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.002f, PostProcessFog::FogFormula::ExponentialSquared));
+	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(30));
@@ -145,6 +160,9 @@ void Application::Shutdown()
 	m_Shader.reset();
 	m_ActiveCamera.reset();
 	m_Landscape.reset();
+	m_FrustumCuller.reset();
+	m_FrustumRenderer.reset();
+	m_BoxRenderer.reset();
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
 
@@ -217,7 +235,7 @@ bool Application::Render()
 	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_Graphics->GetDeviceContext()->IASetInputLayout(PostProcess::GetQuadInputLayout().Get());
 	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
-	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader().Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(), nullptr, 0u);
 	m_Graphics->DisableDepthWriteAlwaysPass(); // simpler for now but might need to refactor when wanting to use depth data in post processes
 	ApplyPostProcesses(CurrentRTV, SecondaryRTV, CurrentSRV, SecondarySRV, DrawingForward);
 
@@ -235,6 +253,19 @@ bool Application::Render()
 		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
 		{
 			m_FrustumRenderer->RenderFrustum(c);
+		}
+	}
+
+	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
+	for (const auto& ModelPair : Models)
+	{
+		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		if (!pModelData)
+			continue;
+
+		for (const auto& t : pModelData->GetTransforms())
+		{
+			m_BoxRenderer->RenderBox(pModelData->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
 		}
 	}
 
@@ -273,9 +304,10 @@ bool Application::RenderScene()
 
 void Application::RenderModels()
 {	
-	DirectX::XMMATRIX ViewMatrix, ProjectionMatrix;
-	m_ActiveCamera->GetViewMatrix(ViewMatrix);
-	m_Graphics->GetProjectionMatrix(ProjectionMatrix);
+	DirectX::XMMATRIX View, Proj, ViewProj;
+	m_ActiveCamera->GetViewMatrix(View);
+	m_ActiveCamera->GetProjMatrix(Proj);
+	m_ActiveCamera->GetViewProjMatrix(ViewProj);
 
 	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
 
@@ -286,6 +318,7 @@ void Application::RenderModels()
 			continue;
 
 		pModelData->GetTransforms().clear();
+		//pModelData->GetCulledTransforms().clear();
 	}
 
 	std::vector<PointLight*> PointLights;
@@ -321,12 +354,26 @@ void Application::RenderModels()
 		if (!pModelData)
 			continue;
 		
+		// AABB frustum culling on transforms
+		//FrustumCullModel(pModelData);
+
+		m_FrustumCuller->DispatchShader(pModelData->GetTransforms(), pModelData->GetBoundingBox().Corners, ViewProj);
+
+		//bool bResult = m_FrustumCuller->GetBufferData(pModelData->GetCulledTransforms());
+		//assert(bResult);
+
+		//const std::vector<DirectX::XMMATRIX>& CulledTransforms = pModelData->GetCulledTransforms();
+
+		/*if (CulledTransforms.empty())
+			continue;
+
+		m_RenderStats.InstancesRendered.push_back(std::make_pair(pModelData->GetModelPath(), CulledTransforms.size()));*/ // this will not work now
+		
 		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_InstancedShader->SetShaderParameters(
 			m_Graphics->GetDeviceContext(),
-			pModelData->GetTransforms(),
-			ViewMatrix,
-			ProjectionMatrix,
+			View,
+			Proj,
 			m_ActiveCamera->GetPosition(),
 			PointLights,
 			DirLights,
@@ -345,7 +392,7 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 
 	m_Graphics->GetDeviceContext()->IASetVertexBuffers(0u, 1u, PostProcess::GetQuadVertexBuffer().GetAddressOf(), &Stride, &Offset);
 	m_Graphics->GetDeviceContext()->IASetIndexBuffer(PostProcess::GetQuadIndexBuffer().Get(), DXGI_FORMAT_R32_UINT, 0u);
-	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader().Get(), nullptr, 0u);
+	m_Graphics->GetDeviceContext()->VSSetShader(PostProcess::GetQuadVertexShader(), nullptr, 0u);
 	
 	m_Graphics->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_Graphics->GetDeviceContext()->IASetInputLayout(m_Shader->GetInputLayout().Get());
@@ -372,6 +419,33 @@ void Application::RenderImGui()
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
+
+/*void Application::FrustumCullModel(ModelData* pModel)
+{
+	DirectX::XMMATRIX ViewProj = m_MainCamera->GetViewProjMatrix();
+	const AABB& BBox = pModel->GetBoundingBox();
+	const float Bias = 0.01f;
+
+	for (size_t i = 0; i < pModel->GetTransforms().size(); i++)
+	{
+		DirectX::XMMATRIX ColumnMajorTransform = DirectX::XMMatrixTranspose(pModel->GetTransforms()[i]);
+
+		for (size_t j = 0; j < 8; j++)
+		{
+			DirectX::XMVECTOR Corner = DirectX::XMVectorSet(BBox.Corners[j].x, BBox.Corners[j].y, BBox.Corners[j].z, 1.f);
+
+			DirectX::XMVECTOR TransformedCornerVec = DirectX::XMVector4Transform(Corner, ColumnMajorTransform * ViewProj);
+			DirectX::XMFLOAT4 TransformedCorner;
+			DirectX::XMStoreFloat4(&TransformedCorner, TransformedCornerVec);
+
+			if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias && (TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
+			{
+				pModel->GetCulledTransforms().push_back(pModel->GetTransforms()[i]);
+				break;
+			}
+		}
+	}
+}*/
 
 void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 										Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward)
@@ -474,5 +548,6 @@ void Application::ToggleShowCursor()
 void Application::ClearRenderStats()
 {
 	m_RenderStats.TrianglesRendered.clear();
+	m_RenderStats.InstancesRendered.clear();
 	m_RenderStats = {};
 }

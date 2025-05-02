@@ -18,6 +18,7 @@ const float SCREEN_NEAR = 0.1f;
 class Shader;
 class InstancedShader;
 class Model;
+class ModelData;
 class Light;
 class Camera;
 class PostProcess;
@@ -25,6 +26,8 @@ class GameObject;
 class Skybox;
 class Landscape;
 class FrustumRenderer;
+class BoxRenderer;
+class FrustumCuller;
 
 class Application
 {
@@ -57,6 +60,7 @@ public:
 	int GetActiveCameraID() { return m_ActiveCameraID; }
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
+	std::shared_ptr<FrustumCuller> GetFrustumCuller() { return m_FrustumCuller; }
 
 	std::vector<std::shared_ptr<GameObject>>& GetGameObjects() { return m_GameObjects; }
 	std::vector<std::shared_ptr<Camera>>& GetCameras() { return m_Cameras; }
@@ -72,6 +76,8 @@ private:
 	bool RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView);
 
 	void RenderImGui();
+
+	//void FrustumCullModel(ModelData* pModel);
 
 	void ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward);
@@ -89,7 +95,9 @@ private:
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
 	std::unique_ptr<FrustumRenderer> m_FrustumRenderer;
+	std::unique_ptr<BoxRenderer> m_BoxRenderer;
 	std::unique_ptr<Skybox> m_Skybox;
+	std::shared_ptr<FrustumCuller> m_FrustumCuller;
 	std::shared_ptr<Landscape> m_Landscape;
 	std::shared_ptr<Camera> m_ActiveCamera;
 	std::shared_ptr<Camera> m_MainCamera;

@@ -122,13 +122,21 @@ void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
-	ImGui::Text("Triangles Rendered:");
-	ImGui::Indent(20.f);
-	for (const std::pair<std::string, UINT64>& Object : Stats.TrianglesRendered)
+	if (ImGui::CollapsingHeader("Triangles Rendered:", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text("%s: %s", Object.first.c_str(), std::format(std::locale("en_US.UTF-8"), "{:L}", Object.second).c_str());
+		for (const std::pair<std::string, UINT64>& Object : Stats.TrianglesRendered)
+		{
+			ImGui::Text("%s: %s", Object.first.c_str(), std::format(std::locale("en_US.UTF-8"), "{:L}", Object.second).c_str());
+		}
 	}
-	ImGui::Unindent(20.f);
+
+	if (ImGui::CollapsingHeader("Instances Rendered:", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		for (const std::pair<std::string, UINT64>& Object : Stats.InstancesRendered)
+		{
+			ImGui::Text("%s: %s", Object.first.c_str(), std::format(std::locale("en_US.UTF-8"), "{:L}", Object.second).c_str());
+		}
+	}
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 

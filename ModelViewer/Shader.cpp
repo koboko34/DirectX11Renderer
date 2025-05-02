@@ -1,91 +1,40 @@
 #include "Shader.h"
-
-#include <cstdlib>
-#include <cwchar>
-#include <cstring>
-#include <fstream>
-
 #include "MyMacros.h"
+#include "ResourceManager.h"
 
 Shader::~Shader()
 {
 	Shutdown();
 }
 
-bool Shader::Initialise(ID3D11Device* Device, HWND hWnd)
+bool Shader::Initialise(ID3D11Device* Device)
 {
 	bool Result;
-	wchar_t vsFilename[128];
-	wchar_t psFilename[128];
-	int Error;
-	
-	Error = wcscpy_s(vsFilename, 128, L"Shaders/PhongVS.hlsl");
-	if (Error != 0)
-	{
-		return false;
-	}
-	
-	Error = wcscpy_s(psFilename, 128, L"Shaders/PhongPS.hlsl");
-	if (Error != 0)
-	{
-		return false;
-	}
+	m_vsFilename = "Shaders/PhongVS.hlsl";
+	m_psFilename = "Shaders/PhongPS.hlsl";
 
-	FALSE_IF_FAILED(InitialiseShader(Device, hWnd, vsFilename, psFilename));
+	FALSE_IF_FAILED(InitialiseShader(Device, m_vsFilename, m_psFilename));
 
 	return true;
 }
 
 void Shader::Shutdown()
 {
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_vsFilename, "main");
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 }
 
-bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename)
+bool Shader::InitialiseShader(ID3D11Device* Device, const char* vsFilename, const char* psFilename)
 {
 	HRESULT hResult;
-	Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
-	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
+	Microsoft::WRL::ComPtr<ID3D10Blob> vsBytecode;
 	D3D11_BUFFER_DESC MatrixBufferDesc = {};
 	D3D11_BUFFER_DESC LightBufferDesc = {};
 	D3D11_INPUT_ELEMENT_DESC VertexLayout[3] = {};
 	unsigned int NumElements;
 	
-	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, vsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, vsFilename, L"Missing shader file!", MB_OK);
-		}
-		
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, psFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, psFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
-	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
-	NAME_D3D_RESOURCE(m_VertexShader, "Standard shader vertex shader");
-	NAME_D3D_RESOURCE(m_PixelShader, "Standard shader pixel shader");
+	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(vsFilename, "main", vsBytecode);
+	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(psFilename, "main");
 
 	VertexLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	VertexLayout[0].SemanticName = "POSITION";
@@ -113,7 +62,7 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 
 	NumElements = sizeof(VertexLayout) / sizeof(VertexLayout[0]);
 
-	HFALSE_IF_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	HFALSE_IF_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBytecode->GetBufferPointer(), vsBytecode->GetBufferSize(), &m_InputLayout));
 	NAME_D3D_RESOURCE(m_InputLayout, "Standard shader input layout");
 
 	MatrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -133,51 +82,6 @@ bool Shader::InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename
 	NAME_D3D_RESOURCE(m_LightingBuffer, "Standard shader lighting buffer");
 
 	return true;
-}
-
-void Shader::OutputShaderErrorMessage(ID3D10Blob* ErrorMessage, HWND hWnd, WCHAR* ShaderFilename)
-{
-	char* CompileErrors;
-	unsigned long long BufferSize, i;
-	std::ofstream fout;
-
-	CompileErrors = (char*)(ErrorMessage->GetBufferPointer());
-	BufferSize = ErrorMessage->GetBufferSize();
-	fout.open("shader-error.txt");
-
-	const char* str1 = "Error compiling shader!\n\n";
-
-	size_t len1 = std::strlen(str1) + 1;
-	size_t len2 = std::strlen(CompileErrors) + 1;
-
-	wchar_t* wstr1 = new wchar_t[len1];
-	wchar_t* wstr2 = new wchar_t[len2];
-
-	size_t Converted1, Converted2;
-	mbstowcs_s(&Converted1, wstr1, len1, str1, len1 - 1);
-	mbstowcs_s(&Converted2, wstr2, len2, CompileErrors, len2 - 1);
-
-	size_t CombinedLen = len1 + len2 - 1;
-	wchar_t* CombinedWstr = new wchar_t[CombinedLen];
-
-	wcscpy_s(CombinedWstr, CombinedLen, wstr1);
-	wcscat_s(CombinedWstr, CombinedLen, wstr2);
-
-	for (i = 0; i < BufferSize; i++)
-	{
-		fout << CompileErrors[i];
-	}
-
-	fout.close();
-
-	ErrorMessage->Release();
-	ErrorMessage = 0;
-
-	MessageBox(hWnd, CombinedWstr, ShaderFilename, MB_OK);
-
-	delete[] wstr1;
-	delete[] wstr2;
-	delete[] CombinedWstr;
 }
 
 bool Shader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, DirectX::XMMATRIX World, DirectX::XMMATRIX View, DirectX::XMMATRIX Projection,
@@ -225,6 +129,6 @@ void Shader::ActivateShader(ID3D11DeviceContext* DeviceContext)
 {
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
 
-	DeviceContext->VSSetShader(m_VertexShader.Get(), NULL, 0u);
-	DeviceContext->PSSetShader(m_PixelShader.Get(), NULL, 0u);
+	DeviceContext->VSSetShader(m_VertexShader, NULL, 0u);
+	DeviceContext->PSSetShader(m_PixelShader, NULL, 0u);
 }

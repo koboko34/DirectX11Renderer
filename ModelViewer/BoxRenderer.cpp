@@ -5,14 +5,19 @@
 #include "MyMacros.h"
 #include "Camera.h"
 #include "Application.h"
-#include "Shader.h"
 #include "AABB.h"
+#include "ResourceManager.h"
 
 const UINT BoxIndices[12][2] = {
 	{0, 1}, {1, 3}, {3, 2}, {2, 0},
 	{4, 5}, {5, 7}, {7, 6}, {6, 4},
 	{0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
+
+BoxRenderer::~BoxRenderer()
+{
+	Shutdown();
+}
 
 bool BoxRenderer::Init()
 {
@@ -23,6 +28,12 @@ bool BoxRenderer::Init()
 	m_BoxCorners.resize(8);
 
 	return true;
+}
+
+void BoxRenderer::Shutdown()
+{
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11VertexShader>(m_vsFilename, "main");
+	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 }
 
 void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)
@@ -40,10 +51,10 @@ void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform
 	DeviceContext->IASetVertexBuffers(0u, 1u, Buffers, Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
-	DeviceContext->VSSetShader(m_VertexShader.Get(), nullptr, 0u);
+	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	DeviceContext->VSSetConstantBuffers(0u, 1u, m_VertexCBuffer.GetAddressOf());
 
-	DeviceContext->PSSetShader(m_PixelShader.Get(), nullptr, 0u);
+	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 
 	Graphics::GetSingletonPtr()->DisableDepthWrite();
 	Graphics::GetSingletonPtr()->DisableBlending();
@@ -54,61 +65,20 @@ void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform
 bool BoxRenderer::CreateShaders()
 {
 	HRESULT hResult;
-	Microsoft::WRL::ComPtr<ID3D10Blob> ErrorMessage;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
-	Microsoft::WRL::ComPtr<ID3D10Blob> psBuffer;
-	wchar_t vsFilename[32];
-	wchar_t psFilename[32];
 
-	HWND hWnd = Application::GetSingletonPtr()->GetWindowHandle();
-	ID3D11Device* Device = Graphics::GetSingletonPtr()->GetDevice();
+	m_vsFilename = "Shaders/FrustumRendererVS.hlsl";
+	m_psFilename = "Shaders/FrustumRendererPS.hlsl";
 
-	wcscpy_s(vsFilename, 32, L"Shaders/FrustumRendererVS.hlsl");
-	wcscpy_s(psFilename, 32, L"Shaders/FrustumRendererPS.hlsl");
-
-	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	hResult = D3DCompileFromFile(vsFilename, NULL, NULL, "main", "vs_5_0", CompileFlags, 0, &vsBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, vsFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, vsFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	hResult = D3DCompileFromFile(psFilename, NULL, NULL, "main", "ps_5_0", CompileFlags, 0, &psBuffer, &ErrorMessage);
-	if (FAILED(hResult))
-	{
-		if (ErrorMessage.Get())
-		{
-			Shader::OutputShaderErrorMessage(ErrorMessage.Get(), hWnd, psFilename);
-		}
-		else
-		{
-			MessageBox(hWnd, psFilename, L"Missing shader file!", MB_OK);
-		}
-
-		return false;
-	}
-
-	HFALSE_IF_FAILED(Device->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, &m_VertexShader));
-	HFALSE_IF_FAILED(Device->CreatePixelShader(psBuffer->GetBufferPointer(), psBuffer->GetBufferSize(), NULL, &m_PixelShader));
-
-	NAME_D3D_RESOURCE(m_VertexShader, "Box renderer vertex shader");
-	NAME_D3D_RESOURCE(m_PixelShader, "Box renderer pixel shader");
+	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
+	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename, "main");
 
 	D3D11_INPUT_ELEMENT_DESC LayoutDesc[1] = {};
 	LayoutDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	LayoutDesc[0].SemanticName = "POSITION";
 	LayoutDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 
-	HFALSE_IF_FAILED(Device->CreateInputLayout(LayoutDesc, _countof(LayoutDesc), vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateInputLayout(LayoutDesc, _countof(LayoutDesc), vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
 	NAME_D3D_RESOURCE(m_InputLayout, "Box renderer input layout");
 
 	return true;

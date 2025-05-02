@@ -41,12 +41,12 @@ private:
 	void UpdateBuffers();
 
 private:
+	ID3D11VertexShader* m_VertexShader;
+	ID3D11HullShader* m_HullShader;
+	ID3D11DomainShader* m_DomainShader;
+	ID3D11GeometryShader* m_GeometryShader;
+	ID3D11PixelShader* m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11HullShader> m_HullShader;
-	Microsoft::WRL::ComPtr<ID3D11DomainShader> m_DomainShader;
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> m_GeometryShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullCBuffer;
@@ -57,6 +57,12 @@ private:
 	Landscape* m_pLandscape;
 	float m_TessellationScale;
 	bool m_bShouldRender;
+
+	const char* m_vsFilename;
+	const char* m_hsFilename;
+	const char* m_dsFilename;
+	const char* m_gsFilename;
+	const char* m_psFilename;
 
 };
 

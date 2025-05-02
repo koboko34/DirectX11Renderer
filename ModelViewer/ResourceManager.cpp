@@ -21,6 +21,12 @@ ResourceManager* ResourceManager::GetSingletonPtr()
 	return ResourceManager::ms_Instance;
 }
 
+bool ResourceManager::Init(HWND hWnd)
+{
+	m_hWnd = hWnd;
+	return true;
+}
+
 void ResourceManager::Shutdown()
 {
 	assert(m_TexturesMap.empty() && m_ModelsMap.empty() && "Attempting to shutdown when resources are still loaded!");
@@ -43,7 +49,7 @@ ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepa
 		return nullptr;
 	}
 
-	m_TexturesMap[Filepath] = std::make_unique<Resource>(pData, Filepath);
+	m_TexturesMap[Filepath] = std::make_unique<Resource>(pData);
 	return pData;
 }
 
@@ -62,7 +68,7 @@ ModelData* ResourceManager::LoadModel(const std::string& ModelPath, const std::s
 		return nullptr;
 	}
 
-	m_ModelsMap[ModelPath] = std::make_unique<Resource>(pData, ModelPath);
+	m_ModelsMap[ModelPath] = std::make_unique<Resource>(pData);
 	return pData;
 }
 

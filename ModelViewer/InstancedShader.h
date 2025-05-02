@@ -58,25 +58,31 @@ private:
 
 public:
 	InstancedShader() {};
+	~InstancedShader();
 
-	bool Initialise(ID3D11Device* Device, HWND hWnd);
+	bool Initialise(ID3D11Device* Device);
+	void Shutdown();
+
 	void ActivateShader(ID3D11DeviceContext* DeviceContext);
-	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const std::vector<DirectX::XMMATRIX>& Transforms, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection,
-		const DirectX::XMFLOAT3& CameraPos, const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor);
+	bool SetShaderParameters(ID3D11DeviceContext* DeviceContext, const DirectX::XMMATRIX& View, const DirectX::XMMATRIX& Projection, const DirectX::XMFLOAT3& CameraPos,
+		const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor);
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetInputLayout() const { return m_InputLayout; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer>& GetInstanceBuffer() { return m_InstanceBuffer; }
 
 private:
-	bool InitialiseShader(ID3D11Device* Device, HWND hWnd, WCHAR* vsFilename, WCHAR* psFilename);
+	bool InitialiseShader(ID3D11Device* Device);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	ID3D11VertexShader* m_VertexShader;
+	ID3D11PixelShader* m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_MatrixBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LightingBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceBuffer;
+
+	const char* m_vsFilename;
+	const char* m_psFilename;
 };
 
 #endif
