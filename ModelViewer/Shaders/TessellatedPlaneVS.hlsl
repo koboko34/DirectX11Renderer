@@ -39,6 +39,18 @@ float2 GetHeightmapUV(float3 Pos)
 	return float2(x, z);
 }
 
+uint GenerateChunkID(float2 v)
+{
+	int2 i = int2(v * 65536.0f);
+	uint hash = uint(i.x) * 73856093u ^ uint(i.y) * 19349663u;
+	hash ^= (hash >> 13);
+	hash *= 0x85ebca6bu;
+	hash ^= (hash >> 16);
+
+	return hash;
+}
+
+
 VS_Out main(VS_In v)
 {
 	VS_Out o;
@@ -48,7 +60,7 @@ VS_Out main(VS_In v)
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.Pos.y = Height;
 	
-	o.ChunkID = v.InstanceID;
+	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
 	
 	return o;
 }
