@@ -32,8 +32,7 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device)
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 	D3D11_BUFFER_DESC MatrixBufferDesc = {};
 	D3D11_BUFFER_DESC LightBufferDesc = {};
-	D3D11_BUFFER_DESC InstanceBufferDesc = {};
-	D3D11_INPUT_ELEMENT_DESC VertexLayout[7] = {};
+	D3D11_INPUT_ELEMENT_DESC VertexLayout[3] = {};
 	unsigned int NumElements;
 
 	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
@@ -63,38 +62,6 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device)
 	VertexLayout[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	VertexLayout[2].InstanceDataStepRate = 0;
 
-	VertexLayout[3].SemanticName = "INSTANCE_TRANSFORM";
-	VertexLayout[3].SemanticIndex = 0;
-	VertexLayout[3].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	VertexLayout[3].InputSlot = 1;
-	VertexLayout[3].AlignedByteOffset = 0;
-	VertexLayout[3].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-	VertexLayout[3].InstanceDataStepRate = 1;
-
-	VertexLayout[4].SemanticName = "INSTANCE_TRANSFORM";
-	VertexLayout[4].SemanticIndex = 1;
-	VertexLayout[4].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	VertexLayout[4].InputSlot = 1;
-	VertexLayout[4].AlignedByteOffset = 16;
-	VertexLayout[4].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-	VertexLayout[4].InstanceDataStepRate = 1;
-
-	VertexLayout[5].SemanticName = "INSTANCE_TRANSFORM";
-	VertexLayout[5].SemanticIndex = 2;
-	VertexLayout[5].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	VertexLayout[5].InputSlot = 1;
-	VertexLayout[5].AlignedByteOffset = 32;
-	VertexLayout[5].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-	VertexLayout[5].InstanceDataStepRate = 1;
-
-	VertexLayout[6].SemanticName = "INSTANCE_TRANSFORM";
-	VertexLayout[6].SemanticIndex = 3;
-	VertexLayout[6].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	VertexLayout[6].InputSlot = 1;
-	VertexLayout[6].AlignedByteOffset = 48;
-	VertexLayout[6].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-	VertexLayout[6].InstanceDataStepRate = 1;
-
 	NumElements = _countof(VertexLayout);
 
 	HFALSE_IF_FAILED(Device->CreateInputLayout(VertexLayout, NumElements, vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), &m_InputLayout));
@@ -115,14 +82,6 @@ bool InstancedShader::InitialiseShader(ID3D11Device* Device)
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&LightBufferDesc, NULL, &m_LightingBuffer));
 	NAME_D3D_RESOURCE(m_LightingBuffer, "Instanced shader lighting buffer");
-
-	InstanceBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	InstanceBufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_INSTANCE_COUNT;
-	InstanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//InstanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	HFALSE_IF_FAILED(Device->CreateBuffer(&InstanceBufferDesc, NULL, &m_InstanceBuffer));
-	NAME_D3D_RESOURCE(m_InstanceBuffer, "Instanced shader instance buffer");
 
 	return true;
 }
@@ -184,11 +143,6 @@ bool InstancedShader::SetShaderParameters(ID3D11DeviceContext* DeviceContext, co
 
 	DeviceContext->PSSetConstantBuffers(psBufferSlot, 1u, m_LightingBuffer.GetAddressOf());
 	psBufferSlot++;
-
-	/*assert(Transforms.size() <= MAX_INSTANCE_COUNT);
-	ASSERT_NOT_FAILED(DeviceContext->Map(m_InstanceBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
-	memcpy(MappedResource.pData, Transforms.data(), sizeof(InstanceData) * Transforms.size());
-	DeviceContext->Unmap(m_InstanceBuffer.Get(), 0u);*/
 
 	return true;
 }

@@ -46,15 +46,14 @@ void ModelData::Shutdown()
 void ModelData::Render()
 {
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
-	UINT Strides[2] = { sizeof(Vertex), sizeof(InstanceData) };
-	UINT Offsets[2] = { 0u, 0u };
-	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), Application::GetSingletonPtr()->GetInstancedShader()->GetInstanceBuffer().Get() }; // TODO: try bind the culled transforms buffer directly here
-	
-	CopyCulledTransforms(); // instead of this
+	UINT Strides[] = { sizeof(Vertex) };
+	UINT Offsets[] = { 0u, };
 
-	DeviceContext->IASetVertexBuffers(0u, 2u, Buffers, Strides, Offsets);
+	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	DeviceContext->VSSetShaderResources(0u, 1u, Application::GetSingletonPtr()->GetFrustumCuller()->GetCulledTransformsSRV().GetAddressOf());
 
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
 	Graphics::GetSingletonPtr()->DisableBlending();
@@ -201,10 +200,4 @@ void ModelData::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 		//DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)m_CulledTransforms.size(), m->m_IndicesOffset, 0, 0u);
 		DeviceContext->DrawIndexedInstancedIndirect(m->GetArgsBuffer().Get(), 0u);
 	}
-}
-
-void ModelData::CopyCulledTransforms()
-{
-	Application* pApp = Application::GetSingletonPtr();
-	Graphics::GetSingletonPtr()->GetDeviceContext()->CopyResource(pApp->GetInstancedShader()->GetInstanceBuffer().Get(), pApp->GetFrustumCuller()->GetCulledTransformsBuffer().Get());
 }

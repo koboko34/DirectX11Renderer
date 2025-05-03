@@ -16,11 +16,6 @@
 class PointLight;
 class DirectionalLight;
 
-struct InstanceData
-{
-	DirectX::XMMATRIX Transform;
-};
-
 class InstancedShader
 {
 private:
@@ -68,7 +63,6 @@ public:
 		const std::vector<PointLight*>& PointLights, const std::vector<DirectionalLight*>& DirLights, const DirectX::XMFLOAT3& SkylightColor);
 
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> GetInputLayout() const { return m_InputLayout; }
-	Microsoft::WRL::ComPtr<ID3D11Buffer>& GetInstanceBuffer() { return m_InstanceBuffer; }
 
 private:
 	bool InitialiseShader(ID3D11Device* Device);
@@ -79,7 +73,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_MatrixBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LightingBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceBuffer;
 
 	const char* m_vsFilename;
 	const char* m_psFilename;

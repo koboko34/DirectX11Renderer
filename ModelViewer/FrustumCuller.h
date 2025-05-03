@@ -34,6 +34,7 @@ public:
 
 	//bool GetBufferData(std::vector<DirectX::XMMATRIX>& OutTransforms);
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetCulledTransformsBuffer() const { return m_CulledTransformsBuffer; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledTransformsSRV() const { return m_CulledTransformsSRV; }
 
 private:
 	bool CreateBuffers();
@@ -52,6 +53,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceCountBuffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_InstanceCountBufferUAV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_TransformsSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_CulledTransformsSRV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledTransformsUAV;
 
 	const char* m_csFilename;

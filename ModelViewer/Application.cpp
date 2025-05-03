@@ -106,11 +106,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
 
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
-	m_GameObjects.back()->SetName("Plane");
-	m_GameObjects.back()->SetScale(50.f, 50.f, 50.f);
-	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/plane.obj"));
-
-	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
 	m_GameObjects.back()->SetScale(0.1f, 0.1f, 0.1f);
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/sphere.obj"));

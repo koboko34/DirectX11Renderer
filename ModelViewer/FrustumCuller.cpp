@@ -123,7 +123,7 @@ bool FrustumCuller::CreateBuffers()
 
 	Desc.CPUAccessFlags = 0;
 	Desc.Usage = D3D11_USAGE_DEFAULT;
-	Desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	Desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&Desc, nullptr, &m_CulledTransformsBuffer));
 	NAME_D3D_RESOURCE(m_CulledTransformsBuffer, "Frustum culler culled transforms buffer");
@@ -179,6 +179,9 @@ bool FrustumCuller::CreateBufferViews()
 
 	HFALSE_IF_FAILED(Device->CreateShaderResourceView(m_TransformsBuffer.Get(), &SRVDesc, &m_TransformsSRV));
 	NAME_D3D_RESOURCE(m_TransformsSRV, "Frustum culler transforms buffer SRV");
+
+	HFALSE_IF_FAILED(Device->CreateShaderResourceView(m_CulledTransformsBuffer.Get(), &SRVDesc, &m_CulledTransformsSRV));
+	NAME_D3D_RESOURCE(m_CulledTransformsSRV, "Frustum culler culled transforms buffer SRV");
 
 	uavDesc = {};
 	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;

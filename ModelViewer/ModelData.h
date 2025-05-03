@@ -62,7 +62,6 @@ private:
 	void LoadMaterials(const aiScene* Scene);
 
 	void RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes);
-	void CopyCulledTransforms();
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
