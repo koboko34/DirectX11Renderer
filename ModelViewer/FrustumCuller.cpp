@@ -40,20 +40,20 @@ void FrustumCuller::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11ComputeShader>(m_csFilename, "TransferInstanceCount");
 }
 
-/*bool FrustumCuller::GetBufferData(std::vector<DirectX::XMMATRIX>& OutTransforms)
+UINT FrustumCuller::GetInstanceCount()
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE Data = {};
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 
-	DeviceContext->CopyResource(m_StagingBuffer.Get(), m_CulledTransformsBuffer.Get());
+	DeviceContext->CopyResource(m_StagingBuffer.Get(), m_InstanceCountBuffer.Get());
 	
-	HFALSE_IF_FAILED(DeviceContext->Map(m_StagingBuffer.Get(), 0u, D3D11_MAP_READ, 0u, &Data));
-	memcpy(OutTransforms.data(), Data.pData, sizeof(DirectX::XMMATRIX) * OutTransforms.size());
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_StagingBuffer.Get(), 0u, D3D11_MAP_READ, 0u, &Data));
+	UINT InstanceCount = *static_cast<UINT*>(Data.pData);
 	DeviceContext->Unmap(m_StagingBuffer.Get(), 0u);
 
-	return true;
-}*/
+	return InstanceCount;
+}
 
 void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj)
 {
@@ -139,7 +139,7 @@ bool FrustumCuller::CreateBuffers()
 
 	Desc = {};
 	Desc.Usage = D3D11_USAGE_STAGING;
-	Desc.ByteWidth = (UINT)(sizeof(DirectX::XMMATRIX) * MAX_INSTANCE_COUNT);
+	Desc.ByteWidth = sizeof(UINT);
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&Desc, nullptr, &m_StagingBuffer));

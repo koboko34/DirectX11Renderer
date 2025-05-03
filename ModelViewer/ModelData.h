@@ -45,8 +45,10 @@ public:
 	std::unordered_set<std::string>& GetTexturePathsSet() { return m_TexturePathsSet; }
 
 	std::vector<DirectX::XMMATRIX>& GetTransforms() { return m_Transforms; }
-	std::vector<DirectX::XMMATRIX>& GetCulledTransforms() { return m_CulledTransforms; }
 	AABB& GetBoundingBox() { return m_BoundingBox; }
+
+	UINT GetInstanceCount() const { return m_InstanceCount; }
+	void SetInstanceCount(UINT Count) { m_InstanceCount = Count; }
 
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
@@ -77,8 +79,9 @@ private:
 	std::unordered_set<std::string> m_TexturePathsSet;
 
 	std::vector<DirectX::XMMATRIX> m_Transforms;
-	std::vector<DirectX::XMMATRIX> m_CulledTransforms;
 	AABB m_BoundingBox;
+
+	UINT m_InstanceCount;
 	
 	std::string m_ModelPath;
 	std::string m_TexturesPath;

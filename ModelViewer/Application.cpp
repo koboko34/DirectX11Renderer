@@ -91,7 +91,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 	m_GameObjects.push_back(m_Cameras.back());
 
-	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
 	m_GameObjects.back()->SetName("Car_1");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
@@ -99,7 +99,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->SetName("Car_2");
-	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));*/
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
 
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
@@ -251,6 +251,7 @@ bool Application::Render()
 		}
 	}
 
+	// TODO: refactor this to also use the culled transforms
 	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
 	for (const auto& ModelPair : Models)
 	{
@@ -308,12 +309,12 @@ void Application::RenderModels()
 
 	for (const auto& ModelPair : Models)
 	{
-		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
 		if (!pModelData)
 			continue;
 
 		pModelData->GetTransforms().clear();
-		//pModelData->GetCulledTransforms().clear();
+		pModelData->SetInstanceCount(0u);
 	}
 
 	std::vector<PointLight*> PointLights;
@@ -350,19 +351,15 @@ void Application::RenderModels()
 			continue;
 		
 		// AABB frustum culling on transforms
-		//FrustumCullModel(pModelData);
-
 		m_FrustumCuller->DispatchShader(pModelData->GetTransforms(), pModelData->GetBoundingBox().Corners, ViewProj);
+		
+		UINT InstanceCount = m_FrustumCuller->GetInstanceCount();
+		pModelData->SetInstanceCount(InstanceCount);
 
-		//bool bResult = m_FrustumCuller->GetBufferData(pModelData->GetCulledTransforms());
-		//assert(bResult);
-
-		//const std::vector<DirectX::XMMATRIX>& CulledTransforms = pModelData->GetCulledTransforms();
-
-		/*if (CulledTransforms.empty())
+		if (InstanceCount == 0)
 			continue;
 
-		m_RenderStats.InstancesRendered.push_back(std::make_pair(pModelData->GetModelPath(), CulledTransforms.size()));*/ // this will not work now
+		m_RenderStats.InstancesRendered.push_back(std::make_pair(pModelData->GetModelPath(), InstanceCount));
 		
 		m_InstancedShader->ActivateShader(m_Graphics->GetDeviceContext());
 		m_InstancedShader->SetShaderParameters(
@@ -414,33 +411,6 @@ void Application::RenderImGui()
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
-
-/*void Application::FrustumCullModel(ModelData* pModel)
-{
-	DirectX::XMMATRIX ViewProj = m_MainCamera->GetViewProjMatrix();
-	const AABB& BBox = pModel->GetBoundingBox();
-	const float Bias = 0.01f;
-
-	for (size_t i = 0; i < pModel->GetTransforms().size(); i++)
-	{
-		DirectX::XMMATRIX ColumnMajorTransform = DirectX::XMMatrixTranspose(pModel->GetTransforms()[i]);
-
-		for (size_t j = 0; j < 8; j++)
-		{
-			DirectX::XMVECTOR Corner = DirectX::XMVectorSet(BBox.Corners[j].x, BBox.Corners[j].y, BBox.Corners[j].z, 1.f);
-
-			DirectX::XMVECTOR TransformedCornerVec = DirectX::XMVector4Transform(Corner, ColumnMajorTransform * ViewProj);
-			DirectX::XMFLOAT4 TransformedCorner;
-			DirectX::XMStoreFloat4(&TransformedCorner, TransformedCornerVec);
-
-			if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias && (TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
-			{
-				pModel->GetCulledTransforms().push_back(pModel->GetTransforms()[i]);
-				break;
-			}
-		}
-	}
-}*/
 
 void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetView> CurrentRTV, Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV,
 										Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV, bool& DrawingForward)

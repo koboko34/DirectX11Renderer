@@ -31,7 +31,6 @@ bool ModelData::Initialise(ID3D11Device* Device, ID3D11DeviceContext* DeviceCont
 	bool Result;
 	m_ModelPath = ModelFilename;
 	m_TexturesPath = TexturesPath;
-	m_CulledTransforms.resize(MAX_INSTANCE_COUNT);
 
 	FALSE_IF_FAILED(LoadModel());
 
