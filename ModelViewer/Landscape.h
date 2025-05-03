@@ -53,20 +53,26 @@ public:
 	void SetShouldRender(bool bNewShouldRender) { m_bShouldRender = bNewShouldRender; }
 	bool ShouldRender() const { return m_bShouldRender; }
 
+	float GetHeightDisplacement() const { return m_HeightDisplacement; }
+	void SetHeightDisplacement(float NewHeight);
+	std::vector<DirectX::XMMATRIX>& GetChunkTransforms() { return m_ChunkTransforms; }
+
+	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
+
 private:
 	bool CreateBuffers();
 	void UpdateBuffers();
 
-	void GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTransforms);
+	void GenerateChunkTransforms();
 	void PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise = true);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ChunkTransformsCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LandscapeInfoCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CullingCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CameraCBuffer;
 
-	std::unique_ptr<TessellatedPlane> m_Plane;
+	std::shared_ptr<TessellatedPlane> m_Plane;
+	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
 
 	bool m_bShouldRender;
 	bool m_bVisualiseChunks;

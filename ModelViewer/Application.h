@@ -61,6 +61,7 @@ public:
 
 	InstancedShader* GetInstancedShader() { return m_InstancedShader.get(); }
 	std::shared_ptr<FrustumCuller> GetFrustumCuller() { return m_FrustumCuller; }
+	std::shared_ptr<BoxRenderer> GetBoxRenderer() { return m_BoxRenderer; }
 
 	std::vector<std::shared_ptr<GameObject>>& GetGameObjects() { return m_GameObjects; }
 	std::vector<std::shared_ptr<Camera>>& GetCameras() { return m_Cameras; }
@@ -68,6 +69,7 @@ public:
 
 	double GetDeltaTime() const { return m_DeltaTime; }
 	RenderStats& GetRenderStatsRef() { return m_RenderStats; }
+	bool& GetShowBoundingBoxesRef() { return m_bShowBoundingBoxes; }
 
 private:
 	bool Render();
@@ -93,8 +95,8 @@ private:
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
 	std::unique_ptr<FrustumRenderer> m_FrustumRenderer;
-	std::unique_ptr<BoxRenderer> m_BoxRenderer;
 	std::unique_ptr<Skybox> m_Skybox;
+	std::shared_ptr<BoxRenderer> m_BoxRenderer;
 	std::shared_ptr<FrustumCuller> m_FrustumCuller;
 	std::shared_ptr<Landscape> m_Landscape;
 	std::shared_ptr<Camera> m_ActiveCamera;
@@ -113,6 +115,7 @@ private:
 	int m_ActiveCameraID;
 	bool m_bShowCursor = false;
 	bool m_bCursorToggleReleased = true;
+	bool m_bShowBoundingBoxes = false;
 
 	RenderStats m_RenderStats;
 

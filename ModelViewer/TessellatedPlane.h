@@ -9,6 +9,7 @@
 #include "wrl.h"
 
 #include "GameObject.h"
+#include "AABB.h"
 
 class TessellatedPlane : public GameObject
 {
@@ -34,9 +35,12 @@ public:
 	void SetShouldRender(bool bNewShouldRender) { m_bShouldRender = bNewShouldRender; }
 	bool ShouldRender() const { return m_bShouldRender; }
 
+	AABB& GetBoundingBox() { return m_BoundingBox; }
+
 private:
 	bool CreateShaders();
 	bool CreateBuffers();
+	void SetupAABB();
 
 	void UpdateBuffers();
 
@@ -50,11 +54,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_HullCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ArgsBuffer;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ArgsBufferUAV;
 
 	ID3D11ShaderResourceView* m_HeightmapSRV;
 	std::string m_HeightMapFilepath;
 
 	Landscape* m_pLandscape;
+	AABB m_BoundingBox;
 	float m_TessellationScale;
 	bool m_bShouldRender;
 

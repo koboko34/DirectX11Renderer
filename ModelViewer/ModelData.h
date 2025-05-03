@@ -47,9 +47,6 @@ public:
 	std::vector<DirectX::XMMATRIX>& GetTransforms() { return m_Transforms; }
 	AABB& GetBoundingBox() { return m_BoundingBox; }
 
-	UINT GetInstanceCount() const { return m_InstanceCount; }
-	void SetInstanceCount(UINT Count) { m_InstanceCount = Count; }
-
 	std::string GetModelPath() const { return m_ModelPath; }
 	std::string GetTexturesPath() const { return m_TexturesPath; }
 
@@ -80,8 +77,6 @@ private:
 
 	std::vector<DirectX::XMMATRIX> m_Transforms;
 	AABB m_BoundingBox;
-
-	UINT m_InstanceCount;
 	
 	std::string m_ModelPath;
 	std::string m_TexturesPath;

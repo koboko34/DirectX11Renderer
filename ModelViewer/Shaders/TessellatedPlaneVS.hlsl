@@ -1,14 +1,9 @@
 Texture2D Heightmap : register(t0);
+StructuredBuffer<float4x4> Transforms : register(t1);
+
 SamplerState Sampler : register(s0);
 
-#define MAX_PLANE_CHUNKS 1024
-
-cbuffer InstanceBuffer : register(b0)
-{
-	float4x4 Transforms[MAX_PLANE_CHUNKS];
-};
-
-cbuffer PlaneInfoBuffer : register(b1)
+cbuffer PlaneInfoBuffer : register(b0)
 {
 	float PlaneDimension;
 	float HeightDisplacement;

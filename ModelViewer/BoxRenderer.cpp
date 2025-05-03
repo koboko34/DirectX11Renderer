@@ -38,6 +38,9 @@ void BoxRenderer::Shutdown()
 
 void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)
 {
+	Graphics::GetSingletonPtr()->DisableBlending();
+	Graphics::GetSingletonPtr()->EnableDepthWrite();
+	
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	UINT Strides[] = { sizeof(DirectX::XMFLOAT3), 0u };
 	UINT Offsets[] = { 0u };

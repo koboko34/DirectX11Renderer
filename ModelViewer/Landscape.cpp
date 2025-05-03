@@ -32,14 +32,13 @@ bool Landscape::Init(const std::string& HeightMapFilepath, float TessellationSca
 	m_Plane = std::make_unique<TessellatedPlane>();
 	FALSE_IF_FAILED(m_Plane->Init(HeightMapFilepath, TessellationScale, this));
 
+	GenerateChunkTransforms();
+
 	return true;
 }
 
 void Landscape::Render()
 {
-	Graphics::GetSingletonPtr()->EnableDepthWrite();
-	Graphics::GetSingletonPtr()->DisableBlending();
-
 	UpdateBuffers();
 
 	if (m_Plane->ShouldRender())
@@ -50,7 +49,6 @@ void Landscape::Render()
 
 void Landscape::Shutdown()
 {
-	m_ChunkTransformsCBuffer.Reset();
 	m_LandscapeInfoCBuffer.Reset();
 	m_CameraCBuffer.Reset();
 	m_Plane.reset();
@@ -60,7 +58,11 @@ void Landscape::RenderControls()
 {
 	ImGui::Text("Landscape");
 	
-	ImGui::DragFloat("Height Displacement", &m_HeightDisplacement, 0.1f, 0.f, 256.f, "%.f", ImGuiSliderFlags_AlwaysClamp);
+	float HeightDisplacement = m_HeightDisplacement;
+	if (ImGui::DragFloat("Height Displacement", &HeightDisplacement, 0.1f, 0.f, 256.f, "%.f", ImGuiSliderFlags_AlwaysClamp))
+	{
+		SetHeightDisplacement(HeightDisplacement);
+	}
 
 	ImGui::Checkbox("Should Render?", &m_bShouldRender);
 	ImGui::Checkbox("Visualise Chunks?", &m_bVisualiseChunks);
@@ -70,26 +72,21 @@ void Landscape::RenderControls()
 	m_Plane->RenderControls();
 }
 
+void Landscape::SetHeightDisplacement(float NewHeight)
+{
+	m_HeightDisplacement = NewHeight;
+	m_Plane->SetupAABB();
+}
+
 bool Landscape::CreateBuffers()
 {
 	HRESULT hResult;
 	D3D11_BUFFER_DESC Desc = {};
 
-	Desc.Usage = D3D11_USAGE_IMMUTABLE;
-	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	Desc.ByteWidth = sizeof(TransformCBuffer) * MAX_PLANE_CHUNKS;
-
-	std::vector<DirectX::XMMATRIX> ChunkTransforms(MAX_PLANE_CHUNKS, DirectX::XMMatrixIdentity());
-	GenerateChunkTransforms(ChunkTransforms);
-	D3D11_SUBRESOURCE_DATA Data = {};
-	Data.pSysMem = ChunkTransforms.data();
-
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_ChunkTransformsCBuffer));
-	NAME_D3D_RESOURCE(m_ChunkTransformsCBuffer, "Landscape chunk transforms constant buffer");
-
 	Desc.Usage = D3D11_USAGE_DYNAMIC;
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	Desc.ByteWidth = sizeof(CullingCBuffer);
+	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_CullingCBuffer));
 	NAME_D3D_RESOURCE(m_CullingCBuffer, "Landscape culling constant buffer");
@@ -141,12 +138,13 @@ void Landscape::UpdateBuffers()
 	DeviceContext->Unmap(m_LandscapeInfoCBuffer.Get(), 0u);
 }
 
-void Landscape::GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTransforms)
+void Landscape::GenerateChunkTransforms()
 {
 	float ChunkHalf = m_ChunkSize / 2.f;
 	float HalfCount = (float)m_ChunkDimension / 2.f;
 	int chunkID = 0;
 
+	m_ChunkTransforms.resize(m_NumChunks, DirectX::XMMatrixIdentity());
 	for (UINT z = 0; z < m_ChunkDimension; z++)
 	{
 		float WorldZ = ((int)z - HalfCount) * m_ChunkSize + m_ChunkSize * 0.5f;
@@ -155,9 +153,9 @@ void Landscape::GenerateChunkTransforms(std::vector<DirectX::XMMATRIX>& ChunkTra
 			float WorldX = ((int)x - HalfCount) * m_ChunkSize + m_ChunkSize * 0.5f;
 
 			DirectX::XMMATRIX ChunkTransform = DirectX::XMMatrixIdentity();
-			ChunkTransform *= DirectX::XMMatrixScaling(m_ChunkSize, m_ChunkSize, m_ChunkSize);
+			ChunkTransform *= DirectX::XMMatrixScaling(m_ChunkSize, 1.f, m_ChunkSize);
 			ChunkTransform *= DirectX::XMMatrixTranslation(WorldX, 0.f, WorldZ);
-			ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
+			m_ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
 		}
 	}
 }

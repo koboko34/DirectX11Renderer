@@ -11,6 +11,8 @@
 #include "ResourceManager.h"
 #include "Common.h"
 #include "Landscape.h"
+#include "FrustumCuller.h"
+#include "BoxRenderer.h"
 
 struct PlaneVertex
 {
@@ -29,6 +31,13 @@ const UINT ChunkIndices[] =
 {
 	0, 1, 2, 3
 };
+
+void TessellatedPlane::SetupAABB()
+{
+	m_BoundingBox.Min = { -0.5f, 0.f, -0.5 };
+	m_BoundingBox.Max = {  0.5f, m_pLandscape->GetHeightDisplacement(), 0.5 };
+	m_BoundingBox.CalcCorners();
+}
 
 TessellatedPlane::TessellatedPlane()
 {
@@ -54,33 +63,38 @@ bool TessellatedPlane::Init(const std::string& HeightMapFilepath, float Tessella
 	m_HeightMapFilepath = HeightMapFilepath;
 	m_TessellationScale = TessellationScale;
 	m_pLandscape = pLandscape;
+
+	SetupAABB();
 	
 	return true;
 }
 
 void TessellatedPlane::Render()
 {
+	Application* pApp = Application::GetSingletonPtr();
+	pApp->GetFrustumCuller()->DispatchShader(m_pLandscape->GetChunkTransforms(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix());
+	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
+	UINT InstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
+
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
 	Graphics::GetSingletonPtr()->DisableBlending();
-
 	UpdateBuffers();
 
 	Graphics* pGraphics = Graphics::GetSingletonPtr();
 	ID3D11DeviceContext* DeviceContext = pGraphics->GetDeviceContext();
-	UINT Strides[] = { sizeof(PlaneVertex), 0u };
-	UINT Offsets[] = { 0u, 0u };
-	ID3D11Buffer* Buffers[2] = { m_VertexBuffer.Get(), nullptr };
+	UINT Strides[] = { sizeof(PlaneVertex) };
+	UINT Offsets[] = { 0u };
 
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
-	DeviceContext->IASetVertexBuffers(0u, 2u, Buffers, Strides, Offsets);
+	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
+	ID3D11ShaderResourceView* vsSRVs[] = { m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get() };
 	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
-	DeviceContext->VSSetConstantBuffers(0u, 1u, m_pLandscape->m_ChunkTransformsCBuffer.GetAddressOf());
-	DeviceContext->VSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
-	DeviceContext->VSSetShaderResources(0u, 1u, &m_HeightmapSRV);
-	DeviceContext->VSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
+	DeviceContext->VSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
+	DeviceContext->VSSetShaderResources(0u, 2u, vsSRVs);
+	DeviceContext->VSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	DeviceContext->HSSetShader(m_HullShader, nullptr, 0u);
 	DeviceContext->HSSetConstantBuffers(0u, 1u, m_HullCBuffer.GetAddressOf());
@@ -89,7 +103,7 @@ void TessellatedPlane::Render()
 	DeviceContext->DSSetConstantBuffers(0u, 1u, m_pLandscape->m_CameraCBuffer.GetAddressOf());
 	DeviceContext->DSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->DSSetShaderResources(0u, 1u, &m_HeightmapSRV);
-	DeviceContext->DSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
+	DeviceContext->DSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	DeviceContext->GSSetShader(m_GeometryShader, nullptr, 0u);
 	DeviceContext->GSSetConstantBuffers(0u, 1u, m_pLandscape->m_CullingCBuffer.GetAddressOf());
@@ -97,10 +111,10 @@ void TessellatedPlane::Render()
 	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	DeviceContext->PSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
-	DeviceContext->PSSetSamplers(0u, 1u, Graphics::GetSingletonPtr()->GetSamplerState().GetAddressOf());
+	DeviceContext->PSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	DeviceContext->Begin(pGraphics->GetPipelineStatsQuery().Get());
-	DeviceContext->DrawIndexedInstanced(4u, m_pLandscape->m_NumChunks, 0u, 0u, 0u);
+	DeviceContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
 	DeviceContext->End(pGraphics->GetPipelineStatsQuery().Get());
 
 	D3D11_QUERY_DATA_PIPELINE_STATISTICS Stats = {};
@@ -110,11 +124,16 @@ void TessellatedPlane::Render()
 	}
 
 	Application::GetSingletonPtr()->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Tessellated Plane", Stats.GSPrimitives));
-	Application::GetSingletonPtr()->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Tessellated Plane chunks", m_pLandscape->m_NumChunks)); // not yet doing frustum culling on chunks
+	Application::GetSingletonPtr()->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Tessellated Plane chunks", InstanceCount));
 
+	ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
+	DeviceContext->VSSetShaderResources(0u, 2u, NullSRVs);
+
+	DeviceContext->VSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->HSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->DSSetShader(nullptr, nullptr, 0u);
 	DeviceContext->GSSetShader(nullptr, nullptr, 0u);
+	DeviceContext->PSSetShader(nullptr, nullptr, 0u);
 }
 
 void TessellatedPlane::Shutdown()
@@ -174,7 +193,6 @@ bool TessellatedPlane::CreateShaders()
 bool TessellatedPlane::CreateBuffers()
 {
 	HRESULT hResult;
-
 	D3D11_BUFFER_DESC Desc = {};
 	Desc.Usage = D3D11_USAGE_IMMUTABLE;
 	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -201,6 +219,34 @@ bool TessellatedPlane::CreateBuffers()
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_HullCBuffer));
 	NAME_D3D_RESOURCE(m_HullCBuffer, "Tessellated plane hull constant buffer");
+
+	Desc = {};
+	Desc.ByteWidth = sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS);
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS | D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+	D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS ArgsData;
+	ArgsData.IndexCountPerInstance = sizeof(ChunkIndices) / sizeof(UINT);
+	ArgsData.InstanceCount = 0u;
+	ArgsData.StartIndexLocation = 0u;
+	ArgsData.BaseVertexLocation = 0;
+	ArgsData.StartInstanceLocation = 0u;
+
+	Data = {};
+	Data.pSysMem = &ArgsData;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_ArgsBuffer));
+	NAME_D3D_RESOURCE(m_ArgsBuffer, "Tessellated plane args buffer");
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+	uavDesc.Buffer.NumElements = sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS) / 4;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateUnorderedAccessView(m_ArgsBuffer.Get(), &uavDesc, &m_ArgsBufferUAV));
+	NAME_D3D_RESOURCE(m_ArgsBufferUAV, "Tessellated plane args buffer UAV");
 	
 	return true;
 }

@@ -120,6 +120,8 @@ void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
 	ImGui::Text("Frame Time: %.3f ms/frame", Stats.FrameTime);
 	ImGui::Text("FPS: %.1f", Stats.FPS);
 
+	ImGui::Checkbox("Show Bounding Boxes", &Application::GetSingletonPtr()->GetShowBoundingBoxesRef());
+
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	if (ImGui::CollapsingHeader("Triangles Rendered:", ImGuiTreeNodeFlags_DefaultOpen))

@@ -43,7 +43,7 @@ VS_Out main(VS_In v)
 	
 	o.TexCoord = v.TexCoord;
 	
-	o.WorldNormal = mul(mul(float4(v.Normal, 0.f), AccumulatedModelMatrix), CulledTransforms[v.InstanceID]).xyz; // correct as long as I use uniform scaling
+	o.WorldNormal = mul(mul(float4(v.Normal, 0.f), AccumulatedModelMatrix), CulledTransforms[v.InstanceID]).xyz; // TODO: correct as long as I use uniform scaling, come back and fix
 	o.WorldNormal = normalize(o.WorldNormal);
 	
 	return o;

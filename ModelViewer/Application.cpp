@@ -26,6 +26,7 @@
 #include "FrustumRenderer.h"
 #include "BoxRenderer.h"
 #include "FrustumCuller.h"
+#include "TessellatedPlane.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -251,17 +252,25 @@ bool Application::Render()
 		}
 	}
 
-	// TODO: refactor this to also use the culled transforms
-	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
-	for (const auto& ModelPair : Models)
+	if (m_bShowBoundingBoxes)
 	{
-		ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
-		if (!pModelData)
-			continue;
-
-		for (const auto& t : pModelData->GetTransforms())
+		// TODO: refactor this to also use the culled transforms
+		std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
+		for (const auto& ModelPair : Models)
 		{
-			m_BoxRenderer->RenderBox(pModelData->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
+			ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
+			if (!pModelData)
+				continue;
+
+			for (const auto& t : pModelData->GetTransforms())
+			{
+				m_BoxRenderer->RenderBox(pModelData->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
+			}
+		}
+
+		for (const auto& t : m_Landscape->GetChunkTransforms())
+		{
+			m_BoxRenderer->RenderBox(m_Landscape->GetPlane()->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
 		}
 	}
 
@@ -314,7 +323,6 @@ void Application::RenderModels()
 			continue;
 
 		pModelData->GetTransforms().clear();
-		pModelData->SetInstanceCount(0u);
 	}
 
 	std::vector<PointLight*> PointLights;
@@ -354,8 +362,6 @@ void Application::RenderModels()
 		m_FrustumCuller->DispatchShader(pModelData->GetTransforms(), pModelData->GetBoundingBox().Corners, ViewProj);
 		
 		UINT InstanceCount = m_FrustumCuller->GetInstanceCount();
-		pModelData->SetInstanceCount(InstanceCount);
-
 		if (InstanceCount == 0)
 			continue;
 
