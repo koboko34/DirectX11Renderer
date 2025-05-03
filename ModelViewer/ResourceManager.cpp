@@ -45,7 +45,7 @@ ID3D11ShaderResourceView* ResourceManager::LoadTexture(const std::string& Filepa
 	if (it != m_TexturesMap.end() && it->second.get())
 	{
 		it->second->AddRef();
-		return reinterpret_cast<ID3D11ShaderResourceView*>(it->second->m_pData);
+		return static_cast<ID3D11ShaderResourceView*>(it->second->m_pData);
 	}
 
 	ID3D11ShaderResourceView* pData = Internal_LoadTexture(Filepath.c_str());
@@ -64,7 +64,7 @@ ModelData* ResourceManager::LoadModel(const std::string& ModelPath, const std::s
 	if (it != m_ModelsMap.end() && it->second.get())
 	{
 		it->second->AddRef();
-		return reinterpret_cast<ModelData*>(it->second->m_pData);
+		return static_cast<ModelData*>(it->second->m_pData);
 	}
 
 	ModelData* pData = Internal_LoadModel(ModelPath.c_str(), TexturesPath.c_str());
@@ -195,14 +195,14 @@ ModelData* ResourceManager::Internal_LoadModel(const char* ModelPath, const char
 
 void ResourceManager::Internal_UnloadTexture(const std::string& Filepath)
 {
-	ID3D11ShaderResourceView* SRV = reinterpret_cast<ID3D11ShaderResourceView*>(m_TexturesMap[Filepath]->m_pData);
+	ID3D11ShaderResourceView* SRV = static_cast<ID3D11ShaderResourceView*>(m_TexturesMap[Filepath]->m_pData);
 	SRV->Release();
 	m_TexturesMap.erase(Filepath);
 }
 
 void ResourceManager::Internal_UnloadModel(const std::string& Filepath)
 {
-	ModelData* pModelData = reinterpret_cast<ModelData*>(m_ModelsMap[Filepath]->m_pData);
+	ModelData* pModelData = static_cast<ModelData*>(m_ModelsMap[Filepath]->m_pData);
 	pModelData->Shutdown();
 	m_ModelsMap.erase(Filepath);
 }

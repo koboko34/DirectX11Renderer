@@ -65,7 +65,7 @@ void Material::LoadTexture(const std::string& Path, int& TextureIndex)
 		// not loaded, load and add index to map
 		ResourceManager* pResManager = ResourceManager::GetSingletonPtr();
 
-		ID3D11ShaderResourceView* SRV = reinterpret_cast<ID3D11ShaderResourceView*>(pResManager->LoadTexture(Path.c_str()));
+		ID3D11ShaderResourceView* SRV = static_cast<ID3D11ShaderResourceView*>(pResManager->LoadTexture(Path.c_str()));
 		Textures.push_back(SRV);
 
 		UINT Index = (UINT)Textures.size() - 1;

@@ -82,7 +82,7 @@ inline T* ResourceManager::LoadShader(const std::string& Filepath, const std::st
 		if (iter != it->second.end())
 		{
 			iter->second->ShaderRes->AddRef();
-			return reinterpret_cast<T*>(iter->second->ShaderRes->m_pData);
+			return static_cast<T*>(iter->second->ShaderRes->m_pData);
 		}
 	}
 
@@ -93,7 +93,7 @@ inline T* ResourceManager::LoadShader(const std::string& Filepath, const std::st
 		return nullptr;
 	}
 
-	m_ShadersMap[Filepath][Entry]->ShaderRes = std::make_unique<Resource>(reinterpret_cast<void*>(pData));
+	m_ShadersMap[Filepath][Entry]->ShaderRes = std::make_unique<Resource>(pData);
 
 	return pData;
 }
@@ -172,7 +172,7 @@ inline T* ResourceManager::Internal_LoadShader(const char* Filepath, const char*
 template<typename ShaderType>
 inline void ResourceManager::Internal_UnloadShader(const std::string& Filepath, const std::string& Entry)
 {
-	ShaderType* Shader = reinterpret_cast<ShaderType*>(m_ShadersMap[Filepath][Entry]->ShaderRes->m_pData);
+	ShaderType* Shader = static_cast<ShaderType*>(m_ShadersMap[Filepath][Entry]->ShaderRes->m_pData);
 	Shader->Release();
 	m_ShadersMap[Filepath].erase(Entry);
 

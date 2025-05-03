@@ -122,7 +122,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetName("Directional Light");
 	m_GameObjects.back()->AddComponent(std::make_shared<DirectionalLight>());
 
-	m_TextureResourceView = reinterpret_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
+	m_TextureResourceView = static_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.002f, PostProcessFog::FogFormula::ExponentialSquared));
 	m_PostProcesses.back()->Deactivate();
@@ -255,7 +255,7 @@ bool Application::Render()
 	std::unordered_map<std::string, std::unique_ptr<Resource>>& Models = ResourceManager::GetSingletonPtr()->GetModelsMap();
 	for (const auto& ModelPair : Models)
 	{
-		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
 		if (!pModelData)
 			continue;
 
@@ -346,7 +346,7 @@ void Application::RenderModels()
 	
 	for (const auto& ModelPair : Models)
 	{		
-		ModelData* pModelData = reinterpret_cast<ModelData*>(ModelPair.second->GetDataPtr());
+		ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
 		if (!pModelData)
 			continue;
 		
