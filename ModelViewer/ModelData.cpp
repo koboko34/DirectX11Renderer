@@ -61,6 +61,9 @@ void ModelData::Render()
 	Graphics::GetSingletonPtr()->DisableDepthWrite();
 	Graphics::GetSingletonPtr()->EnableBlending();
 	RenderMeshes(m_TransparentMeshes);
+
+	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
+	DeviceContext->VSSetShaderResources(0u, 1u, NullSRVs);
 }
 
 void ModelData::ShutdownBuffers()
