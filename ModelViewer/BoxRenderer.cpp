@@ -36,18 +36,17 @@ void BoxRenderer::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 }
 
-void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)
+void BoxRenderer::Render()
 {
 	Graphics::GetSingletonPtr()->DisableBlending();
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
-	
+
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	UINT Strides[] = { sizeof(DirectX::XMFLOAT3), 0u };
 	UINT Offsets[] = { 0u };
 	ID3D11Buffer* Buffers[] = { m_VertexBuffer.Get() };
 
-	LoadBoxCorners(BBox, Transform);
-	UpdateBuffers(BBox);
+	UpdateBuffers();
 
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
@@ -65,13 +64,25 @@ void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform
 	DeviceContext->DrawIndexed(24u, 0u, 0u);
 }
 
+void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)
+{
+	LoadBoxCorners(BBox, Transform);
+	Render();
+}
+
+void BoxRenderer::RenderFrustum(const std::shared_ptr<Camera>& pCamera)
+{
+	LoadFrustumCorners(pCamera);
+	Render();
+}
+
 bool BoxRenderer::CreateShaders()
 {
 	HRESULT hResult;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 
-	m_vsFilename = "Shaders/FrustumRendererVS.hlsl";
-	m_psFilename = "Shaders/FrustumRendererPS.hlsl";
+	m_vsFilename = "Shaders/BoxRendererVS.hlsl";
+	m_psFilename = "Shaders/BoxRendererPS.hlsl";
 
 	m_VertexShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11VertexShader>(m_vsFilename, "main", vsBuffer);
 	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename, "main");
@@ -119,7 +130,7 @@ bool BoxRenderer::CreateBuffers()
 	return true;
 }
 
-void BoxRenderer::UpdateBuffers(const AABB& BBox)
+void BoxRenderer::UpdateBuffers()
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
@@ -146,3 +157,28 @@ void BoxRenderer::LoadBoxCorners(const AABB& BBox, const DirectX::XMMATRIX& Tran
 	}
 }
 
+void BoxRenderer::LoadFrustumCorners(const std::shared_ptr<Camera>& pCamera)
+{
+	DirectX::XMMATRIX ViewProj = DirectX::XMMatrixMultiply(pCamera->GetViewMatrix(), pCamera->GetProjMatrix());
+	DirectX::XMMATRIX InvViewProj = DirectX::XMMatrixInverse(nullptr, ViewProj);
+
+	int i = 0;
+	for (int z = 0; z <= 1; ++z)
+	{
+		float ndcZ = z * 2.0f - 1.0f;
+		for (int y = 0; y <= 1; ++y)
+		{
+			float ndcY = y * 2.0f - 1.0f;
+			for (int x = 0; x <= 1; ++x)
+			{
+				float ndcX = x * 2.0f - 1.0f;
+
+				DirectX::XMVECTOR Corner = DirectX::XMVectorSet(ndcX, ndcY, ndcZ, 1.0f);
+				DirectX::XMVECTOR WorldCorner = DirectX::XMVector4Transform(Corner, InvViewProj);
+				WorldCorner = DirectX::XMVectorScale(WorldCorner, 1.0f / DirectX::XMVectorGetW(WorldCorner));
+
+				DirectX::XMStoreFloat3(&m_BoxCorners[i++], WorldCorner);
+			}
+		}
+	}
+}

@@ -24,13 +24,17 @@ public:
 	void Shutdown();
 
 	void RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform);
+	void RenderFrustum(const std::shared_ptr<Camera>& pCamera);
 
 private:
 	bool CreateShaders();
 	bool CreateBuffers();
 
+	void Render();
+
 	void LoadBoxCorners(const AABB& BBox, const DirectX::XMMATRIX& Transform);
-	void UpdateBuffers(const AABB& BBox);
+	void LoadFrustumCorners(const std::shared_ptr<Camera>& pCamera);
+	void UpdateBuffers();
 
 private:
 	ID3D11VertexShader* m_VertexShader;

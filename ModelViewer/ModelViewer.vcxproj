@@ -25,7 +25,6 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="FrustumCuller.cpp" />
-    <ClCompile Include="FrustumRenderer.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="ImGuiManager.cpp" />
@@ -63,7 +62,6 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="FrustumCuller.h" />
-    <ClInclude Include="FrustumRenderer.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="ImGuiManager.h" />
@@ -267,14 +265,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\FrustumRendererPS.hlsl">
+    <None Include="Shaders\BoxRendererPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\FrustumRendererVS.hlsl">
+    <None Include="Shaders\BoxRendererVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>

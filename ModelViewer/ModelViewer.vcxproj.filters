@@ -102,9 +102,6 @@
     <ClCompile Include="TessellatedPlane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FrustumRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Landscape.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -215,9 +212,6 @@
     <ClInclude Include="TessellatedPlane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FrustumRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Landscape.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -261,8 +255,8 @@
     <None Include="Shaders\TessellatedPlaneHS.hlsl" />
     <None Include="Shaders\TessellatedPlanePS.hlsl" />
     <None Include="Shaders\TessellatedPlaneVS.hlsl" />
-    <None Include="Shaders\FrustumRendererPS.hlsl" />
-    <None Include="Shaders\FrustumRendererVS.hlsl" />
+    <None Include="Shaders\BoxRendererPS.hlsl" />
+    <None Include="Shaders\BoxRendererVS.hlsl" />
     <None Include="Shaders\TessellatedPlaneGS.hlsl" />
     <None Include="Shaders\FrustumCullingCS.hlsl" />
   </ItemGroup>

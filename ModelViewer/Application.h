@@ -94,7 +94,6 @@ private:
 
 	std::unique_ptr<Shader> m_Shader;
 	std::unique_ptr<InstancedShader> m_InstancedShader;
-	std::unique_ptr<FrustumRenderer> m_FrustumRenderer;
 	std::unique_ptr<Skybox> m_Skybox;
 	std::shared_ptr<BoxRenderer> m_BoxRenderer;
 	std::shared_ptr<FrustumCuller> m_FrustumCuller;

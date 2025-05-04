@@ -23,7 +23,6 @@
 #include "Resource.h"
 #include "ModelData.h"
 #include "Landscape.h"
-#include "FrustumRenderer.h"
 #include "BoxRenderer.h"
 #include "FrustumCuller.h"
 #include "TessellatedPlane.h"
@@ -61,10 +60,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_FrustumCuller = std::make_shared<FrustumCuller>();
 	bResult = m_FrustumCuller->Init();
-	assert(bResult);
-
-	m_FrustumRenderer = std::make_unique<FrustumRenderer>();
-	bResult = m_FrustumRenderer->Init();
 	assert(bResult);
 
 	m_BoxRenderer = std::make_unique<BoxRenderer>();
@@ -157,7 +152,6 @@ void Application::Shutdown()
 	m_ActiveCamera.reset();
 	m_Landscape.reset();
 	m_FrustumCuller.reset();
-	m_FrustumRenderer.reset();
 	m_BoxRenderer.reset();
 
 	ResourceManager::GetSingletonPtr()->Shutdown();
@@ -248,7 +242,7 @@ bool Application::Render()
 	{
 		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
 		{
-			m_FrustumRenderer->RenderFrustum(c);
+			m_BoxRenderer->RenderFrustum(c);
 		}
 	}
 
