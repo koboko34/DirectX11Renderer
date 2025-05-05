@@ -237,6 +237,7 @@ bool Application::Render()
 	m_Graphics->GetDeviceContext()->PSSetShader(PostProcess::GetEmptyPostProcess()->GetPixelShader().Get(), NULL, 0u);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, DrawingForward ? CurrentSRV.GetAddressOf() : SecondarySRV.GetAddressOf());
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
+	m_RenderStats.DrawCalls++;
 
 	for (const std::shared_ptr<Camera>& c : m_Cameras)
 	{
@@ -392,6 +393,7 @@ bool Application::RenderTexture(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0, 1, TextureView.GetAddressOf());
 
 	m_Graphics->GetDeviceContext()->DrawIndexed(6u, 0u, 0);
+	m_RenderStats.DrawCalls++;
 
 	return true;
 }

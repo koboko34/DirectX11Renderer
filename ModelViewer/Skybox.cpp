@@ -173,6 +173,7 @@ void Skybox::Render()
 	DeviceContext->Unmap(m_ConstantBuffer.Get(), 0u);
 
 	DeviceContext->DrawIndexed(sizeof(CubeIndices) / sizeof(UINT), 0u, 0);
+	Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
 	DeviceContext->PSSetShaderResources(0u, 1u, NullSRVs);

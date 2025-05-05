@@ -124,6 +124,10 @@ void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
+	ImGui::Text("Draw Calls: %s", std::format(std::locale("en_US.UTF-8"), "{:L}", Stats.DrawCalls).c_str());
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
+
 	if (ImGui::CollapsingHeader("Triangles Rendered:", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		for (const std::pair<std::string, UINT64>& Object : Stats.TrianglesRendered)
@@ -134,10 +138,14 @@ void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
 
 	if (ImGui::CollapsingHeader("Instances Rendered:", ImGuiTreeNodeFlags_DefaultOpen))
 	{
+		UINT64 TotalInstances = 0u;
 		for (const std::pair<std::string, UINT64>& Object : Stats.InstancesRendered)
 		{
 			ImGui::Text("%s: %s", Object.first.c_str(), std::format(std::locale("en_US.UTF-8"), "{:L}", Object.second).c_str());
+			TotalInstances += Object.second;
 		}
+		ImGui::Dummy(ImVec2(0.f, 10.f));
+		ImGui::Text("Total: %s", std::format(std::locale("en_US.UTF-8"), "{:L}", TotalInstances).c_str());
 	}
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));

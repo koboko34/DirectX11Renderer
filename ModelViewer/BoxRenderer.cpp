@@ -62,6 +62,7 @@ void BoxRenderer::Render()
 	Graphics::GetSingletonPtr()->DisableBlending();
 
 	DeviceContext->DrawIndexed(24u, 0u, 0u);
+	Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 }
 
 void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)

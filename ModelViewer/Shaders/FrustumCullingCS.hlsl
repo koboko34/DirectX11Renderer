@@ -30,7 +30,7 @@ void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 
 	for (int i = 0; i < 8; i++)
 	{
-		const float4x4 t = Transforms[DTid.x];
+		const float4x4 t = Transforms[FlattenedID];
 		float4 TransformedCorner = mul(mul(Corners[i], t), ViewProj);
 
 		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&

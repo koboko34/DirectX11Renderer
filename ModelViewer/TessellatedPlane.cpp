@@ -116,6 +116,7 @@ void TessellatedPlane::Render()
 	DeviceContext->Begin(pGraphics->GetPipelineStatsQuery().Get());
 	DeviceContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
 	DeviceContext->End(pGraphics->GetPipelineStatsQuery().Get());
+	Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 
 	D3D11_QUERY_DATA_PIPELINE_STATISTICS Stats = {};
 	while (DeviceContext->GetData(pGraphics->GetPipelineStatsQuery().Get(), &Stats, sizeof(Stats), 0) != S_OK)

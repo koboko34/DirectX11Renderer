@@ -27,6 +27,7 @@ struct RenderStats
 {
 	std::vector<std::pair<std::string, UINT64>> TrianglesRendered;
 	std::vector<std::pair<std::string, UINT64>> InstancesRendered;
+	UINT64 DrawCalls;
 	double FrameTime;
 	double FPS;
 };

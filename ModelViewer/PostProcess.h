@@ -244,6 +244,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 private:
@@ -351,6 +352,7 @@ private:
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -464,6 +466,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 
 		// vertical
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
@@ -475,6 +478,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -622,6 +626,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, m_IntermediateRTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 
 		// vertical
 		ID3D11RenderTargetView* NullRTVs[] = { nullptr };
@@ -633,6 +638,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffers()
@@ -742,6 +748,7 @@ private:
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -853,6 +860,7 @@ private:
 
 		DeviceContext->OMSetRenderTargets(1u, m_LuminousRTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 
 		// blur luminous pixels
 		m_BlurPostProcess->ApplyPostProcess(DeviceContext, m_BlurredRTV, m_LuminousSRV);
@@ -868,6 +876,7 @@ private:
 
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -989,6 +998,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -1062,6 +1072,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
@@ -1150,6 +1161,7 @@ private:
 		DeviceContext->OMSetRenderTargets(1u, RTV.GetAddressOf(), nullptr);
 
 		DeviceContext->DrawIndexed(6u, 0u, 0);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}
 
 	void UpdateBuffer()
