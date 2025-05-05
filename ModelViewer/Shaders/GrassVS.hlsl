@@ -12,6 +12,11 @@ cbuffer PlaneInfoBuffer : register(b0)
 	float4x4 ChunkScaleMatrix;
 };
 
+cbuffer CameraBuffer : register(b1)
+{
+	float4x4 ViewProj;
+};
+
 struct VS_In
 {
 	float3 Pos : POSITION;
@@ -20,7 +25,8 @@ struct VS_In
 
 struct VS_Out
 {
-	float3 Pos : POSITION;
+	float4 Pos : SV_POSITION;
+	float3 WorldPos : WORLDPOS;
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
 };
@@ -55,11 +61,13 @@ uint GenerateChunkID(float2 v)
 VS_Out main(VS_In v)
 {
 	VS_Out o;
-	o.Pos = mul(mul(float4(v.Pos, 1.f), ChunkScaleMatrix), Transforms[v.InstanceID]).xyz;
-	o.UV = GetHeightmapUV(o.Pos);
-	
+
+	o.WorldPos = mul(float4(v.Pos, 1.f), Transforms[v.InstanceID]).xyz;
+	o.UV = GetHeightmapUV(o.WorldPos);
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
-	o.Pos.y = Height;
+	o.WorldPos.y += Height;
+		
+	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
 	
 	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
 	

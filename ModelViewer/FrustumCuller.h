@@ -16,6 +16,7 @@ private:
 	struct CBufferData
 	{
 		DirectX::XMFLOAT4 Corners[8];
+		DirectX::XMMATRIX ScaleMatrix;
 		DirectX::XMMATRIX ViewProj;
 		UINT SentInstanceCount;
 		UINT ThreadGroupCount[3];
@@ -28,7 +29,8 @@ public:
 	bool Init();
 	void Shutdown();
 
-	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj);
+	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
+		const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
 	void ClearInstanceCount();
 	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV);
 	UINT GetInstanceCount();
@@ -40,7 +42,8 @@ private:
 	bool CreateBuffers();
 	bool CreateBufferViews();
 
-	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj, UINT DispatchCount);
+	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
+		const DirectX::XMMATRIX& ScaleMatrix, UINT ThreadGroupCount);
 
 private:
 	ID3D11ComputeShader* m_CullingShader;

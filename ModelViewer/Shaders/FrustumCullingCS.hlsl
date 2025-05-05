@@ -7,6 +7,7 @@ RWByteAddressBuffer ArgsBuffer : register(u2);
 cbuffer CullData : register(b0)
 {
 	float4 Corners[8];
+	float4x4 ScaleMatrix;
 	float4x4 ViewProj;
 	uint SentInstanceCount;
 	uint3 ThreadGroupCounts;
@@ -31,7 +32,7 @@ void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 	for (int i = 0; i < 8; i++)
 	{
 		const float4x4 t = Transforms[FlattenedID];
-		float4 TransformedCorner = mul(mul(Corners[i], t), ViewProj);
+		float4 TransformedCorner = mul(mul(mul(Corners[i], ScaleMatrix), t), ViewProj);
 
 		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))

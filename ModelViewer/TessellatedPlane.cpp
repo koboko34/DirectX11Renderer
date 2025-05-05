@@ -32,18 +32,10 @@ const UINT ChunkIndices[] =
 	0, 1, 2, 3
 };
 
-void TessellatedPlane::SetupAABB()
-{
-	m_BoundingBox.Min = { -0.5f, 0.f, -0.5 };
-	m_BoundingBox.Max = {  0.5f, m_pLandscape->GetHeightDisplacement(), 0.5 };
-	m_BoundingBox.CalcCorners();
-}
-
 TessellatedPlane::TessellatedPlane()
 {
 	SetName("Tessellated Plane");
 	m_bShouldRender = true;
-	m_HeightmapSRV = nullptr;
 }
 
 TessellatedPlane::~TessellatedPlane()
@@ -51,20 +43,14 @@ TessellatedPlane::~TessellatedPlane()
 	Shutdown();
 }
 
-bool TessellatedPlane::Init(const std::string& HeightMapFilepath, float TessellationScale, Landscape* pLandscape)
+bool TessellatedPlane::Init(float TessellationScale, Landscape* pLandscape)
 {
 	bool Result;
 	FALSE_IF_FAILED(CreateShaders());
 	FALSE_IF_FAILED(CreateBuffers());
 	
-	m_HeightmapSRV = ResourceManager::GetSingletonPtr()->LoadTexture(HeightMapFilepath);
-	assert(m_HeightmapSRV);
-
-	m_HeightMapFilepath = HeightMapFilepath;
 	m_TessellationScale = TessellationScale;
 	m_pLandscape = pLandscape;
-
-	SetupAABB();
 	
 	return true;
 }
@@ -72,9 +58,7 @@ bool TessellatedPlane::Init(const std::string& HeightMapFilepath, float Tessella
 void TessellatedPlane::Render()
 {
 	Application* pApp = Application::GetSingletonPtr();
-	pApp->GetFrustumCuller()->DispatchShader(m_pLandscape->GetChunkTransforms(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix());
 	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
-	UINT InstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
 	Graphics::GetSingletonPtr()->DisableBlending();
@@ -90,7 +74,7 @@ void TessellatedPlane::Render()
 	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
-	ID3D11ShaderResourceView* vsSRVs[] = { m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get() };
+	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get() };
 	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	DeviceContext->VSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->VSSetShaderResources(0u, 2u, vsSRVs);
@@ -102,7 +86,7 @@ void TessellatedPlane::Render()
 	DeviceContext->DSSetShader(m_DomainShader, nullptr, 0u);
 	DeviceContext->DSSetConstantBuffers(0u, 1u, m_pLandscape->m_CameraCBuffer.GetAddressOf());
 	DeviceContext->DSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
-	DeviceContext->DSSetShaderResources(0u, 1u, &m_HeightmapSRV);
+	DeviceContext->DSSetShaderResources(0u, 1u, &m_pLandscape->m_HeightmapSRV);
 	DeviceContext->DSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	DeviceContext->GSSetShader(m_GeometryShader, nullptr, 0u);
@@ -110,7 +94,7 @@ void TessellatedPlane::Render()
 
 	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	DeviceContext->PSSetConstantBuffers(1u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
-	DeviceContext->PSSetShaderResources(0u, 1u, &m_HeightmapSRV);
+	DeviceContext->PSSetShaderResources(0u, 1u, &m_pLandscape->m_HeightmapSRV);
 	DeviceContext->PSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	DeviceContext->Begin(pGraphics->GetPipelineStatsQuery().Get());
@@ -125,7 +109,7 @@ void TessellatedPlane::Render()
 	}
 
 	Application::GetSingletonPtr()->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Tessellated Plane", Stats.GSPrimitives));
-	Application::GetSingletonPtr()->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Tessellated Plane chunks", InstanceCount));
+	Application::GetSingletonPtr()->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Tessellated Plane chunks", m_pLandscape->m_ChunkInstanceCount));
 
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
 	DeviceContext->VSSetShaderResources(0u, 2u, NullSRVs);
@@ -149,9 +133,6 @@ void TessellatedPlane::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11DomainShader>(m_dsFilename);
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11GeometryShader>(m_gsFilename);
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename);
-
-	ResourceManager::GetSingletonPtr()->UnloadTexture(m_HeightMapFilepath);
-	m_HeightmapSRV = nullptr;
 }
 
 void TessellatedPlane::RenderControls()

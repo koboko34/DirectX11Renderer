@@ -8,14 +8,18 @@
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "Common.h"
+#include "Grass.h"
+#include "FrustumCuller.h"
 
 Landscape::Landscape(UINT ChunkDimension, float ChunkSize, float HeightDisplacement)
-	: m_ChunkDimension(ChunkDimension), m_ChunkSize(ChunkSize), m_NumChunks(ChunkDimension* ChunkDimension), m_HeightDisplacement(HeightDisplacement)
+	: m_ChunkDimension(ChunkDimension), m_ChunkSize(ChunkSize), m_NumChunks(ChunkDimension * ChunkDimension), m_HeightDisplacement(HeightDisplacement)
 {
 	SetName("Landscape");
 	SetScale(ChunkSize);
+	m_ChunkScaleMatrix = DirectX::XMMatrixScaling(ChunkSize, 1.f, ChunkSize);
 	m_bShouldRender = true;
 	m_bVisualiseChunks = false;
+	m_HeightmapSRV = nullptr;
 	assert(m_NumChunks >= 0 && m_NumChunks <= MAX_PLANE_CHUNKS);
 }
 
@@ -29,21 +33,47 @@ bool Landscape::Init(const std::string& HeightMapFilepath, float TessellationSca
 	bool Result;
 	FALSE_IF_FAILED(CreateBuffers());
 
-	m_Plane = std::make_unique<TessellatedPlane>();
-	FALSE_IF_FAILED(m_Plane->Init(HeightMapFilepath, TessellationScale, this));
+	m_Plane = std::make_shared<TessellatedPlane>();
+	FALSE_IF_FAILED(m_Plane->Init(TessellationScale, this));
 
+	m_Grass = std::make_shared<Grass>();
+	FALSE_IF_FAILED(m_Grass->Init(this));
+
+	m_HeightmapSRV = ResourceManager::GetSingletonPtr()->LoadTexture(HeightMapFilepath);
+	assert(m_HeightmapSRV);
+
+	m_HeightMapFilepath = HeightMapFilepath;
+
+	SetupAABB();
 	GenerateChunkTransforms();
+	GenerateGrassPositions();
 
 	return true;
+}
+
+void Landscape::SetupAABB()
+{
+	m_BoundingBox.Min = { -0.5f, 0.f, -0.5 };
+	m_BoundingBox.Max = { 0.5f, m_HeightDisplacement, 0.5f };
+	m_BoundingBox.CalcCorners();
 }
 
 void Landscape::Render()
 {
 	UpdateBuffers();
 
+	Application* pApp = Application::GetSingletonPtr();
+	pApp->GetFrustumCuller()->DispatchShader(GetChunkTransforms(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_ChunkScaleMatrix);
+	m_ChunkInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
+
 	if (m_Plane->ShouldRender())
 	{
 		m_Plane->Render();
+	}
+
+	if (m_Grass->ShouldRender())
+	{
+		m_Grass->Render();
 	}
 }
 
@@ -52,6 +82,10 @@ void Landscape::Shutdown()
 	m_LandscapeInfoCBuffer.Reset();
 	m_CameraCBuffer.Reset();
 	m_Plane.reset();
+	m_Grass.reset();
+
+	ResourceManager::GetSingletonPtr()->UnloadTexture(m_HeightMapFilepath);
+	m_HeightmapSRV = nullptr;
 }
 
 void Landscape::RenderControls()
@@ -70,12 +104,16 @@ void Landscape::RenderControls()
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	m_Plane->RenderControls();
+
+	ImGui::Dummy(ImVec2(0.f, 10.f));
+
+	m_Grass->RenderControls();
 }
 
 void Landscape::SetHeightDisplacement(float NewHeight)
 {
 	m_HeightDisplacement = NewHeight;
-	m_Plane->SetupAABB();
+	SetupAABB();
 }
 
 bool Landscape::CreateBuffers()
@@ -135,6 +173,8 @@ void Landscape::UpdateBuffers()
 	LandscapeInfoCBufferPtr->HeightDisplacement = m_HeightDisplacement;
 	LandscapeInfoCBufferPtr->bVisualiseChunks = m_bVisualiseChunks;
 	LandscapeInfoCBufferPtr->Padding = 0.f;
+	LandscapeInfoCBufferPtr->ChunkScaleMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixScaling(m_ChunkSize, m_ChunkSize, m_ChunkSize));
+
 	DeviceContext->Unmap(m_LandscapeInfoCBuffer.Get(), 0u);
 }
 
@@ -153,11 +193,15 @@ void Landscape::GenerateChunkTransforms()
 			float WorldX = ((int)x - HalfCount) * m_ChunkSize + m_ChunkSize * 0.5f;
 
 			DirectX::XMMATRIX ChunkTransform = DirectX::XMMatrixIdentity();
-			ChunkTransform *= DirectX::XMMatrixScaling(m_ChunkSize, 1.f, m_ChunkSize);
 			ChunkTransform *= DirectX::XMMatrixTranslation(WorldX, 0.f, WorldZ);
 			m_ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
 		}
 	}
+}
+
+void Landscape::GenerateGrassPositions()
+{
+	m_GrassPositions.push_back({});
 }
 
 void Landscape::PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise)

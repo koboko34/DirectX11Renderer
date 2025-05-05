@@ -55,7 +55,8 @@ UINT FrustumCuller::GetInstanceCount()
 	return InstanceCount;
 }
 
-void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj)
+void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
+	const DirectX::XMMATRIX& ScaleMatrix)
 {
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	const UINT InitialCount = 0u;
@@ -72,7 +73,7 @@ void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transfo
 	// As each thread group will have 32 threads (as defined in shader), calculate how many thread groups we need using integer division
 	UINT ThreadGroupCount = (UINT(Transforms.size()) + 31) / 32;
 
-	UpdateBuffers(Transforms, Corners, ViewProj, ThreadGroupCount);
+	UpdateBuffers(Transforms, Corners, ViewProj, ScaleMatrix, ThreadGroupCount);
 	DeviceContext->Dispatch(ThreadGroupCount, 1u, 1u);
 	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
 
@@ -197,7 +198,8 @@ bool FrustumCuller::CreateBufferViews()
 	return true;
 }
 
-void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj, UINT ThreadGroupCount)
+void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
+	const DirectX::XMMATRIX& ScaleMatrix, UINT ThreadGroupCount)
 {
 	assert(Transforms.size() <= MAX_INSTANCE_COUNT);
 
@@ -214,6 +216,7 @@ void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transfor
 	CBufferDataPtr = (CBufferData*)MappedResource.pData;
 	memcpy(CBufferDataPtr->Corners, Corners.data(), sizeof(DirectX::XMFLOAT4) * 8);
 	CBufferDataPtr->ViewProj = DirectX::XMMatrixTranspose(ViewProj);
+	CBufferDataPtr->ScaleMatrix = DirectX::XMMatrixTranspose(ScaleMatrix);
 	CBufferDataPtr->SentInstanceCount = (UINT)Transforms.size();
 	CBufferDataPtr->ThreadGroupCount[0] = ThreadGroupCount;
 	CBufferDataPtr->ThreadGroupCount[1] = 1u;

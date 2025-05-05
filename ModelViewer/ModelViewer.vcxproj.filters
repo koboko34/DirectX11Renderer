@@ -117,6 +117,9 @@
     <ClCompile Include="Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Grass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -233,6 +236,9 @@
     <ClInclude Include="ShaderResource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Grass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\BoxBlurPS.hlsl" />
@@ -259,5 +265,7 @@
     <None Include="Shaders\BoxRendererVS.hlsl" />
     <None Include="Shaders\TessellatedPlaneGS.hlsl" />
     <None Include="Shaders\FrustumCullingCS.hlsl" />
+    <None Include="Shaders\GrassPS.hlsl" />
+    <None Include="Shaders\GrassVS.hlsl" />
   </ItemGroup>
 </Project>

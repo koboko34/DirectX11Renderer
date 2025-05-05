@@ -9,10 +9,12 @@
 #include "wrl.h"
 
 #include "GameObject.h"
+#include "AABB.h"
 
 class Landscape : public GameObject
 {
 	friend class TessellatedPlane;
+	friend class Grass;
 
 private:
 	struct TransformCBuffer
@@ -37,6 +39,7 @@ private:
 		float HeightDisplacement;
 		float Padding;
 		BOOL bVisualiseChunks;
+		DirectX::XMMATRIX ChunkScaleMatrix;
 	};
 
 public:
@@ -56,14 +59,22 @@ public:
 	float GetHeightDisplacement() const { return m_HeightDisplacement; }
 	void SetHeightDisplacement(float NewHeight);
 	std::vector<DirectX::XMMATRIX>& GetChunkTransforms() { return m_ChunkTransforms; }
+	std::vector<DirectX::XMFLOAT3>& GetGrassPositions() { return m_GrassPositions; }
+	const DirectX::XMMATRIX& GetChunkScaleMatrix() const { return m_ChunkScaleMatrix; }
 
 	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
+	std::shared_ptr<Grass> GetGrass() { return m_Grass; }
+
+	AABB& GetBoundingBox() { return m_BoundingBox; }
 
 private:
 	bool CreateBuffers();
+	void SetupAABB();
+
 	void UpdateBuffers();
 
 	void GenerateChunkTransforms();
+	void GenerateGrassPositions();
 	void PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise = true);
 
 private:
@@ -72,7 +83,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CameraCBuffer;
 
 	std::shared_ptr<TessellatedPlane> m_Plane;
+	std::shared_ptr<Grass> m_Grass;
 	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
+	std::vector<DirectX::XMFLOAT3> m_GrassPositions;
+
+	AABB m_BoundingBox;
+
+	ID3D11ShaderResourceView* m_HeightmapSRV;
+	std::string m_HeightMapFilepath;
+	DirectX::XMMATRIX m_ChunkScaleMatrix;
 
 	bool m_bShouldRender;
 	bool m_bVisualiseChunks;
@@ -80,6 +99,7 @@ private:
 	float m_HeightDisplacement;
 	UINT m_ChunkDimension;
 	UINT m_NumChunks;
+	UINT m_ChunkInstanceCount;
 
 };
 

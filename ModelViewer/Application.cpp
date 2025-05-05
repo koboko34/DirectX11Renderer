@@ -87,7 +87,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
 	m_GameObjects.push_back(m_Cameras.back());
 
-	m_GameObjects.emplace_back(std::make_shared<GameObject>());
+	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
 	m_GameObjects.back()->SetName("Car_1");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
@@ -95,11 +95,17 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.f, 1.f, 0.f);
 	m_GameObjects.back()->SetName("Car_2");
-	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));
+	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));*/
 
-	m_GameObjects.emplace_back(std::make_shared<GameObject>());
-	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
-	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
+	for (int i = 0; i < 16; i++)
+	{
+		for (int j = 0; j < 16; j++)
+		{
+			m_GameObjects.emplace_back(std::make_shared<GameObject>());
+			m_GameObjects.back()->SetPosition((float)i * 2.f, 0.f, (float)j * 2.f);
+			m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
+		}
+	}
 
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
@@ -265,7 +271,7 @@ bool Application::Render()
 
 		for (const auto& t : m_Landscape->GetChunkTransforms())
 		{
-			m_BoxRenderer->RenderBox(m_Landscape->GetPlane()->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
+			m_BoxRenderer->RenderBox(m_Landscape->GetBoundingBox(), DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(t, m_Landscape->GetChunkScaleMatrix()))); // back to column major
 		}
 	}
 
