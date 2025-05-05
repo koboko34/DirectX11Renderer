@@ -74,6 +74,7 @@ void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transfo
 
 	UpdateBuffers(Transforms, Corners, ViewProj, DispatchCount);
 	DeviceContext->Dispatch(DispatchCount, 1u, 1u);
+	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
 
 	ID3D11Buffer* NullBuffers[] = { nullptr };
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
@@ -88,6 +89,7 @@ void FrustumCuller::ClearInstanceCount()
 {
 	Graphics::GetSingletonPtr()->GetDeviceContext()->CSSetShader(m_InstanceCountClearShader, nullptr, 0u);
 	Graphics::GetSingletonPtr()->GetDeviceContext()->Dispatch(1u, 1u, 1u);
+	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
 }
 
 void FrustumCuller::SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV)
@@ -99,6 +101,7 @@ void FrustumCuller::SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAcce
 	DeviceContext->CSSetUnorderedAccessViews(2u, 1u, ArgsBufferUAV.GetAddressOf(), nullptr);
 
 	DeviceContext->Dispatch(1u, 1u, 1u);
+	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
 
 	ID3D11UnorderedAccessView* NullUAVs[] = { nullptr, nullptr };
 	DeviceContext->CSSetShader(nullptr, nullptr, 0u);

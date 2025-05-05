@@ -125,6 +125,7 @@ void ImGuiManager::RenderStatsWindow(const RenderStats& Stats)
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	ImGui::Text("Draw Calls: %s", std::format(std::locale("en_US.UTF-8"), "{:L}", Stats.DrawCalls).c_str());
+	ImGui::Text("Compute Dispatches: %s", std::format(std::locale("en_US.UTF-8"), "{:L}", Stats.ComputeDispatches).c_str());
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
