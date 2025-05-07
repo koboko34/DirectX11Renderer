@@ -1,9 +1,8 @@
+#include "Common.hlsl"
+
 Texture2D diffuseTexture : register(t0);
 Texture2D specularTexture : register(t1);
 SamplerState samplerState : register(s0);
-
-#define MAX_POINT_LIGHTS 8
-#define MAX_DIRECTIONAL_LIGHTS 1
 
 struct PointLight
 {
