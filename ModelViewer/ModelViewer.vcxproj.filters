@@ -267,5 +267,6 @@
     <None Include="Shaders\FrustumCullingCS.hlsl" />
     <None Include="Shaders\GrassPS.hlsl" />
     <None Include="Shaders\GrassVS.hlsl" />
+    <None Include="Shaders\Common.hlsl" />
   </ItemGroup>
 </Project>

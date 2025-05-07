@@ -17,9 +17,9 @@ struct GrassVertex
 
 const GrassVertex GrassVertices[] =
 {
-	{{-0.1f, 0.f,  0.f}},
+	{{-0.03f, 0.f,  0.f}},
 	{{ 0.0f, 1.f,  0.f}},
-	{{ 0.1f, 0.f,  0.f}},
+	{{ 0.03f, 0.f,  0.f}},
 };
 
 const UINT GrassIndices[] =
@@ -40,12 +40,13 @@ Grass::~Grass()
 	Shutdown();
 }
 
-bool Grass::Init(Landscape* pLandscape)
+bool Grass::Init(Landscape* pLandscape, UINT GrassDimensionPerChunk)
 {
 	HRESULT hResult;
 	bool Result;
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 	m_pLandscape = pLandscape;
+	m_GrassPerChunk = GrassDimensionPerChunk * GrassDimensionPerChunk;
 
 	FALSE_IF_FAILED(CreateBuffers());
 
@@ -78,7 +79,7 @@ void Grass::Render()
 	ID3D11DeviceContext* pContext = pGraphics->GetDeviceContext();
 	pGraphics->SetRasterStateBackFaceCull(false);
 
-	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
+	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV, m_GrassPerChunk);
 
 	UINT Strides[] = { sizeof(GrassVertex) };
 	UINT Offsets[] = { 0u };
@@ -87,10 +88,10 @@ void Grass::Render()
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 
-	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get() };
+	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get(), m_GrassOffsetsBufferSRV.Get()};
 	ID3D11Buffer* CBuffers[] = { m_pLandscape->m_LandscapeInfoCBuffer.Get(), m_pLandscape->m_CameraCBuffer.Get() };
 	pContext->VSSetShader(m_VertexShader, nullptr, 0u);
-	pContext->VSSetShaderResources(0u, 2u, vsSRVs);
+	pContext->VSSetShaderResources(0u, 3u, vsSRVs);
 	pContext->VSSetConstantBuffers(0u, 2u, CBuffers);
 	pContext->VSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
@@ -134,6 +135,7 @@ bool Grass::CreateBuffers()
 	Data.pSysMem = GrassVertices;
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_VertexBuffer));
+	NAME_D3D_RESOURCE(m_VertexBuffer, "Grass vertex buffer");
 
 	Desc.ByteWidth = sizeof(GrassIndices);
 	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -141,6 +143,25 @@ bool Grass::CreateBuffers()
 	Data.pSysMem = GrassIndices;
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_IndexBuffer));
+	NAME_D3D_RESOURCE(m_IndexBuffer, "Grass index buffer");
+
+	Desc.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_GRASS_PER_CHUNK;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = sizeof(DirectX::XMMATRIX);
+
+	Data.pSysMem = m_pLandscape->GetGrassPositions().data();
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_GrassOffsetsBuffer));
+	NAME_D3D_RESOURCE(m_GrassOffsetsBuffer, "Grass offsets buffer");
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	SRVDesc.Buffer.NumElements = (UINT)MAX_GRASS_PER_CHUNK;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GrassOffsetsBuffer.Get(), &SRVDesc, &m_GrassOffsetsBufferSRV));
+	NAME_D3D_RESOURCE(m_GrassOffsetsBufferSRV, "Grass offsets buffer SRV");
 
 	Desc = {};
 	Desc.ByteWidth = sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS);

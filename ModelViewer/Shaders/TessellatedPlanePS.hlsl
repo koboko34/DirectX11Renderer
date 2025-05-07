@@ -5,8 +5,11 @@ cbuffer PlaneInfoBuffer : register(b1)
 {
 	float PlaneDimension;
 	float HeightDisplacement;
-	float Padding;
+	uint ChunkInstanceCount;
 	bool bVisualiseChunks;
+	float4x4 ChunkScaleMatrix;
+	uint GrassPerChunk;
+	float3 Padding;
 };
 
 struct PS_In

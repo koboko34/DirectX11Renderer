@@ -8,5 +8,5 @@ struct PS_In
 
 float4 main(PS_In p) : SV_TARGET
 {
-	return float4(0.f, 1.0f, 0.f, 1.0f);
+	return float4(0.f, 0.3f, 0.f, 1.f);
 }

@@ -37,9 +37,11 @@ private:
 	{
 		float PlaneDimension;
 		float HeightDisplacement;
-		float Padding;
+		UINT ChunkInstanceCount;
 		BOOL bVisualiseChunks;
 		DirectX::XMMATRIX ChunkScaleMatrix;
+		UINT GrassPerChunk;
+		DirectX::XMFLOAT3 Padding;
 	};
 
 public:
@@ -47,7 +49,7 @@ public:
 	Landscape(UINT NumChunks, float ChunkSize, float HeightDisplacement);
 	~Landscape();
 
-	bool Init(const std::string& HeightMapFilepath, float TessellationScale);
+	bool Init(const std::string& HeightMapFilepath, float TessellationScale, UINT GrassDimensionPerChunk);
 	void Render();
 	void Shutdown();
 
@@ -59,7 +61,7 @@ public:
 	float GetHeightDisplacement() const { return m_HeightDisplacement; }
 	void SetHeightDisplacement(float NewHeight);
 	std::vector<DirectX::XMMATRIX>& GetChunkTransforms() { return m_ChunkTransforms; }
-	std::vector<DirectX::XMFLOAT3>& GetGrassPositions() { return m_GrassPositions; }
+	std::vector<DirectX::XMMATRIX>& GetGrassPositions() { return m_GrassPositions; }
 	const DirectX::XMMATRIX& GetChunkScaleMatrix() const { return m_ChunkScaleMatrix; }
 
 	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
@@ -74,7 +76,7 @@ private:
 	void UpdateBuffers();
 
 	void GenerateChunkTransforms();
-	void GenerateGrassPositions();
+	void GenerateGrassPositions(UINT GrassCount);
 	void PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise = true);
 
 private:
@@ -85,7 +87,7 @@ private:
 	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::shared_ptr<Grass> m_Grass;
 	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
-	std::vector<DirectX::XMFLOAT3> m_GrassPositions;
+	std::vector<DirectX::XMMATRIX> m_GrassPositions;
 
 	AABB m_BoundingBox;
 

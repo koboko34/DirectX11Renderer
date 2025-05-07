@@ -3,9 +3,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define MAX_POINT_LIGHTS 8 // if changing this number, remember to also update it in the pixel shader
+// if changing these, also update in Common.hlsl
+#define MAX_POINT_LIGHTS 8
 #define MAX_DIRECTIONAL_LIGHTS 1
 #define MAX_PLANE_CHUNKS 1024
+#define MAX_GRASS_PER_CHUNK 4096
 #define MAX_INSTANCE_COUNT 1024
 
 #include <vector>

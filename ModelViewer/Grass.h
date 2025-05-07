@@ -18,7 +18,7 @@ public:
 	Grass();
 	~Grass();
 
-	bool Init(Landscape* pLandscape);
+	bool Init(Landscape* pLandscape, UINT GrassDimensionPerChunk);
 
 	void Shutdown();
 
@@ -26,6 +26,7 @@ public:
 	void RenderControls() override;
 
 	bool ShouldRender() const { return m_bShouldRender; }
+	UINT GetGrassPerChunk() const { return m_GrassPerChunk; }
 
 private:
 	bool CreateBuffers();
@@ -37,9 +38,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ArgsBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassOffsetsBuffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_GrassOffsetsBufferSRV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ArgsBufferUAV;
 
 	Landscape* m_pLandscape;
+	UINT m_GrassPerChunk;
 	bool m_bShouldRender;
 
 	const char* m_vsFilepath;

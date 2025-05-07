@@ -1,5 +1,8 @@
+#include "Common.hlsl"
+
 Texture2D Heightmap : register(t0);
-StructuredBuffer<float4x4> Transforms : register(t1);
+StructuredBuffer<float4x4> ChunkTransforms : register(t1);
+StructuredBuffer<float4x4> GrassOffsets : register(t2);
 
 SamplerState Sampler : register(s0);
 
@@ -7,9 +10,11 @@ cbuffer PlaneInfoBuffer : register(b0)
 {
 	float PlaneDimension;
 	float HeightDisplacement;
-	float Padding;
+	uint ChunkInstanceCount;
 	bool bVisualiseChunks;
 	float4x4 ChunkScaleMatrix;
+	uint GrassPerChunk;
+	float3 Padding;
 };
 
 cbuffer CameraBuffer : register(b1)
@@ -62,7 +67,16 @@ VS_Out main(VS_In v)
 {
 	VS_Out o;
 
-	o.WorldPos = mul(float4(v.Pos, 1.f), Transforms[v.InstanceID]).xyz;
+	uint OffsetID = v.InstanceID % GrassPerChunk;
+	uint ChunkID = v.InstanceID / GrassPerChunk;
+	
+	// offset grass within its own chunk
+	o.WorldPos = mul(float4(v.Pos, 1.f), GrassOffsets[OffsetID]).xyz;
+	
+	// transform by chunk transform
+	o.WorldPos = mul(float4(o.WorldPos, 1.f), ChunkTransforms[ChunkID]).xyz;
+	
+	// apply height offset
 	o.UV = GetHeightmapUV(o.WorldPos);
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.WorldPos.y += Height;

@@ -13,6 +13,12 @@ cbuffer CullData : register(b0)
 	uint3 ThreadGroupCounts;
 }
 
+cbuffer InstanceCountMultiplierBuffer : register(b1)
+{
+	uint InstanceCountMultiplier;
+	float3 Padding;
+}
+
 static const uint tx = 32u;
 static const uint ty = 1u;
 static const uint tz = 1u;
@@ -53,5 +59,6 @@ void ClearInstanceCount(uint3 DTid : SV_DispatchThreadID)
 [numthreads(1, 1, 1)]
 void TransferInstanceCount(uint3 DTid : SV_DispatchThreadID)
 {
-	ArgsBuffer.Store(4u, InstanceCount[0]);
+	ArgsBuffer.Store(4u, InstanceCount[0] * InstanceCountMultiplier);
 }
+

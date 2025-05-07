@@ -93,13 +93,22 @@ void FrustumCuller::ClearInstanceCount()
 	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
 }
 
-void FrustumCuller::SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV)
+void FrustumCuller::SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV, UINT InstanceCountMultiplier)
 {
+	HRESULT hResult;
+	D3D11_MAPPED_SUBRESOURCE MappedResource = {};
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	
 	DeviceContext->CSSetShader(m_InstanceCountTransferShader, nullptr, 0u);
 	DeviceContext->CSSetUnorderedAccessViews(1u, 1u, m_InstanceCountBufferUAV.GetAddressOf(), nullptr);
 	DeviceContext->CSSetUnorderedAccessViews(2u, 1u, ArgsBufferUAV.GetAddressOf(), nullptr);
+	DeviceContext->CSSetConstantBuffers(1u, 1u, m_InstanceCountMultiplierCBuffer.GetAddressOf());
+
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_InstanceCountMultiplierCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0u, &MappedResource));
+	InstanceCountMultiplierBufferData Data = {};
+	Data.Multiplier = InstanceCountMultiplier;
+	memcpy(MappedResource.pData, &Data, sizeof(InstanceCountMultiplierBufferData));
+	DeviceContext->Unmap(m_InstanceCountMultiplierCBuffer.Get(), 0u);
 
 	DeviceContext->Dispatch(1u, 1u, 1u);
 	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
@@ -140,6 +149,11 @@ bool FrustumCuller::CreateBuffers()
 
 	HFALSE_IF_FAILED(Device->CreateBuffer(&Desc, nullptr, &m_CBuffer));
 	NAME_D3D_RESOURCE(m_CBuffer, "Frustum culler constant buffer");
+
+	Desc.ByteWidth = sizeof(InstanceCountMultiplierBufferData);
+
+	HFALSE_IF_FAILED(Device->CreateBuffer(&Desc, nullptr, &m_InstanceCountMultiplierCBuffer));
+	NAME_D3D_RESOURCE(m_InstanceCountMultiplierCBuffer, "Frustum culler instance count multiplier constant buffer");
 
 	Desc = {};
 	Desc.Usage = D3D11_USAGE_STAGING;
