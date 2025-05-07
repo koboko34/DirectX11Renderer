@@ -146,7 +146,7 @@ inline T* ResourceManager::Internal_LoadShader(const char* Filepath, const char*
 	const WCHAR* WideFilepath = WideString.c_str();
 
 	UINT CompileFlags = D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-	hResult = D3DCompileFromFile(WideFilepath, NULL, NULL, Entry, ShaderCreateInfo<T>::Target, CompileFlags, 0, &Bytecode, &ErrorMessage);
+	hResult = D3DCompileFromFile(WideFilepath, NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE, Entry, ShaderCreateInfo<T>::Target, CompileFlags, 0, &Bytecode, &ErrorMessage);
 	if (FAILED(hResult))
 	{
 		if (ErrorMessage.Get())
