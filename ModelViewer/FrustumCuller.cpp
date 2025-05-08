@@ -21,6 +21,7 @@ bool FrustumCuller::Init()
 {
 	Microsoft::WRL::ComPtr<ID3D10Blob> csBuffer;
 	m_csFilename = "Shaders/FrustumCullingCS.hlsl";
+	m_bGotInstanceCount = false;
 
 	m_CullingShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11ComputeShader>(m_csFilename, "FrustumCull");
 	m_InstanceCountClearShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11ComputeShader>(m_csFilename, "ClearInstanceCount");
@@ -51,6 +52,9 @@ UINT FrustumCuller::GetInstanceCount()
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_StagingBuffer.Get(), 0u, D3D11_MAP_READ, 0u, &Data));
 	UINT InstanceCount = *static_cast<UINT*>(Data.pData);
 	DeviceContext->Unmap(m_StagingBuffer.Get(), 0u);
+
+	assert(!m_bGotInstanceCount && "Should avoid calling this more than once for the same culling dispatch. If have to, store the value when calling first time.");
+	m_bGotInstanceCount = true;
 
 	return InstanceCount;
 }
@@ -91,6 +95,7 @@ void FrustumCuller::ClearInstanceCount()
 	Graphics::GetSingletonPtr()->GetDeviceContext()->CSSetShader(m_InstanceCountClearShader, nullptr, 0u);
 	Graphics::GetSingletonPtr()->GetDeviceContext()->Dispatch(1u, 1u, 1u);
 	Application::GetSingletonPtr()->GetRenderStatsRef().ComputeDispatches++;
+	m_bGotInstanceCount = false;
 }
 
 void FrustumCuller::SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV, UINT InstanceCountMultiplier)

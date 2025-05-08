@@ -67,6 +67,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledTransformsUAV;
 
 	const char* m_csFilename;
+	bool m_bGotInstanceCount;
 };
 
 #endif

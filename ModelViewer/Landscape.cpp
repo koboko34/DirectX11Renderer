@@ -61,11 +61,14 @@ void Landscape::SetupAABB()
 }
 
 void Landscape::Render()
-{
+{	
 	Application* pApp = Application::GetSingletonPtr();
 	pApp->GetFrustumCuller()->DispatchShader(GetChunkTransforms(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_ChunkScaleMatrix);
 	m_ChunkInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	
+	if (m_ChunkInstanceCount == 0u)
+		return;
+
 	UpdateBuffers();
 
 	if (m_Plane->ShouldRender())

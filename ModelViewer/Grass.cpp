@@ -97,19 +97,11 @@ void Grass::Render()
 
 	pContext->PSSetShader(m_PixelShader, nullptr, 0u);
 
-	pContext->Begin(pGraphics->GetPipelineStatsQuery().Get());
 	pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
-	pContext->End(pGraphics->GetPipelineStatsQuery().Get());
 	pApp->GetRenderStatsRef().DrawCalls++;
 
-	D3D11_QUERY_DATA_PIPELINE_STATISTICS Stats = {};
-	while (pContext->GetData(pGraphics->GetPipelineStatsQuery().Get(), &Stats, sizeof(Stats), 0) != S_OK)
-	{
-		// sleep or maybe do it on next frame
-	}
-
 	UINT InstanceCount = m_pLandscape->m_ChunkInstanceCount * (UINT)m_pLandscape->GetGrassPositions().size();
-	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", Stats.GSPrimitives));
+	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", InstanceCount * (_countof(GrassIndices) / 3))); // currently only using 1 grass model which is 1 triangle each
 	pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass", InstanceCount));
 
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
