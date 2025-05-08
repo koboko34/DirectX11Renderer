@@ -17,14 +17,25 @@ struct GrassVertex
 
 const GrassVertex GrassVertices[] =
 {
-	{{-0.03f, 0.f,  0.f}},
-	{{ 0.0f,  1.f,  0.f}},
-	{{ 0.03f, 0.f,  0.f}},
+	{{-0.028f, 0.0f,  0.f}},
+	{{ 0.028f, 0.0f,  0.f}},
+	{{-0.026f, 0.2f,  0.f}},
+	{{ 0.026f, 0.2f,  0.f}},
+	{{-0.024f, 0.4f,  0.f}},
+	{{ 0.024f, 0.4f,  0.f}},
+	{{-0.022f, 0.6f,  0.f}},
+	{{ 0.022f, 0.6f,  0.f}},
+	{{-0.020f, 0.8f,  0.f}},
+	{{ 0.020f, 0.8f,  0.f}},
+	{{ 0.000f, 1.0f,  0.f}},
 };
 
 const UINT GrassIndices[] =
 {
-	0, 1, 2
+	0, 1, 2,
+	3, 4, 5,
+	6, 7, 8,
+	9, 10
 };
 
 Grass::Grass()
@@ -85,7 +96,7 @@ void Grass::Render()
 	UINT Offsets[] = { 0u };
 	pContext->IASetInputLayout(m_InputLayout.Get());
 	pContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 
 	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get(), m_GrassOffsetsBufferSRV.Get()};
@@ -101,7 +112,7 @@ void Grass::Render()
 	pApp->GetRenderStatsRef().DrawCalls++;
 
 	UINT InstanceCount = m_pLandscape->m_ChunkInstanceCount * (UINT)m_pLandscape->GetGrassPositions().size();
-	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", InstanceCount * (_countof(GrassIndices) / 3))); // currently only using 1 grass model which is 1 triangle each
+	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", InstanceCount * (_countof(GrassVertices) - 2)));
 	pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass", InstanceCount));
 
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };

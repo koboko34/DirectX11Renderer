@@ -68,6 +68,7 @@ public:
 	std::vector<std::unique_ptr<PostProcess>>& GetPostProcesses() { return m_PostProcesses; }
 
 	double GetDeltaTime() const { return m_DeltaTime; }
+	double GetAppTime() const { return m_AppTime; }
 	RenderStats& GetRenderStatsRef() { return m_RenderStats; }
 	bool& GetShowBoundingBoxesRef() { return m_bShowBoundingBoxes; }
 

@@ -72,7 +72,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_Landscape = std::make_shared<Landscape>(32u, 25.f, 20.f);
 	m_GameObjects.push_back(m_Landscape);
-	bResult = m_Landscape->Init("Textures/perlin_noise.png", 256.f, 64u);
+	bResult = m_Landscape->Init("Textures/perlin_noise.png", 256.f, 100u);
 	assert(bResult);
 
 	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));

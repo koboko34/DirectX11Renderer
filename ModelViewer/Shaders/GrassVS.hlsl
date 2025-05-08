@@ -14,7 +14,8 @@ cbuffer PlaneInfoBuffer : register(b0)
 	bool bVisualiseChunks;
 	float4x4 ChunkScaleMatrix;
 	uint GrassPerChunk;
-	float3 Padding;
+	float Time;
+	float2 Padding;
 };
 
 cbuffer CameraBuffer : register(b1)
@@ -47,6 +48,26 @@ float2 GetHeightmapUV(float3 Pos)
 	return float2(x, z);
 }
 
+float hash(float2 p)
+{
+	return frac(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(float2 p)
+{
+	float2 i = floor(p);
+	float2 f = frac(p);
+
+	float a = hash(i);
+	float b = hash(i + float2(1.0, 0.0));
+	float c = hash(i + float2(0.0, 1.0));
+	float d = hash(i + float2(1.0, 1.0));
+
+	float2 u = f * f * (3.0 - 2.0 * f);
+
+	return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+}
+
 uint GenerateChunkID(float2 v)
 {
 	int2 i = int2(v * 65536.0f);
@@ -57,7 +78,6 @@ uint GenerateChunkID(float2 v)
 
 	return hash;
 }
-
 
 VS_Out main(VS_In v)
 {
@@ -76,6 +96,12 @@ VS_Out main(VS_In v)
 	o.UV = GetHeightmapUV(o.WorldPos);
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.WorldPos.y += Height;
+	
+	// apply wind
+	float PhaseX = (float)OffsetID * 0.37f;
+	float PhaseZ = (float) OffsetID * 0.52f;
+	o.WorldPos.x += sin(Time * 0.9f + PhaseX) * v.Pos.y * v.Pos.y * 0.5f;
+	o.WorldPos.z += sin(Time * 2.3f + PhaseZ) * v.Pos.y * v.Pos.y * 0.5f;
 		
 	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
 	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
