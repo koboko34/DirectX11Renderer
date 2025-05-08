@@ -1,3 +1,5 @@
+#include "Common.hlsl"
+
 Texture2D Heightmap : register(t0);
 SamplerState Sampler : register(s0);
 
@@ -39,11 +41,6 @@ struct TessFactors
 };
 
 #define NUM_CONTROL_POINTS 4
-
-float Remap(float Value, float FromMin, float FromMax, float ToMin, float ToMax)
-{
-	return ToMin + (Value - FromMin) * (ToMax - ToMin) / (FromMax - FromMin);
-}
 
 float2 GetHeightmapUV(float3 Pos)
 {

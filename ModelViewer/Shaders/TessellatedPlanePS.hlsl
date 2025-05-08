@@ -37,6 +37,9 @@ float3 RandomRGB(uint seed)
 	return float3(r, g, b);
 }
 
+static const float4 TopColor = float4(0.30f, 0.5f, 0.1f, 1.0f);
+static const float4 BotColor = float4(0.05f, 0.2f, 0.0f, 1.0f);
+
 float4 main(PS_In p) : SV_TARGET
 {
 	if (bVisualiseChunks)
@@ -47,11 +50,6 @@ float4 main(PS_In p) : SV_TARGET
 	{
 		return float4(50.f / 256.f, 123.f / 256.f, 191.f / 256.f, 1.f);
 	}
-	
-	/*float4 BotGreen = float4(9.f / 256.f, 92.f / 256.f, 31.f / 256.f, 1.f);
-	float TopGreen = float4(82.f / 256.f, 186.f / 256.f, 110.f / 256.f, 1.f);
 
-	return lerp(BotGreen, TopGreen, Height);*/
-	return float4(Height.rrr, 1.f);
-
+	return lerp(BotColor, TopColor, Height);
 }

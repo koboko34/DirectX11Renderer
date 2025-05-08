@@ -34,12 +34,8 @@ struct VS_Out
 	float3 WorldPos : WORLDPOS;
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
+	float HeightAlongBlade : TEXCOORD2;
 };
-
-float Remap(float Value, float FromMin, float FromMax, float ToMin, float ToMax)
-{
-	return ToMin + (Value - FromMin) * (ToMax - ToMin) / (FromMax - FromMin);
-}
 
 float2 GetHeightmapUV(float3 Pos)
 {
@@ -82,8 +78,8 @@ VS_Out main(VS_In v)
 	o.WorldPos.y += Height;
 		
 	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
-	
 	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
+	o.HeightAlongBlade = v.Pos.y;
 	
 	return o;
 }

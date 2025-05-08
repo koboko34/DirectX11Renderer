@@ -102,7 +102,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 		for (int j = 0; j < 16; j++)
 		{
 			m_GameObjects.emplace_back(std::make_shared<GameObject>());
-			m_GameObjects.back()->SetPosition((float)i * 2.f, 0.f, (float)j * 2.f);
+			m_GameObjects.back()->SetPosition((float)i * 2.f, 15.f, (float)j * 2.f);
 			m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
 		}
 	}

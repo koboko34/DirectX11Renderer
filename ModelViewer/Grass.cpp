@@ -18,7 +18,7 @@ struct GrassVertex
 const GrassVertex GrassVertices[] =
 {
 	{{-0.03f, 0.f,  0.f}},
-	{{ 0.0f, 1.f,  0.f}},
+	{{ 0.0f,  1.f,  0.f}},
 	{{ 0.03f, 0.f,  0.f}},
 };
 
