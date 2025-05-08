@@ -82,11 +82,6 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_MainCamera = m_Cameras.back();
 	m_GameObjects.push_back(m_ActiveCamera);
 
-	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
-	m_GameObjects.push_back(m_Cameras.back());
-	m_Cameras.emplace_back(std::make_shared<Camera>(m_Graphics->GetProjectionMatrix()));
-	m_GameObjects.push_back(m_Cameras.back());
-
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(0.f, 0.f, 0.f);
 	m_GameObjects.back()->SetName("Car_1");
@@ -97,7 +92,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	m_GameObjects.back()->SetName("Car_2");
 	m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/american_fullsize_73/scene.gltf", "Models/american_fullsize_73/"));*/
 
-	for (int i = 0; i < 16; i++)
+	/*for (int i = 0; i < 16; i++)
 	{
 		for (int j = 0; j < 16; j++)
 		{
@@ -105,7 +100,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 			m_GameObjects.back()->SetPosition((float)i * 2.f, 15.f, (float)j * 2.f);
 			m_GameObjects.back()->AddComponent(std::make_shared<Model>("Models/fantasy_sword_stylized/scene.gltf", "Models/fantasy_sword_stylized/"));
 		}
-	}
+	}*/
 
 	/*m_GameObjects.emplace_back(std::make_shared<GameObject>());
 	m_GameObjects.back()->SetPosition(1.7f, 2.5f, -1.7f);
@@ -356,7 +351,7 @@ void Application::RenderModels()
 	for (const auto& ModelPair : Models)
 	{		
 		ModelData* pModelData = static_cast<ModelData*>(ModelPair.second->GetDataPtr());
-		if (!pModelData)
+		if (!pModelData || pModelData->GetTransforms().empty())
 			continue;
 		
 		// AABB frustum culling on transforms
@@ -439,6 +434,24 @@ void Application::ApplyPostProcesses(Microsoft::WRL::ComPtr<ID3D11RenderTargetVi
 
 void Application::ProcessInput()
 {
+	if (InputClass::GetSingletonPtr()->IsKeyDown('M'))
+	{
+		if (m_bCursorToggleReleased)
+		{
+			m_bCursorToggleReleased = false;
+			ToggleShowCursor();
+		}
+	}
+	else
+	{
+		m_bCursorToggleReleased = true;
+	}
+
+	if (m_bShowCursor)
+	{
+		return;
+	}
+	
 	DirectX::XMFLOAT3 LookDir = m_ActiveCamera->GetRotatedLookDir();
 	DirectX::XMFLOAT3 LookRight = m_ActiveCamera->GetRotatedLookRight();
 	float EffectiveCameraSpeed = m_CameraSpeed * (float)m_DeltaTime;
@@ -469,19 +482,6 @@ void Application::ProcessInput()
 	}
 
 	m_ActiveCamera->SetRotation(m_ActiveCamera->GetRotation().x + SystemClass::m_MouseDelta.y * 0.1f, m_ActiveCamera->GetRotation().y + SystemClass::m_MouseDelta.x * 0.1f, 0.f);
-
-	if (InputClass::GetSingletonPtr()->IsKeyDown('M'))
-	{
-		if (m_bCursorToggleReleased)
-		{
-			m_bCursorToggleReleased = false;
-			ToggleShowCursor();
-		}
-	}
-	else
-	{
-		m_bCursorToggleReleased = true;
-	}
 
 	short Delta = InputClass::GetSingletonPtr()->GetMouseWheelDelta();
 	if (Delta > 0)

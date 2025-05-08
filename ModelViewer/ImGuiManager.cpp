@@ -2,10 +2,10 @@
 #include <locale>
 
 #include "ImGuiManager.h"
-
 #include "Application.h"
 #include "PostProcess.h"
 #include "GameObject.h"
+#include "Graphics.h"
 
 static int s_SelectedId = -1;
 
@@ -90,6 +90,7 @@ void ImGuiManager::RenderCamerasWindow()
 {
 	Application* pApp = Application::GetSingletonPtr();
 	auto& Cameras = pApp->GetCameras();
+	auto& GameObjects = pApp->GetGameObjects();
 
 	std::vector<const char*> CameraNames;
 	for (const auto& Camera : Cameras)
@@ -104,6 +105,32 @@ void ImGuiManager::RenderCamerasWindow()
 	if (ImGui::Combo("Active Camera", &ID, CameraNames.data(), (int)Cameras.size()))
 	{
 		pApp->SetActiveCamera(ID);
+	}
+
+	if (ImGui::Button("Add New Camera"))
+	{
+		Cameras.emplace_back(std::make_shared<Camera>(Graphics::GetSingletonPtr()->GetProjectionMatrix()));
+		GameObjects.push_back(Cameras.back());
+		Cameras.back()->SetTransform(pApp->GetActiveCamera()->GetTransform());
+		pApp->SetActiveCamera((int)Cameras.size() - 1);
+	}
+
+	if (ID != 0)
+	{
+		if (ImGui::Button("Delete Camera"))
+		{
+			auto c = pApp->GetActiveCamera();
+
+			Cameras.erase(Cameras.begin() + ID);
+
+			auto it = std::find(GameObjects.begin(), GameObjects.end(), c);
+			if (it != GameObjects.end())
+			{
+				GameObjects.erase(it);
+			}
+
+			pApp->SetActiveCamera(0);
+		}
 	}
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
