@@ -38,47 +38,6 @@ struct VS_Out
 	float HeightAlongBlade : TEXCOORD2;
 };
 
-float2 GetHeightmapUV(float3 Pos)
-{
-	float HalfPlaneDimension = PlaneDimension / 2.f;
-	float x = Remap(Pos.x, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	float z = Remap(Pos.z, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	z = 1.f - z;
-	
-	return float2(x, z);
-}
-
-float hash(float2 p)
-{
-	return frac(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
-}
-
-float noise(float2 p)
-{
-	float2 i = floor(p);
-	float2 f = frac(p);
-
-	float a = hash(i);
-	float b = hash(i + float2(1.0, 0.0));
-	float c = hash(i + float2(0.0, 1.0));
-	float d = hash(i + float2(1.0, 1.0));
-
-	float2 u = f * f * (3.0 - 2.0 * f);
-
-	return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
-}
-
-uint GenerateChunkID(float2 v)
-{
-	int2 i = int2(v * 65536.0f);
-	uint hash = uint(i.x) * 73856093u ^ uint(i.y) * 19349663u;
-	hash ^= (hash >> 13);
-	hash *= 0x85ebca6bu;
-	hash ^= (hash >> 16);
-
-	return hash;
-}
-
 VS_Out main(VS_In v)
 {
 	VS_Out o;
@@ -93,7 +52,7 @@ VS_Out main(VS_In v)
 	o.WorldPos = mul(float4(o.WorldPos, 1.f), ChunkTransforms[ChunkID]).xyz;
 	
 	// apply height offset
-	o.UV = GetHeightmapUV(o.WorldPos);
+	o.UV = GetHeightmapUV(o.WorldPos, PlaneDimension);
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.WorldPos.y += Height;
 	

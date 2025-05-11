@@ -30,33 +30,11 @@ struct VS_Out
 	uint ChunkID : TEXCOORD1;
 };
 
-float2 GetHeightmapUV(float3 Pos)
-{
-	float HalfPlaneDimension = PlaneDimension / 2.f;
-	float x = Remap(Pos.x, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	float z = Remap(Pos.z, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	z = 1.f - z;
-	
-	return float2(x, z);
-}
-
-uint GenerateChunkID(float2 v)
-{
-	int2 i = int2(v * 65536.0f);
-	uint hash = uint(i.x) * 73856093u ^ uint(i.y) * 19349663u;
-	hash ^= (hash >> 13);
-	hash *= 0x85ebca6bu;
-	hash ^= (hash >> 16);
-
-	return hash;
-}
-
-
 VS_Out main(VS_In v)
 {
 	VS_Out o;
 	o.Pos = mul(mul(float4(v.Pos, 1.f), ChunkScaleMatrix), Transforms[v.InstanceID]).xyz;
-	o.UV = GetHeightmapUV(o.Pos);
+	o.UV = GetHeightmapUV(o.Pos, PlaneDimension);
 	
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.Pos.y = Height;

@@ -37,7 +37,7 @@ Application::Application()
 	m_TextureResourceView = {};
 	m_ActiveCameraID = 0;
 	m_CameraSpeed = 20.f;
-	m_CameraSpeedMin = 10.f;
+	m_CameraSpeedMin = 1.25f;
 	m_CameraSpeedMax = 200.f;
 }
 

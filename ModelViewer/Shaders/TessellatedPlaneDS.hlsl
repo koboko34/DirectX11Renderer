@@ -43,16 +43,6 @@ struct TessFactors
 
 #define NUM_CONTROL_POINTS 4
 
-float2 GetHeightmapUV(float3 Pos)
-{
-	float HalfPlaneDimension = PlaneDimension / 2.f;
-	float x = Remap(Pos.x, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	float z = Remap(Pos.z, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	z = 1.f - z;
-	
-	return float2(x, z);
-}
-
 [domain("quad")]
 DS_Out main(
 	TessFactors t,
@@ -70,7 +60,7 @@ DS_Out main(
 	float3 Bot = lerp(p2, p3, UV.x);
 	float3 Pos = lerp(Top, Bot, UV.y);
 	
-	float2 DS_UV = GetHeightmapUV(Pos);
+	float2 DS_UV = GetHeightmapUV(Pos, PlaneDimension);
 		
 	float2 uv0 = Patch[0].UV;
 	float2 uv1 = Patch[1].UV;
