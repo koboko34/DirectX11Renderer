@@ -15,10 +15,17 @@ class Landscape;
 class Grass : public GameObject
 {
 private:
-	struct CBuffer
+	struct WindCBuffer
 	{
 		float Freq;
 		float Amp;
+		DirectX::XMFLOAT2 Direction;
+		float TimeScale;
+		float FreqMultiplier;
+		float AmpMultiplier;
+		UINT WaveCount;
+		float Strength;
+		float SwayExponent;
 		DirectX::XMFLOAT2 Padding;
 	};
 
@@ -40,6 +47,7 @@ private:
 	bool CreateBuffers();
 
 	void UpdateBuffers();
+	void SetWindDirection(DirectX::XMFLOAT2 WindDir);
 
 private:
 	ID3D11VertexShader* m_VertexShader;
@@ -58,6 +66,13 @@ private:
 	bool m_bShouldRender;
 	float m_Freq;
 	float m_Amp;
+	DirectX::XMFLOAT2 m_WindDir;
+	float m_TimeScale;
+	float m_FreqMultiplier;
+	float m_AmpMultiplier;
+	UINT m_WaveCount;
+	float m_WindStrength;
+	float m_SwayExponent;
 
 	const char* m_vsFilepath;
 	const char* m_psFilepath;

@@ -41,9 +41,16 @@ const UINT GrassIndices[] =
 Grass::Grass()
 {
 	SetName("Grass");
+	SetWindDirection({ 1.f, 1.f });
 	m_bShouldRender = true;
 	m_Freq = 2.f;
-	m_Amp = 2.f;
+	m_Amp = 1.5f;
+	m_TimeScale = 6.f;
+	m_FreqMultiplier = 1.4f;
+	m_AmpMultiplier = 0.5f;
+	m_WaveCount = 32u;
+	m_WindStrength = 0.7f;
+	m_SwayExponent = 1.5f;
 	m_pLandscape = nullptr;
 }
 
@@ -136,7 +143,41 @@ void Grass::RenderControls()
 	{
 		bDirty = true;
 	}
-	if (ImGui::SliderFloat("Amplitude", &m_Amp, 0.f, 100.f))
+	if (ImGui::SliderFloat("Amplitude", &m_Amp, 0.f, 5.f))
+	{
+		bDirty = true;
+	}
+
+	DirectX::XMFLOAT2 WindDir = m_WindDir;
+	if (ImGui::SliderFloat2("Wind Direction", reinterpret_cast<float*>(&WindDir), -1.f, 1.f))
+	{
+		SetWindDirection(WindDir);
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Time Scale", &m_TimeScale, 0.f, 10.f))
+	{
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Frequency Multiplier", &m_FreqMultiplier, 1.f, 5.f))
+	{
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Amplitude Multiplier", &m_AmpMultiplier, 0.f, 1.f))
+	{
+		bDirty = true;
+	}
+
+	UINT WaveCountMin = 0u;
+	UINT WaveCountMax = 64u;
+	if (ImGui::SliderScalar("Wave Count", ImGuiDataType_U32, &m_WaveCount, &WaveCountMin, &WaveCountMax))
+	{
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Sway Height Exponent", &m_SwayExponent, 1.f, 10.f))
+	{
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Wind Strength", &m_WindStrength, 0.f, 3.f))
 	{
 		bDirty = true;
 	}
@@ -170,13 +211,20 @@ bool Grass::CreateBuffers()
 	NAME_D3D_RESOURCE(m_IndexBuffer, "Grass index buffer");
 
 	Desc.Usage = D3D11_USAGE_DYNAMIC;
-	Desc.ByteWidth = sizeof(CBuffer);
+	Desc.ByteWidth = sizeof(WindCBuffer);
 	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-	CBuffer WindData = {};
+	WindCBuffer WindData = {};
 	WindData.Freq = m_Freq;
 	WindData.Amp = m_Amp;
+	WindData.Direction = m_WindDir;
+	WindData.TimeScale = m_TimeScale;
+	WindData.FreqMultiplier = m_FreqMultiplier;
+	WindData.AmpMultiplier = m_AmpMultiplier;
+	WindData.WaveCount = m_WaveCount;
+	WindData.Strength = m_WindStrength;
+	WindData.SwayExponent = m_SwayExponent;
 
 	Data.pSysMem = &WindData;
 
@@ -238,13 +286,26 @@ void Grass::UpdateBuffers()
 {
 	HRESULT hResult;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
-	CBuffer* CBufferPtr;
+	WindCBuffer* CBufferPtr;
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 
 	ASSERT_NOT_FAILED(DeviceContext->Map(m_GrassCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
-	CBufferPtr = (CBuffer*)MappedResource.pData;
+	CBufferPtr = (WindCBuffer*)MappedResource.pData;
 	CBufferPtr->Freq = m_Freq;
 	CBufferPtr->Amp = m_Amp;
-	CBufferPtr->Padding = {};
+	CBufferPtr->Direction = m_WindDir;
+	CBufferPtr->TimeScale = m_TimeScale;
+	CBufferPtr->FreqMultiplier = m_FreqMultiplier;
+	CBufferPtr->AmpMultiplier = m_AmpMultiplier;
+	CBufferPtr->WaveCount = m_WaveCount;
+	CBufferPtr->Strength = m_WindStrength;
+	CBufferPtr->SwayExponent = m_SwayExponent;
 	DeviceContext->Unmap(m_GrassCBuffer.Get(), 0u);
+}
+
+void Grass::SetWindDirection(DirectX::XMFLOAT2 WindDir)
+{
+	DirectX::XMVECTOR v = DirectX::XMLoadFloat2(&WindDir);
+	v = DirectX::XMVector2Normalize(v);
+	DirectX::XMStoreFloat2(&m_WindDir, v);
 }

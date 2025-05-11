@@ -27,6 +27,13 @@ cbuffer WindBuffer : register(b2)
 {
 	float Freq;
 	float Amp;
+	float2 WindDir;
+	float TimeScale;
+	float FreqMultiplier;
+	float AmpMultiplier;
+	uint WaveCount;
+	float WindStrength;
+	float SwayExponent;
 	float2 MorePadding;
 }
 
@@ -63,17 +70,23 @@ VS_Out main(VS_In v)
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.WorldPos.y += Height;
 	
-	// apply wind
-	float PhaseX = (float)OffsetID * 0.37f;
-	float PhaseZ = (float) OffsetID * 0.52f;
-	//o.WorldPos.x += sin(Time * 0.9f + PhaseX) * v.Pos.y * v.Pos.y * 0.5f;
-	//o.WorldPos.z += sin(Time * 2.3f + PhaseZ) * v.Pos.y * v.Pos.y * 0.5f;
+	// apply wind if not root vertex
+	if (v.Pos.y != 0.f)
+	{
+		float4 GrassPos = float4(0.f, 0.f, 0.f, 1.f);
+		GrassPos = mul(mul(GrassPos, GrassOffsets[OffsetID]), ChunkTransforms[ChunkID]);
+		uint ChunkIDFromWorld = GenerateChunkID(mul(float4(0.f, 0.f, 0.f, 1.f), ChunkTransforms[ChunkID]).xz);
+		float2 Noise = PerlinNoise2D(GrassPos.xz * 0.1f) * 8.f;
+		float Input = dot(GrassPos.xz + Noise, WindDir) - Time * TimeScale;
+		float2 WindOffset = SumOfSines(Input, WindDir, FreqMultiplier, AmpMultiplier, WaveCount, Hash((float)ChunkIDFromWorld));
+		WindOffset += PerlinNoise2D(GrassPos.xz * Freq) * Amp;
+		WindOffset *= pow(v.Pos.y, SwayExponent) * WindDir * WindStrength;
+		o.WorldPos.xz += WindOffset;
 	
-	float4 GrassPos = float4(0.f, 0.f, 0.f, 1.f);
-	GrassPos = mul(mul(GrassPos, GrassOffsets[OffsetID]), ChunkTransforms[ChunkID]);
-	float WindAmount = sin(GrassPos.x + GrassPos.z - Time * 3.f) * 0.5f + 0.5f + PerlinNoise((GrassPos.x + GrassPos.z) * Freq) * Amp;
-	o.WorldPos.x += WindAmount * v.Pos.y * v.Pos.y * 0.5f;
-	o.WorldPos.z += WindAmount * v.Pos.y * v.Pos.y * 0.5f;
+		float WindAmount = length(WindOffset);
+		float BendFactor = 0.3f;
+		o.WorldPos.y -= min(WindAmount * BendFactor, 0.8f);
+	}
 	
 	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
 	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
