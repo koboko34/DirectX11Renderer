@@ -42,7 +42,8 @@ Grass::Grass()
 {
 	SetName("Grass");
 	m_bShouldRender = true;
-
+	m_Freq = 2.f;
+	m_Amp = 2.f;
 	m_pLandscape = nullptr;
 }
 
@@ -100,13 +101,14 @@ void Grass::Render()
 	pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 
 	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get(), m_GrassOffsetsBufferSRV.Get()};
-	ID3D11Buffer* CBuffers[] = { m_pLandscape->m_LandscapeInfoCBuffer.Get(), m_pLandscape->m_CameraCBuffer.Get() };
+	ID3D11Buffer* CBuffers[] = { m_pLandscape->m_LandscapeInfoCBuffer.Get(), m_pLandscape->m_CameraCBuffer.Get(), m_GrassCBuffer.Get() };
 	pContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	pContext->VSSetShaderResources(0u, 3u, vsSRVs);
-	pContext->VSSetConstantBuffers(0u, 2u, CBuffers);
+	pContext->VSSetConstantBuffers(0u, 3u, CBuffers);
 	pContext->VSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	pContext->PSSetShader(m_PixelShader, nullptr, 0u);
+	pContext->PSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 
 	pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
 	pApp->GetRenderStatsRef().DrawCalls++;
@@ -124,6 +126,25 @@ void Grass::RenderControls()
 	ImGui::Text(GetName().c_str());
 
 	ImGui::Checkbox("Should Render Grass?", &m_bShouldRender);
+
+	ImGui::Dummy(ImVec2(0.f, 2.f));
+
+	ImGui::Text("Wind");
+	
+	bool bDirty = false;
+	if (ImGui::SliderFloat("Frequency", &m_Freq, 0.f, 100.f))
+	{
+		bDirty = true;
+	}
+	if (ImGui::SliderFloat("Amplitude", &m_Amp, 0.f, 100.f))
+	{
+		bDirty = true;
+	}
+
+	if (bDirty)
+	{
+		UpdateBuffers();
+	}
 }
 
 bool Grass::CreateBuffers()
@@ -148,6 +169,22 @@ bool Grass::CreateBuffers()
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_IndexBuffer));
 	NAME_D3D_RESOURCE(m_IndexBuffer, "Grass index buffer");
 
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.ByteWidth = sizeof(CBuffer);
+	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	CBuffer WindData = {};
+	WindData.Freq = m_Freq;
+	WindData.Amp = m_Amp;
+
+	Data.pSysMem = &WindData;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_GrassCBuffer));
+	NAME_D3D_RESOURCE(m_GrassCBuffer, "Grass constant buffer");
+
+	Desc.CPUAccessFlags = 0u;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
 	Desc.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_GRASS_PER_CHUNK;
 	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -195,4 +232,19 @@ bool Grass::CreateBuffers()
 	NAME_D3D_RESOURCE(m_ArgsBufferUAV, "Grass args buffer UAV");
 	
 	return true;
+}
+
+void Grass::UpdateBuffers()
+{
+	HRESULT hResult;
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	CBuffer* CBufferPtr;
+	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
+
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_GrassCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	CBufferPtr = (CBuffer*)MappedResource.pData;
+	CBufferPtr->Freq = m_Freq;
+	CBufferPtr->Amp = m_Amp;
+	CBufferPtr->Padding = {};
+	DeviceContext->Unmap(m_GrassCBuffer.Get(), 0u);
 }

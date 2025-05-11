@@ -23,6 +23,13 @@ cbuffer CameraBuffer : register(b1)
 	float4x4 ViewProj;
 };
 
+cbuffer WindBuffer : register(b2)
+{
+	float Freq;
+	float Amp;
+	float2 MorePadding;
+}
+
 struct VS_In
 {
 	float3 Pos : POSITION;
@@ -59,9 +66,15 @@ VS_Out main(VS_In v)
 	// apply wind
 	float PhaseX = (float)OffsetID * 0.37f;
 	float PhaseZ = (float) OffsetID * 0.52f;
-	o.WorldPos.x += sin(Time * 0.9f + PhaseX) * v.Pos.y * v.Pos.y * 0.5f;
-	o.WorldPos.z += sin(Time * 2.3f + PhaseZ) * v.Pos.y * v.Pos.y * 0.5f;
-		
+	//o.WorldPos.x += sin(Time * 0.9f + PhaseX) * v.Pos.y * v.Pos.y * 0.5f;
+	//o.WorldPos.z += sin(Time * 2.3f + PhaseZ) * v.Pos.y * v.Pos.y * 0.5f;
+	
+	float4 GrassPos = float4(0.f, 0.f, 0.f, 1.f);
+	GrassPos = mul(mul(GrassPos, GrassOffsets[OffsetID]), ChunkTransforms[ChunkID]);
+	float WindAmount = sin(GrassPos.x + GrassPos.z - Time * 3.f) * 0.5f + 0.5f + PerlinNoise((GrassPos.x + GrassPos.z) * Freq) * Amp;
+	o.WorldPos.x += WindAmount * v.Pos.y * v.Pos.y * 0.5f;
+	o.WorldPos.z += WindAmount * v.Pos.y * v.Pos.y * 0.5f;
+	
 	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
 	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
 	o.HeightAlongBlade = v.Pos.y;

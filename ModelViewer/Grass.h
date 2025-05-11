@@ -14,6 +14,14 @@ class Landscape;
 
 class Grass : public GameObject
 {
+private:
+	struct CBuffer
+	{
+		float Freq;
+		float Amp;
+		DirectX::XMFLOAT2 Padding;
+	};
+
 public:
 	Grass();
 	~Grass();
@@ -31,6 +39,8 @@ public:
 private:
 	bool CreateBuffers();
 
+	void UpdateBuffers();
+
 private:
 	ID3D11VertexShader* m_VertexShader;
 	ID3D11PixelShader* m_PixelShader;
@@ -39,12 +49,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ArgsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassOffsetsBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_GrassOffsetsBufferSRV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ArgsBufferUAV;
 
 	Landscape* m_pLandscape;
 	UINT m_GrassPerChunk;
 	bool m_bShouldRender;
+	float m_Freq;
+	float m_Amp;
 
 	const char* m_vsFilepath;
 	const char* m_psFilepath;
