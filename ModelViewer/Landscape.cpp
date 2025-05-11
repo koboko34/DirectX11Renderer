@@ -216,8 +216,8 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 		return;
 	}
 
-	float SpacingX = m_ChunkSize / (GrassCount - 1);
-	float SpacingZ = m_ChunkSize / (GrassCount - 1);
+	float SpacingX = m_ChunkSize / (GrassCount);
+	float SpacingZ = m_ChunkSize / (GrassCount);
 
 	float HalfWidth = m_ChunkSize * 0.5f;
 	float HalfDepth = m_ChunkSize * 0.5f;
