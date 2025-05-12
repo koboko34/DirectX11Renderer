@@ -66,6 +66,7 @@ bool Grass::Init(Landscape* pLandscape, UINT GrassDimensionPerChunk)
 	Microsoft::WRL::ComPtr<ID3D10Blob> vsBuffer;
 	m_pLandscape = pLandscape;
 	m_GrassPerChunk = GrassDimensionPerChunk * GrassDimensionPerChunk;
+	assert(m_GrassPerChunk <= MAX_GRASS_PER_CHUNK);
 
 	FALSE_IF_FAILED(CreateBuffers());
 
@@ -120,7 +121,7 @@ void Grass::Render()
 	pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
 	pApp->GetRenderStatsRef().DrawCalls++;
 
-	UINT InstanceCount = m_pLandscape->m_ChunkInstanceCount * (UINT)m_pLandscape->GetGrassPositions().size();
+	UINT InstanceCount = m_pLandscape->m_ChunkInstanceCount * m_GrassPerChunk;
 	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", InstanceCount * (_countof(GrassVertices) - 2)));
 	pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass", InstanceCount));
 
@@ -233,7 +234,7 @@ bool Grass::CreateBuffers()
 
 	Desc.CPUAccessFlags = 0u;
 	Desc.Usage = D3D11_USAGE_IMMUTABLE;
-	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * MAX_GRASS_PER_CHUNK;
+	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * MAX_GRASS_PER_CHUNK; // TODO: can this just be m_GrassPerChunk?
 	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	Desc.StructureByteStride = sizeof(DirectX::XMFLOAT2);
@@ -246,7 +247,7 @@ bool Grass::CreateBuffers()
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
 	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	SRVDesc.Buffer.NumElements = (UINT)MAX_GRASS_PER_CHUNK;
+	SRVDesc.Buffer.NumElements = (UINT)MAX_GRASS_PER_CHUNK; // same here?
 
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GrassOffsetsBuffer.Get(), &SRVDesc, &m_GrassOffsetsBufferSRV));
 	NAME_D3D_RESOURCE(m_GrassOffsetsBufferSRV, "Grass offsets buffer SRV");
