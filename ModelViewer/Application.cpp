@@ -175,7 +175,7 @@ bool Application::Frame()
 	m_RenderStats.FrameTime = m_DeltaTime * 1000.0;
 	m_RenderStats.FPS = 1.0 / m_DeltaTime;
 
-	float RotationAngle = (float)fmod(m_AppTime, 360.f);
+	//float RotationAngle = (float)fmod(m_AppTime, 360.f);
 	//m_GameObjects[1]->SetRotation(0.f, RotationAngle * 30.f, 0.f);
 	//m_GameObjects[2]->SetRotation(0.f, -RotationAngle * 20.f, 0.f);
 
@@ -264,9 +264,11 @@ bool Application::Render()
 			}
 		}
 
-		for (const auto& t : m_Landscape->GetChunkTransforms())
+		const DirectX::XMMATRIX& Scale = m_Landscape->GetChunkScaleMatrix();
+		const AABB& BBox = m_Landscape->GetBoundingBox();
+		for (const DirectX::XMFLOAT2& o : m_Landscape->GetChunkOffsets())
 		{
-			m_BoxRenderer->RenderBox(m_Landscape->GetBoundingBox(), DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(t, m_Landscape->GetChunkScaleMatrix()))); // back to column major
+			m_BoxRenderer->RenderBox(BBox, DirectX::XMMatrixMultiply(Scale, DirectX::XMMatrixTranslation(o.x, 0.f, o.y)));
 		}
 	}
 

@@ -1,7 +1,7 @@
 #include "Common.hlsl"
 
 Texture2D Heightmap : register(t0);
-StructuredBuffer<float4x4> Transforms : register(t1);
+StructuredBuffer<float2> Offsets : register(t1);
 
 SamplerState Sampler : register(s0);
 
@@ -33,7 +33,7 @@ struct VS_Out
 VS_Out main(VS_In v)
 {
 	VS_Out o;
-	o.Pos = mul(mul(float4(v.Pos, 1.f), ChunkScaleMatrix), Transforms[v.InstanceID]).xyz;
+	o.Pos = mul(float4(v.Pos, 1.f), ChunkScaleMatrix).xyz + float3(Offsets[v.InstanceID].x, 0.f, Offsets[v.InstanceID].y);
 	o.UV = GetHeightmapUV(o.Pos, PlaneDimension);
 	
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;

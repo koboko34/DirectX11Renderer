@@ -1,8 +1,8 @@
 #include "Common.hlsl"
 
 Texture2D Heightmap : register(t0);
-StructuredBuffer<float4x4> ChunkTransforms : register(t1);
-StructuredBuffer<float4x4> GrassOffsets : register(t2);
+StructuredBuffer<float2> ChunkOffsets : register(t1);
+StructuredBuffer<float2> GrassOffsets : register(t2);
 
 SamplerState Sampler : register(s0);
 
@@ -39,7 +39,7 @@ cbuffer WindBuffer : register(b2)
 
 struct VS_In
 {
-	float3 Pos : POSITION;
+	float2 Pos : POSITION;
 	uint InstanceID : SV_InstanceID;
 };
 
@@ -59,11 +59,13 @@ VS_Out main(VS_In v)
 	uint OffsetID = v.InstanceID % GrassPerChunk;
 	uint ChunkID = v.InstanceID / GrassPerChunk;
 	
-	// offset grass within its own chunk
-	o.WorldPos = mul(float4(v.Pos, 1.f), GrassOffsets[OffsetID]).xyz;
+	// apply random rotation
 	
-	// transform by chunk transform
-	o.WorldPos = mul(float4(o.WorldPos, 1.f), ChunkTransforms[ChunkID]).xyz;
+	// offset grass within its own chunk
+	o.WorldPos = float3(v.Pos, 0.f) + float3(GrassOffsets[OffsetID].x, 0.f, GrassOffsets[OffsetID].y);
+	
+	// offset by chunk position
+	o.WorldPos += float3(ChunkOffsets[ChunkID].x, 0.f, ChunkOffsets[ChunkID].y);
 	
 	// apply height offset
 	o.UV = GetHeightmapUV(o.WorldPos, PlaneDimension);
@@ -73,9 +75,8 @@ VS_Out main(VS_In v)
 	// apply wind if not root vertex
 	if (v.Pos.y != 0.f)
 	{
-		float4 GrassPos = float4(0.f, 0.f, 0.f, 1.f);
-		GrassPos = mul(mul(GrassPos, GrassOffsets[OffsetID]), ChunkTransforms[ChunkID]);
-		uint ChunkIDFromWorld = GenerateChunkID(mul(float4(0.f, 0.f, 0.f, 1.f), ChunkTransforms[ChunkID]).xz);
+		float4 GrassPos = float4(GrassOffsets[OffsetID].x + ChunkOffsets[ChunkID].x, 0.f, GrassOffsets[OffsetID].y + ChunkOffsets[ChunkID].y, 1.f);
+		uint ChunkIDFromWorld = GenerateChunkID(ChunkOffsets[ChunkID]);
 		float2 Noise = PerlinNoise2D(GrassPos.xz * 0.1f) * 8.f;
 		float Input = dot(GrassPos.xz + Noise, WindDir) - Time * TimeScale;
 		float2 WindOffset = SumOfSines(Input, WindDir, FreqMultiplier, AmpMultiplier, WaveCount, Hash((float)ChunkIDFromWorld));

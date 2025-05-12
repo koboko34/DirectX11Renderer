@@ -1,8 +1,10 @@
 StructuredBuffer<float4x4> Transforms : register(t0);
+StructuredBuffer<float2> Offsets : register(t1);
 
 AppendStructuredBuffer<float4x4> CulledTransforms : register(u0);
-RWStructuredBuffer<uint> InstanceCount : register(u1);
-RWByteAddressBuffer ArgsBuffer : register(u2);
+AppendStructuredBuffer<float2> CulledOffsets : register(u1);
+RWStructuredBuffer<uint> InstanceCount : register(u2);
+RWByteAddressBuffer ArgsBuffer : register(u3);
 
 cbuffer CullData : register(b0)
 {
@@ -44,6 +46,33 @@ void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
 		{
 			CulledTransforms.Append(t);
+			InterlockedAdd(InstanceCount[0], 1u);
+			return;
+		}
+	}
+}
+
+[numthreads(tx, ty, tz)]
+void FrustumCullOffsets(uint3 DTid : SV_DispatchThreadID)
+{
+	uint FlattenedID = DTid.z * ThreadGroupCounts.x * ThreadGroupCounts.y * tx * ty +
+                       DTid.y * ThreadGroupCounts.x * tx +
+                       DTid.x;
+	
+	if (FlattenedID >= SentInstanceCount)
+		return;
+	
+	const float Bias = 0.01f;
+
+	for (int i = 0; i < 8; i++)
+	{
+		const float4 o = float4(Offsets[FlattenedID].x, 0.f, Offsets[FlattenedID].y, 0.f);
+		float4 TransformedCorner = mul(mul(Corners[i], ScaleMatrix) + o, ViewProj);
+
+		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
+			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
+		{
+			CulledOffsets.Append(o.xz);
 			InterlockedAdd(InstanceCount[0], 1u);
 			return;
 		}

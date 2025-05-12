@@ -12,22 +12,22 @@ typedef unsigned int UINT;
 
 struct GrassVertex
 {
-	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT2 Position;
 };
 
 const GrassVertex GrassVertices[] =
 {
-	{{-0.028f, 0.0f,  0.f}},
-	{{ 0.028f, 0.0f,  0.f}},
-	{{-0.026f, 0.2f,  0.f}},
-	{{ 0.026f, 0.2f,  0.f}},
-	{{-0.024f, 0.4f,  0.f}},
-	{{ 0.024f, 0.4f,  0.f}},
-	{{-0.022f, 0.6f,  0.f}},
-	{{ 0.022f, 0.6f,  0.f}},
-	{{-0.020f, 0.8f,  0.f}},
-	{{ 0.020f, 0.8f,  0.f}},
-	{{ 0.000f, 1.0f,  0.f}},
+	{{-0.028f, 0.0f}},
+	{{ 0.028f, 0.0f}},
+	{{-0.026f, 0.2f}},
+	{{ 0.026f, 0.2f}},
+	{{-0.024f, 0.4f}},
+	{{ 0.024f, 0.4f}},
+	{{-0.022f, 0.6f}},
+	{{ 0.022f, 0.6f}},
+	{{-0.020f, 0.8f}},
+	{{ 0.020f, 0.8f}},
+	{{ 0.000f, 1.0f}},
 };
 
 const UINT GrassIndices[] =
@@ -75,7 +75,7 @@ bool Grass::Init(Landscape* pLandscape, UINT GrassDimensionPerChunk)
 	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilepath);
 
 	D3D11_INPUT_ELEMENT_DESC LayoutDesc[1] = {};
-	LayoutDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	LayoutDesc[0].Format = DXGI_FORMAT_R32G32_FLOAT;
 	LayoutDesc[0].SemanticName = "POSITION";
 	LayoutDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 
@@ -107,7 +107,7 @@ void Grass::Render()
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 
-	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get(), m_GrassOffsetsBufferSRV.Get()};
+	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledOffsetsSRV().Get(), m_GrassOffsetsBufferSRV.Get()};
 	ID3D11Buffer* CBuffers[] = { m_pLandscape->m_LandscapeInfoCBuffer.Get(), m_pLandscape->m_CameraCBuffer.Get(), m_GrassCBuffer.Get() };
 	pContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	pContext->VSSetShaderResources(0u, 3u, vsSRVs);
@@ -134,7 +134,7 @@ void Grass::RenderControls()
 
 	ImGui::Checkbox("Should Render Grass?", &m_bShouldRender);
 
-	ImGui::Dummy(ImVec2(0.f, 2.f));
+	ImGui::Dummy(ImVec2(0.f, 10.f));
 
 	ImGui::Text("Wind");
 	
@@ -233,10 +233,10 @@ bool Grass::CreateBuffers()
 
 	Desc.CPUAccessFlags = 0u;
 	Desc.Usage = D3D11_USAGE_IMMUTABLE;
-	Desc.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_GRASS_PER_CHUNK;
+	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * MAX_GRASS_PER_CHUNK;
 	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	Desc.StructureByteStride = sizeof(DirectX::XMMATRIX);
+	Desc.StructureByteStride = sizeof(DirectX::XMFLOAT2);
 
 	Data.pSysMem = m_pLandscape->GetGrassPositions().data();
 

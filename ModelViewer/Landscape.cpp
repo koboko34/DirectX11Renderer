@@ -37,7 +37,7 @@ bool Landscape::Init(const std::string& HeightMapFilepath, float TessellationSca
 	FALSE_IF_FAILED(CreateBuffers());
 
 	SetupAABB();
-	GenerateChunkTransforms();
+	GenerateChunkOffsets();
 	GenerateGrassPositions(GrassDimensionPerChunk);
 
 	m_Plane = std::make_shared<TessellatedPlane>();
@@ -64,7 +64,7 @@ void Landscape::SetupAABB()
 void Landscape::Render()
 {	
 	Application* pApp = Application::GetSingletonPtr();
-	pApp->GetFrustumCuller()->DispatchShader(GetChunkTransforms(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_ChunkScaleMatrix);
+	pApp->GetFrustumCuller()->DispatchShader(GetChunkOffsets(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_ChunkScaleMatrix);
 	m_ChunkInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	
 	if (m_ChunkInstanceCount == 0u)
@@ -187,13 +187,13 @@ void Landscape::UpdateBuffers()
 	DeviceContext->Unmap(m_LandscapeInfoCBuffer.Get(), 0u);
 }
 
-void Landscape::GenerateChunkTransforms()
+void Landscape::GenerateChunkOffsets()
 {
 	float ChunkHalf = m_ChunkSize / 2.f;
 	float HalfCount = (float)m_ChunkDimension / 2.f;
 	int chunkID = 0;
 
-	m_ChunkTransforms.resize(m_NumChunks, DirectX::XMMatrixIdentity());
+	m_ChunkOffsets.resize(m_NumChunks, { 0.f, 0.f });
 	for (UINT z = 0; z < m_ChunkDimension; z++)
 	{
 		float WorldZ = ((int)z - HalfCount) * m_ChunkSize + m_ChunkSize * 0.5f;
@@ -201,9 +201,7 @@ void Landscape::GenerateChunkTransforms()
 		{
 			float WorldX = ((int)x - HalfCount) * m_ChunkSize + m_ChunkSize * 0.5f;
 
-			DirectX::XMMATRIX ChunkTransform = DirectX::XMMatrixIdentity();
-			ChunkTransform *= DirectX::XMMatrixTranslation(WorldX, 0.f, WorldZ);
-			m_ChunkTransforms[chunkID++] = DirectX::XMMatrixTranspose(ChunkTransform);
+			m_ChunkOffsets[chunkID++] = { WorldX, WorldZ };
 		}
 	}
 }
@@ -212,7 +210,7 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 {
 	if (GrassCount <= 1)
 	{
-		m_GrassPositions.push_back(DirectX::XMMatrixIdentity());
+		m_GrassPositions.push_back({ 0.f, 0.f });
 		return;
 	}
 
@@ -227,7 +225,7 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 	std::uniform_real_distribution<float> TranslationDist(-SpacingX / 2.f, SpacingX / 2.f);
 	std::uniform_real_distribution<float> RotationDist(0.f, 360.f);
 
-	m_GrassPositions.resize(MAX_GRASS_PER_CHUNK, DirectX::XMMatrixIdentity());
+	m_GrassPositions.resize(MAX_GRASS_PER_CHUNK, { 0.f, 0.f });
 	int i = 0;
 	for (UINT x = 0; x < GrassCount; ++x)
 	{
@@ -241,7 +239,7 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 
 			assert(i < MAX_GRASS_PER_CHUNK);
 
-			m_GrassPositions[i] = DirectX::XMMatrixMultiplyTranspose(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(RotationDist(gen))), DirectX::XMMatrixTranslation(WorldX, 0.f, WorldZ));
+			m_GrassPositions[i] = { WorldX, WorldZ };
 			i++;
 		}
 	}

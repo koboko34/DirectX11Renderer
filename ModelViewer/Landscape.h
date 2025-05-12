@@ -16,12 +16,7 @@ class Landscape : public GameObject
 	friend class TessellatedPlane;
 	friend class Grass;
 
-private:
-	struct TransformCBuffer
-	{
-		DirectX::XMMATRIX Transform;
-	};
-	
+private:	
 	struct CameraCBuffer
 	{
 		DirectX::XMMATRIX ViewProj;
@@ -61,8 +56,8 @@ public:
 
 	float GetHeightDisplacement() const { return m_HeightDisplacement; }
 	void SetHeightDisplacement(float NewHeight);
-	std::vector<DirectX::XMMATRIX>& GetChunkTransforms() { return m_ChunkTransforms; }
-	std::vector<DirectX::XMMATRIX>& GetGrassPositions() { return m_GrassPositions; }
+	std::vector<DirectX::XMFLOAT2>& GetChunkOffsets() { return m_ChunkOffsets; }
+	std::vector<DirectX::XMFLOAT2>& GetGrassPositions() { return m_GrassPositions; }
 	const DirectX::XMMATRIX& GetChunkScaleMatrix() const { return m_ChunkScaleMatrix; }
 
 	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
@@ -76,7 +71,7 @@ private:
 
 	void UpdateBuffers();
 
-	void GenerateChunkTransforms();
+	void GenerateChunkOffsets();
 	void GenerateGrassPositions(UINT GrassCount);
 	void PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise = true);
 
@@ -87,8 +82,8 @@ private:
 
 	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::shared_ptr<Grass> m_Grass;
-	std::vector<DirectX::XMMATRIX> m_ChunkTransforms;
-	std::vector<DirectX::XMMATRIX> m_GrassPositions;
+	std::vector<DirectX::XMFLOAT2> m_ChunkOffsets;
+	std::vector<DirectX::XMFLOAT2> m_GrassPositions;
 
 	AABB m_BoundingBox;
 

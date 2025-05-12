@@ -74,7 +74,7 @@ void TessellatedPlane::Render()
 	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
-	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledTransformsSRV().Get() };
+	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledOffsetsSRV().Get() };
 	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	DeviceContext->VSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 	DeviceContext->VSSetShaderResources(0u, 2u, vsSRVs);
