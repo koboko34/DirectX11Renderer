@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "d3dcompiler.h"
 
 #include "BoxRenderer.h"
@@ -24,8 +26,7 @@ bool BoxRenderer::Init()
 	bool Result;
 	FALSE_IF_FAILED(CreateShaders());
 	FALSE_IF_FAILED(CreateBuffers());
-
-	m_BoxCorners.resize(8);
+	FALSE_IF_FAILED(CreateViews());
 
 	return true;
 }
@@ -36,45 +37,54 @@ void BoxRenderer::Shutdown()
 	ResourceManager::GetSingletonPtr()->UnloadShader<ID3D11PixelShader>(m_psFilename, "main");
 }
 
+void BoxRenderer::ClearBoxes()
+{
+	m_Boxes.clear();
+}
+
 void BoxRenderer::Render()
 {
+	if (m_Boxes.size() == 0)
+		return;
+	
 	Graphics::GetSingletonPtr()->DisableBlending();
 	Graphics::GetSingletonPtr()->EnableDepthWrite();
 
-	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
-	UINT Strides[] = { sizeof(DirectX::XMFLOAT3), 0u };
-	UINT Offsets[] = { 0u };
-	ID3D11Buffer* Buffers[] = { m_VertexBuffer.Get() };
-
 	UpdateBuffers();
 
+	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
+	UINT Strides[] = { sizeof(DirectX::XMFLOAT4) };
+	UINT Offsets[] = { 0u };
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	DeviceContext->IASetInputLayout(m_InputLayout.Get());
-	DeviceContext->IASetVertexBuffers(0u, 1u, Buffers, Strides, Offsets);
+	DeviceContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 	DeviceContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 
 	DeviceContext->VSSetShader(m_VertexShader, nullptr, 0u);
-	DeviceContext->VSSetConstantBuffers(0u, 1u, m_VertexCBuffer.GetAddressOf());
+	DeviceContext->VSSetConstantBuffers(0u, 1u, m_CameraCBuffer.GetAddressOf());
+	DeviceContext->VSSetShaderResources(0u, 1u, m_CornersSRV.GetAddressOf());
 
 	DeviceContext->PSSetShader(m_PixelShader, nullptr, 0u);
 
 	Graphics::GetSingletonPtr()->DisableDepthWrite();
 	Graphics::GetSingletonPtr()->DisableBlending();
 
-	DeviceContext->DrawIndexed(24u, 0u, 0u);
-	Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
-}
+	UINT InstancesLeft = (UINT)m_Boxes.size();
+	UINT InstanceOffset = 0u;
+	UINT DrawCallsNeeded = (InstancesLeft + MAX_INSTANCE_COUNT - 1) / MAX_INSTANCE_COUNT;
 
-void BoxRenderer::RenderBox(const AABB& BBox, const DirectX::XMMATRIX& Transform)
-{
-	LoadBoxCorners(BBox, Transform);
-	Render();
-}
+	for (UINT i = 0; i < DrawCallsNeeded; i++)
+	{
+#undef min
+		UINT InstanceCount = std::min(InstancesLeft, (UINT)MAX_INSTANCE_COUNT);
 
-void BoxRenderer::RenderFrustum(const std::shared_ptr<Camera>& pCamera)
-{
-	LoadFrustumCorners(pCamera);
-	Render();
+		UpdateCornersBuffer(InstanceOffset);
+		DeviceContext->DrawIndexedInstanced(24u, InstanceCount, 0u, 0u, 0u);
+		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
+
+		InstanceOffset += InstanceCount;
+		InstancesLeft -= InstanceCount;
+	}
 }
 
 bool BoxRenderer::CreateShaders()
@@ -89,7 +99,7 @@ bool BoxRenderer::CreateShaders()
 	m_PixelShader = ResourceManager::GetSingletonPtr()->LoadShader<ID3D11PixelShader>(m_psFilename, "main");
 
 	D3D11_INPUT_ELEMENT_DESC LayoutDesc[1] = {};
-	LayoutDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	LayoutDesc[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	LayoutDesc[0].SemanticName = "POSITION";
 	LayoutDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 
@@ -114,19 +124,50 @@ bool BoxRenderer::CreateBuffers()
 	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_IndexBuffer));
 	NAME_D3D_RESOURCE(m_IndexBuffer, "Box renderer index buffer");
 
-	Desc.Usage = D3D11_USAGE_DYNAMIC;
 	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	Desc.ByteWidth = sizeof(DirectX::XMFLOAT3) * 8;
+	Desc.ByteWidth = sizeof(DirectX::XMFLOAT4) * 8;
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_VertexBuffer));
+	AABB BBox = {};
+	BBox.Min = { -0.5f, -0.5f, -0.5f };
+	BBox.Max = {  0.5f,  0.5f,  0.5f };
+	BBox.CalcCorners();
+
+	Data = {};
+	Data.pSysMem = BBox.Corners.data();
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_VertexBuffer));
 	NAME_D3D_RESOURCE(m_VertexBuffer, "Box renderer vertex buffer");
 
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
 	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	Desc.ByteWidth = sizeof(DirectX::XMMATRIX);
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_VertexCBuffer));
-	NAME_D3D_RESOURCE(m_VertexCBuffer, "Box renderer vertex constant buffer");
+	Desc.ByteWidth = sizeof(CameraBuffer);
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_CameraCBuffer));
+	NAME_D3D_RESOURCE(m_CameraCBuffer, "Box renderer camera constant buffer");
+
+	Desc.ByteWidth = sizeof(CornersBuffer);
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = sizeof(DirectX::XMFLOAT4);
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, nullptr, &m_CornersBuffer));
+	NAME_D3D_RESOURCE(m_CornersBuffer, "Box renderer corners structured buffer");
+
+	return true;
+}
+
+bool BoxRenderer::CreateViews()
+{
+	HRESULT hResult;
+	D3D11_SHADER_RESOURCE_VIEW_DESC Desc = {};
+	Desc.Format = DXGI_FORMAT_UNKNOWN;
+	Desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	Desc.Buffer.NumElements = MAX_INSTANCE_COUNT * 8;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_CornersBuffer.Get(), &Desc, &m_CornersSRV));
+	NAME_D3D_RESOURCE(m_CornersSRV, "Box renderer corners SRV");
 
 	return true;
 }
@@ -134,32 +175,48 @@ bool BoxRenderer::CreateBuffers()
 void BoxRenderer::UpdateBuffers()
 {
 	HRESULT hResult;
+	CameraBuffer* CameraBufferPtr;
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 
-	ASSERT_NOT_FAILED(DeviceContext->Map(m_VertexBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
-	memcpy(MappedResource.pData, m_BoxCorners.data(), sizeof(DirectX::XMFLOAT3) * 8);
-	DeviceContext->Unmap(m_VertexBuffer.Get(), 0u);
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_CameraCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	CameraBufferPtr = (CameraBuffer*)MappedResource.pData;
+	CameraBufferPtr->ViewProj = DirectX::XMMatrixTranspose(Application::GetSingletonPtr()->GetActiveCamera()->GetViewProjMatrix());
+	DeviceContext->Unmap(m_CameraCBuffer.Get(), 0u);
+}
 
-	ASSERT_NOT_FAILED(DeviceContext->Map(m_VertexCBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
-	DirectX::XMMATRIX ViewProj = DirectX::XMMatrixTranspose(Application::GetSingletonPtr()->GetActiveCamera()->GetViewProjMatrix());
-	memcpy(MappedResource.pData, &ViewProj, sizeof(DirectX::XMMATRIX));
-	DeviceContext->Unmap(m_VertexCBuffer.Get(), 0u);
+void BoxRenderer::UpdateCornersBuffer(const UINT StartInstance)
+{
+	HRESULT hResult;
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
+	
+	UINT InstancesLeft = (UINT)m_Boxes.size() - StartInstance;
+	UINT InstanceCount = std::min(InstancesLeft, (UINT)MAX_INSTANCE_COUNT);
+
+	ASSERT_NOT_FAILED(DeviceContext->Map(m_CornersBuffer.Get(), 0u, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource));
+	memcpy(MappedResource.pData, m_Boxes.data() + StartInstance, sizeof(DirectX::XMFLOAT4) * 8 * InstanceCount);
+	DeviceContext->Unmap(m_CornersBuffer.Get(), 0u);
 }
 
 void BoxRenderer::LoadBoxCorners(const AABB& BBox, const DirectX::XMMATRIX& Transform)
 {
+	std::array<DirectX::XMFLOAT4, 8> Corners;
+
 	for (size_t i = 0; i < 8; i++)
 	{
 		DirectX::XMVECTOR Corner = DirectX::XMVectorSet(BBox.Corners[i].x, BBox.Corners[i].y, BBox.Corners[i].z, 1.f);
 		DirectX::XMVECTOR WorldCorner = DirectX::XMVector4Transform(Corner, Transform);
 
-		DirectX::XMStoreFloat3(&m_BoxCorners[i], WorldCorner);
+		DirectX::XMStoreFloat4(&Corners[i], WorldCorner);
 	}
+
+	m_Boxes.push_back(Corners);
 }
 
 void BoxRenderer::LoadFrustumCorners(const std::shared_ptr<Camera>& pCamera)
 {
+	std::array<DirectX::XMFLOAT4, 8> Corners;
 	DirectX::XMMATRIX ViewProj = DirectX::XMMatrixMultiply(pCamera->GetViewMatrix(), pCamera->GetProjMatrix());
 	DirectX::XMMATRIX InvViewProj = DirectX::XMMatrixInverse(nullptr, ViewProj);
 
@@ -178,8 +235,10 @@ void BoxRenderer::LoadFrustumCorners(const std::shared_ptr<Camera>& pCamera)
 				DirectX::XMVECTOR WorldCorner = DirectX::XMVector4Transform(Corner, InvViewProj);
 				WorldCorner = DirectX::XMVectorScale(WorldCorner, 1.0f / DirectX::XMVectorGetW(WorldCorner));
 
-				DirectX::XMStoreFloat3(&m_BoxCorners[i++], WorldCorner);
+				DirectX::XMStoreFloat4(&Corners[i++], WorldCorner);
 			}
 		}
 	}
+
+	m_Boxes.push_back(Corners);
 }

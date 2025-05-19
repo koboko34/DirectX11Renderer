@@ -1,9 +1,20 @@
-cbuffer ViewProjBuffer : register(b0)
+#include "Common.hlsl"
+
+StructuredBuffer<float4> Corners : register(t0);
+
+cbuffer CameraBuffer : register(b0)
 {
 	float4x4 ViewProj;
+}
+
+struct VS_IN
+{
+	float4 Pos : POSITION;
+	uint VertexID : SV_VertexID;
+	uint InstanceID : SV_InstanceID;
 };
 
-float4 main(float3 pos : POSITION) : SV_POSITION
+float4 main(VS_IN v) : SV_POSITION
 {
-	return mul(float4(pos, 1.f), ViewProj);
+	return mul(Corners[v.InstanceID * 8 + v.VertexID], ViewProj);
 }

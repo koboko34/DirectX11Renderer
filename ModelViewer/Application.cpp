@@ -183,6 +183,8 @@ bool Application::Frame()
 	{
 		ProcessInput();
 	}
+
+	m_BoxRenderer->ClearBoxes();
 	
 	bool Result = Render();
 	if (!Result)
@@ -244,7 +246,7 @@ bool Application::Render()
 	{
 		if (c->ShouldVisualiseFrustum() && c.get() != m_ActiveCamera.get())
 		{
-			m_BoxRenderer->RenderFrustum(c);
+			m_BoxRenderer->LoadFrustumCorners(c);
 		}
 	}
 
@@ -260,7 +262,7 @@ bool Application::Render()
 
 			for (const auto& t : pModelData->GetTransforms())
 			{
-				m_BoxRenderer->RenderBox(pModelData->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
+				m_BoxRenderer->LoadBoxCorners(pModelData->GetBoundingBox(), DirectX::XMMatrixTranspose(t)); // back to column major
 			}
 		}
 
@@ -268,9 +270,11 @@ bool Application::Render()
 		const AABB& BBox = m_Landscape->GetBoundingBox();
 		for (const DirectX::XMFLOAT2& o : m_Landscape->GetChunkOffsets())
 		{
-			m_BoxRenderer->RenderBox(BBox, DirectX::XMMatrixMultiply(Scale, DirectX::XMMatrixTranslation(o.x, 0.f, o.y)));
+			m_BoxRenderer->LoadBoxCorners(BBox, DirectX::XMMatrixMultiply(Scale, DirectX::XMMatrixTranslation(o.x, 0.f, o.y)));
 		}
 	}
+
+	m_BoxRenderer->Render();
 
 	if (m_bShowCursor)
 		RenderImGui();
