@@ -97,6 +97,16 @@ float2 Hash(float2 p)
 	return frac(sin(p) * 43758.5453);
 }
 
+uint HashFloat2ToUint(float2 p)
+{
+    // Large primes for hashing
+	const float2 k = float2(127.1, 311.7);
+
+    // Dot product and sine scramble
+	float n = dot(p, k);
+	return asuint(frac(sin(n) * 43758.5453));
+}
+
 float __grad(float2 hash, float2 pos)
 {
     // Convert hash to gradient direction (-1 to 1)

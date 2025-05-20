@@ -39,7 +39,7 @@ VS_Out main(VS_In v)
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
 	o.Pos.y = Height;
 	
-	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
+	o.ChunkID = HashFloat2ToUint(Offsets[v.InstanceID]);
 	
 	return o;
 }

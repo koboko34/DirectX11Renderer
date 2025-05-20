@@ -96,17 +96,16 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 	if (GrassID >= GrassPerChunk || ChunkID >= SentInstanceCount)
 		return;
 	
-	const float Bias = 0.01f;
+	const float Bias = 0.1f;
 	const float3 ChunkOffset = float3(CulledOffsets[ChunkID].x, 0.f, CulledOffsets[ChunkID].y);
 	const float3 GrassOffset = float3(Offsets[GrassID].x, 0.f, Offsets[GrassID].y);
-	const float4 WorldOffset = float4(ChunkOffset + GrassOffset, 1.f);
+	const float4 WorldOffset = float4(ChunkOffset + GrassOffset, 0.f);
 	// have to add height displacement here
 	
-	// culling not working yet, passing all blades for now
+	// culling working but not accounting for height displacement yet, passing all blades for now
 	GrassData Grass;
 	Grass.Offset = WorldOffset.xz;
-	//Grass.ChunkID = Hash2D(CulledOffsets[ChunkID]);
-	Grass.ChunkID = 1u;
+	Grass.ChunkID = HashFloat2ToUint(CulledOffsets[ChunkID]);
 	Grass.Padding = 0.f;
 			
 	CulledGrassData.Append(Grass);
@@ -122,8 +121,7 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 		{
 			GrassData Grass;
 			Grass.Offset = WorldOffset.xz;
-			//Grass.ChunkID = Hash2D(CulledOffsets[ChunkID]);
-			Grass.ChunkID = 1u;
+			Grass.ChunkID = HashFloat2ToUint(CulledOffsets[ChunkID]);
 			Grass.Padding = 0.f;
 			
 			CulledGrassData.Append(Grass);
