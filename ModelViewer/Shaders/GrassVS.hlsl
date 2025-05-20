@@ -1,8 +1,7 @@
 #include "Common.hlsl"
 
 Texture2D Heightmap : register(t0);
-StructuredBuffer<float2> ChunkOffsets : register(t1);
-StructuredBuffer<float2> GrassOffsets : register(t2);
+StructuredBuffer<GrassData> Grass : register(t1);
 
 SamplerState Sampler : register(s0);
 
@@ -55,32 +54,27 @@ struct VS_Out
 VS_Out main(VS_In v)
 {
 	VS_Out o;
-
-	uint OffsetID = v.InstanceID % GrassPerChunk;
-	uint ChunkID = v.InstanceID / GrassPerChunk;
+	float2 GrassPos = Grass[v.InstanceID].Offset;
+	
+	o.ChunkID = Grass[v.InstanceID].ChunkID;
+	o.HeightAlongBlade = v.Pos.y;
 	
 	// apply random rotation
-	
-	// offset grass within its own chunk
-	o.WorldPos = float3(v.Pos, 0.f) + float3(GrassOffsets[OffsetID].x, 0.f, GrassOffsets[OffsetID].y);
-	
-	// offset by chunk position
-	o.WorldPos += float3(ChunkOffsets[ChunkID].x, 0.f, ChunkOffsets[ChunkID].y);
+	float3 RotatedPos = Rotate(float3(v.Pos.xy, 0.f), float3(0.f, 1.f, 0.f), RandomAngle(GrassPos));
 	
 	// apply height offset
-	o.UV = GetHeightmapUV(o.WorldPos, PlaneDimension);
+	o.UV = GetHeightmapUV(GrassPos, PlaneDimension);
 	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
-	o.WorldPos.y += Height;
+	
+	o.WorldPos = RotatedPos + float3(v.Pos, 0.f) + float3(GrassPos.x, Height, GrassPos.y);
 	
 	// apply wind if not root vertex
-	if (v.Pos.y != 0.f)
-	{
-		float4 GrassPos = float4(GrassOffsets[OffsetID].x + ChunkOffsets[ChunkID].x, 0.f, GrassOffsets[OffsetID].y + ChunkOffsets[ChunkID].y, 1.f);
-		uint ChunkIDFromWorld = GenerateChunkID(ChunkOffsets[ChunkID]);
-		float2 Noise = PerlinNoise2D(GrassPos.xz * 0.1f) * 8.f;
-		float Input = dot(GrassPos.xz + Noise, WindDir) - Time * TimeScale;
-		float2 WindOffset = SumOfSines(Input, WindDir, FreqMultiplier, AmpMultiplier, WaveCount, Hash((float)ChunkIDFromWorld));
-		WindOffset += PerlinNoise2D(GrassPos.xz * Freq) * Amp;
+	if (Height != 0.f)
+	{		
+		float2 Noise = PerlinNoise2D(GrassPos * 0.1f) * 8.f;
+		float Input = dot(GrassPos + Noise, WindDir) - Time * TimeScale;
+		float2 WindOffset = SumOfSines(Input, WindDir, FreqMultiplier, AmpMultiplier, WaveCount, Hash((float) o.ChunkID));
+		WindOffset += PerlinNoise2D(GrassPos * Freq) * Amp;
 		WindOffset *= pow(v.Pos.y, SwayExponent) * WindDir * WindStrength;
 		o.WorldPos.xz += WindOffset;
 	
@@ -89,9 +83,7 @@ VS_Out main(VS_In v)
 		o.WorldPos.y -= min(WindAmount * BendFactor, 0.8f);
 	}
 	
-	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);	
-	o.ChunkID = GenerateChunkID(float2(o.Pos.x, o.Pos.z));
-	o.HeightAlongBlade = v.Pos.y;
+	o.Pos = mul(float4(o.WorldPos, 1.f), ViewProj);
 	
 	return o;
 }

@@ -38,7 +38,7 @@ bool Landscape::Init(const std::string& HeightMapFilepath, float TessellationSca
 
 	SetupAABB();
 	GenerateChunkOffsets();
-	GenerateGrassPositions(GrassDimensionPerChunk);
+	GenerateGrassOffsets(GrassDimensionPerChunk);
 
 	m_Plane = std::make_shared<TessellatedPlane>();
 	FALSE_IF_FAILED(m_Plane->Init(TessellationScale, this));
@@ -206,11 +206,11 @@ void Landscape::GenerateChunkOffsets()
 	}
 }
 
-void Landscape::GenerateGrassPositions(UINT GrassCount)
+void Landscape::GenerateGrassOffsets(UINT GrassCount)
 {
 	if (GrassCount <= 1)
 	{
-		m_GrassPositions.push_back({ 0.f, 0.f });
+		m_GrassOffsets.push_back({ 0.f, 0.f });
 		return;
 	}
 
@@ -225,7 +225,7 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 	std::uniform_real_distribution<float> TranslationDist(-SpacingX / 2.f, SpacingX / 2.f);
 	std::uniform_real_distribution<float> RotationDist(0.f, 360.f);
 
-	m_GrassPositions.resize(MAX_GRASS_PER_CHUNK, { 0.f, 0.f });
+	m_GrassOffsets.resize(MAX_GRASS_PER_CHUNK, { 0.f, 0.f });
 	int i = 0;
 	for (UINT x = 0; x < GrassCount; ++x)
 	{
@@ -239,7 +239,7 @@ void Landscape::GenerateGrassPositions(UINT GrassCount)
 
 			assert(i < MAX_GRASS_PER_CHUNK);
 
-			m_GrassPositions[i] = { WorldX, WorldZ };
+			m_GrassOffsets[i] = { WorldX, WorldZ };
 			i++;
 		}
 	}

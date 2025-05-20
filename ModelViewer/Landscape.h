@@ -57,8 +57,9 @@ public:
 	float GetHeightDisplacement() const { return m_HeightDisplacement; }
 	void SetHeightDisplacement(float NewHeight);
 	std::vector<DirectX::XMFLOAT2>& GetChunkOffsets() { return m_ChunkOffsets; }
-	std::vector<DirectX::XMFLOAT2>& GetGrassPositions() { return m_GrassPositions; }
+	std::vector<DirectX::XMFLOAT2>& GetGrassOffsets() { return m_GrassOffsets; }
 	const DirectX::XMMATRIX& GetChunkScaleMatrix() const { return m_ChunkScaleMatrix; }
+	UINT GetChunkInstanceCount() const { return m_ChunkInstanceCount; }
 
 	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
 	std::shared_ptr<Grass> GetGrass() { return m_Grass; }
@@ -72,7 +73,7 @@ private:
 	void UpdateBuffers();
 
 	void GenerateChunkOffsets();
-	void GenerateGrassPositions(UINT GrassCount);
+	void GenerateGrassOffsets(UINT GrassCount);
 	void PrepCullingBuffer(CullingCBuffer& CullingBufferData, bool bNormalise = true);
 
 private:
@@ -83,7 +84,7 @@ private:
 	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::shared_ptr<Grass> m_Grass;
 	std::vector<DirectX::XMFLOAT2> m_ChunkOffsets;
-	std::vector<DirectX::XMFLOAT2> m_GrassPositions;
+	std::vector<DirectX::XMFLOAT2> m_GrassOffsets;
 
 	AABB m_BoundingBox;
 

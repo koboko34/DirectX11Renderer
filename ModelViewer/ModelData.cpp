@@ -199,7 +199,6 @@ void ModelData::RenderMeshes(const std::vector<std::unique_ptr<Mesh>>& Meshes)
 
 		// ensure the dispatch is finished before drawing
 
-		//DeviceContext->DrawIndexedInstanced(m->m_IndexCount, (UINT)m_CulledTransforms.size(), m->m_IndicesOffset, 0, 0u);
 		DeviceContext->DrawIndexedInstancedIndirect(m->GetArgsBuffer().Get(), 0u);
 		Application::GetSingletonPtr()->GetRenderStatsRef().DrawCalls++;
 	}

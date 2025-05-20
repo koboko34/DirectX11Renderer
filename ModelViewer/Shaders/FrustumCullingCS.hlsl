@@ -1,10 +1,14 @@
+#include "Common.hlsl"
+
 StructuredBuffer<float4x4> Transforms : register(t0);
 StructuredBuffer<float2> Offsets : register(t1);
+StructuredBuffer<float2> CulledOffsets : register(t2);
 
 AppendStructuredBuffer<float4x4> CulledTransforms : register(u0);
-AppendStructuredBuffer<float2> CulledOffsets : register(u1);
-RWStructuredBuffer<uint> InstanceCount : register(u2);
-RWByteAddressBuffer ArgsBuffer : register(u3);
+AppendStructuredBuffer<float2> CulledOffsetsAppend : register(u1);
+AppendStructuredBuffer<GrassData> CulledGrassData : register(u2);
+RWStructuredBuffer<uint> InstanceCount : register(u3);
+RWByteAddressBuffer ArgsBuffer : register(u4);
 
 cbuffer CullData : register(b0)
 {
@@ -13,6 +17,7 @@ cbuffer CullData : register(b0)
 	float4x4 ViewProj;
 	uint SentInstanceCount;
 	uint3 ThreadGroupCounts;
+	uint GrassPerChunk;
 }
 
 cbuffer InstanceCountMultiplierBuffer : register(b1)
@@ -24,7 +29,6 @@ cbuffer InstanceCountMultiplierBuffer : register(b1)
 static const uint tx = 32u;
 static const uint ty = 1u;
 static const uint tz = 1u;
-
 [numthreads(tx, ty, tz)]
 void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 {
@@ -36,10 +40,10 @@ void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 		return;
 	
 	const float Bias = 0.01f;
+	const float4x4 t = Transforms[FlattenedID];
 
 	for (int i = 0; i < 8; i++)
 	{
-		const float4x4 t = Transforms[FlattenedID];
 		float4 TransformedCorner = mul(mul(mul(Corners[i], ScaleMatrix), t), ViewProj);
 
 		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
@@ -63,16 +67,66 @@ void FrustumCullOffsets(uint3 DTid : SV_DispatchThreadID)
 		return;
 	
 	const float Bias = 0.01f;
-
+	const float4 o = float4(Offsets[FlattenedID].x, 0.f, Offsets[FlattenedID].y, 0.f);
+	
 	for (int i = 0; i < 8; i++)
 	{
-		const float4 o = float4(Offsets[FlattenedID].x, 0.f, Offsets[FlattenedID].y, 0.f);
 		float4 TransformedCorner = mul(mul(Corners[i], ScaleMatrix) + o, ViewProj);
 
 		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
 		{
-			CulledOffsets.Append(o.xz);
+			CulledOffsetsAppend.Append(o.xz);
+			InterlockedAdd(InstanceCount[0], 1u);
+			return;
+		}
+	}
+}
+
+static const uint grass_tx = 32u;
+static const uint grass_ty = 8u;
+static const uint grass_tz = 1u;
+
+[numthreads(grass_tx, grass_ty, grass_tz)]
+void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
+{
+	uint GrassID = DTid.x;
+	uint ChunkID = DTid.y;
+	
+	if (GrassID >= GrassPerChunk || ChunkID >= SentInstanceCount)
+		return;
+	
+	const float Bias = 0.01f;
+	const float3 ChunkOffset = float3(CulledOffsets[ChunkID].x, 0.f, CulledOffsets[ChunkID].y);
+	const float3 GrassOffset = float3(Offsets[GrassID].x, 0.f, Offsets[GrassID].y);
+	const float4 WorldOffset = float4(ChunkOffset + GrassOffset, 1.f);
+	// have to add height displacement here
+	
+	// culling not working yet, passing all blades for now
+	GrassData Grass;
+	Grass.Offset = WorldOffset.xz;
+	//Grass.ChunkID = Hash2D(CulledOffsets[ChunkID]);
+	Grass.ChunkID = 1u;
+	Grass.Padding = 0.f;
+			
+	CulledGrassData.Append(Grass);
+	InterlockedAdd(InstanceCount[0], 1u);
+	return;
+
+	for (int i = 0; i < 8; i++)
+	{
+		float4 TransformedCorner = mul(Corners[i] + WorldOffset, ViewProj);
+
+		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
+			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
+		{
+			GrassData Grass;
+			Grass.Offset = WorldOffset.xz;
+			//Grass.ChunkID = Hash2D(CulledOffsets[ChunkID]);
+			Grass.ChunkID = 1u;
+			Grass.Padding = 0.f;
+			
+			CulledGrassData.Append(Grass);
 			InterlockedAdd(InstanceCount[0], 1u);
 			return;
 		}

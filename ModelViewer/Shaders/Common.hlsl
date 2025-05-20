@@ -6,19 +6,26 @@
 #define MAX_GRASS_PER_CHUNK 10000
 #define MAX_INSTANCE_COUNT 1024
 
+struct GrassData
+{
+	float2 Offset;
+	uint ChunkID;
+	float Padding;
+};
+
 float Remap(float Value, float FromMin, float FromMax, float ToMin, float ToMax)
 {
 	return ToMin + (Value - FromMin) * (ToMax - ToMin) / (FromMax - FromMin);
 }
 
-float2 GetHeightmapUV(float3 Pos, float PlaneDimension)
+float2 GetHeightmapUV(float2 Pos, float PlaneDimension)
 {
 	float HalfPlaneDimension = PlaneDimension / 2.f;
 	float x = Remap(Pos.x, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	float z = Remap(Pos.z, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
-	z = 1.f - z;
+	float y = Remap(Pos.y, -HalfPlaneDimension, HalfPlaneDimension, 0.f, 1.f);
+	y = 1.f - y;
 	
-	return float2(x, z);
+	return float2(x, y);
 }
 
 float2 Rotate(float2 v, float angle)
@@ -26,6 +33,18 @@ float2 Rotate(float2 v, float angle)
 	float s = sin(angle);
 	float c = cos(angle);
 	return float2(c * v.x - s * v.y, s * v.x + c * v.y);
+}
+
+float3 Rotate(float3 v, float3 axis, float angle)
+{
+	axis = normalize(axis);
+
+	float cosTheta = cos(angle);
+	float sinTheta = sin(angle);
+
+	return v * cosTheta +
+           cross(axis, v) * sinTheta +
+           axis * dot(axis, v) * (1.0 - cosTheta);
 }
 
 float2 SumOfSines(float Value, float2 WindDir, float FreqMultiplier, float AmpMultipler, uint Count, float Phase)
@@ -140,3 +159,8 @@ float2 PerlinNoise2D(float2 p)
 	return dir * final;
 }
 
+float RandomAngle(float2 seed)
+{
+    // Returns a random angle in [0, 2 pi)
+	return Hash(seed.x + seed.y) * 2.0 * 3.14159265;
+}

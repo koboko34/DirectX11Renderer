@@ -9,6 +9,7 @@
 #include "wrl.h"
 
 #include "GameObject.h"
+#include "AABB.h"
 
 class Landscape;
 
@@ -42,9 +43,11 @@ public:
 
 	bool ShouldRender() const { return m_bShouldRender; }
 	UINT GetGrassPerChunk() const { return m_GrassPerChunk; }
+	const AABB& GetBoundingBox() const { return m_BBox; }
 
 private:
 	bool CreateBuffers();
+	void GenerateAABB();
 
 	void UpdateBuffers();
 	void SetWindDirection(DirectX::XMFLOAT2 WindDir);
@@ -62,7 +65,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ArgsBufferUAV;
 
 	Landscape* m_pLandscape;
+	AABB m_BBox;
 	UINT m_GrassPerChunk;
+	UINT m_GrassInstanceCount;
 	bool m_bShouldRender;
 	float m_Freq;
 	float m_Amp;

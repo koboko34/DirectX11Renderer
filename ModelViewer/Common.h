@@ -9,6 +9,7 @@
 #define MAX_PLANE_CHUNKS 1024
 #define MAX_GRASS_PER_CHUNK 10000
 #define MAX_INSTANCE_COUNT 1024
+#define MAX_GRASS_COUNT (MAX_PLANE_CHUNKS * MAX_GRASS_PER_CHUNK)
 
 #include <vector>
 #include <utility>
@@ -34,5 +35,9 @@ struct RenderStats
 	double FrameTime;
 	double FPS;
 };
+
+inline struct ID3D11Buffer* NullBuffers[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+inline struct ID3D11ShaderResourceView* NullSRVs[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+inline struct ID3D11UnorderedAccessView* NullUAVs[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 #endif

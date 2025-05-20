@@ -60,7 +60,7 @@ DS_Out main(
 	float3 Bot = lerp(p2, p3, UV.x);
 	float3 Pos = lerp(Top, Bot, UV.y);
 	
-	float2 DS_UV = GetHeightmapUV(Pos, PlaneDimension);
+	float2 DS_UV = GetHeightmapUV(Pos.xz, PlaneDimension);
 		
 	float2 uv0 = Patch[0].UV;
 	float2 uv1 = Patch[1].UV;

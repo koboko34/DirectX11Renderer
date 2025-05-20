@@ -211,7 +211,6 @@ bool Application::Render()
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> SecondaryRTV = m_Graphics->m_PostProcessRTVSecond;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CurrentSRV = m_Graphics->m_PostProcessSRVFirst;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> SecondarySRV = m_Graphics->m_PostProcessSRVSecond;
-	ID3D11ShaderResourceView* NullSRVs[] = { nullptr };
 
 	m_Graphics->BeginScene(0.f, 0.f, 0.f, 1.f);
 	m_Graphics->GetDeviceContext()->PSSetShaderResources(0u, 1u, NullSRVs);
