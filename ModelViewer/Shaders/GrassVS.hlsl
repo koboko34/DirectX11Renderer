@@ -69,7 +69,7 @@ VS_Out main(VS_In v)
 	o.WorldPos = RotatedPos + float3(v.Pos, 0.f) + float3(GrassPos.x, Height, GrassPos.y);
 	
 	// apply wind if not root vertex
-	if (Height != 0.f)
+	if (v.Pos.y != 0.f)
 	{		
 		float2 Noise = PerlinNoise2D(GrassPos * 0.1f) * 8.f;
 		float Input = dot(GrassPos + Noise, WindDir) - Time * TimeScale;
