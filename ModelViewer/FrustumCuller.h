@@ -43,12 +43,9 @@ public:
 	bool Init();
 	void Shutdown();
 
-	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
-	void DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
-	void CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const UINT GrassPerChunk, const UINT VisibleChunkCount);
+	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
+	void DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
+	void CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount);
 	void ClearInstanceCount();
 	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV, UINT InstanceCountMultiplier = 1u);
 	UINT GetInstanceCount();
@@ -63,12 +60,11 @@ private:
 	bool CreateBuffers();
 	bool CreateBufferViews();
 
-	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk = 0u);
-	void UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk = 0u);
-	void UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-		const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk);
+	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners,const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
+		UINT SentInstanceCount, UINT GrassPerChunk = 0u);
+	void UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
+		UINT SentInstanceCount, UINT GrassPerChunk = 0u);
+	void UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk);
 
 	void DispatchShaderImpl(UINT* ThreadGroupCount);
 

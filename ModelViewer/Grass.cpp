@@ -100,7 +100,7 @@ void Grass::Render()
 	Application* pApp = Application::GetSingletonPtr();
 	Graphics* pGraphics = Graphics::GetSingletonPtr();
 	ID3D11DeviceContext* pContext = pGraphics->GetDeviceContext();
-	pApp->GetFrustumCuller()->CullGrass(m_pLandscape->GetGrassOffsets(), m_BBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_GrassPerChunk, m_pLandscape->GetChunkInstanceCount());
+	pApp->GetFrustumCuller()->CullGrass(m_pLandscape->GetGrassOffsets(), m_BBox.Corners, m_GrassPerChunk, m_pLandscape->GetChunkInstanceCount());
 	m_GrassInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
 	

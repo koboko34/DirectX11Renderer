@@ -360,7 +360,7 @@ void Application::RenderModels()
 			continue;
 		
 		// AABB frustum culling on transforms
-		m_FrustumCuller->DispatchShader(pModelData->GetTransforms(), pModelData->GetBoundingBox().Corners, m_MainCamera->GetViewProjMatrix());
+		m_FrustumCuller->DispatchShader(pModelData->GetTransforms(), pModelData->GetBoundingBox().Corners);
 		
 		UINT InstanceCount = m_FrustumCuller->GetInstanceCount();
 		if (InstanceCount == 0)

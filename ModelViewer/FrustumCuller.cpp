@@ -11,6 +11,7 @@
 #include "MyMacros.h"
 #include "Common.h"
 #include "ResourceManager.h"
+#include "Camera.h"
 
 FrustumCuller::~FrustumCuller()
 {
@@ -63,8 +64,7 @@ UINT FrustumCuller::GetInstanceCount()
 	return InstanceCount;
 }
 
-void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-	const DirectX::XMMATRIX& ScaleMatrix)
+void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners,	const DirectX::XMMATRIX& ScaleMatrix)
 {
 	ClearInstanceCount();
 	Graphics::GetSingletonPtr()->GetDeviceContext()->CSSetShader(m_CullingShader, nullptr, 0u);
@@ -72,12 +72,11 @@ void FrustumCuller::DispatchShader(const std::vector<DirectX::XMMATRIX>& Transfo
 	// As each thread group will have 32 threads (as defined in shader), calculate how many thread groups we need using integer division
 	UINT ThreadGroupCount[3] = { (UINT(Transforms.size()) + 31) / 32u, 1u, 1u };
 
-	UpdateBuffers(Transforms, Corners, ViewProj, ScaleMatrix, ThreadGroupCount, (UINT)Transforms.size());
+	UpdateBuffers(Transforms, Corners, ScaleMatrix, ThreadGroupCount, (UINT)Transforms.size());
 	DispatchShaderImpl(ThreadGroupCount);
 }
 
-void FrustumCuller::DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-	const DirectX::XMMATRIX& ScaleMatrix)
+void FrustumCuller::DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix)
 {
 	ClearInstanceCount();
 	Graphics::GetSingletonPtr()->GetDeviceContext()->CSSetShader(m_OffsetsCullingShader, nullptr, 0u);
@@ -85,12 +84,11 @@ void FrustumCuller::DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets
 	// As each thread group will have 32 threads (as defined in shader), calculate how many thread groups we need using integer division
 	UINT ThreadGroupCount[3] = { (UINT(Offsets.size()) + 31) / 32u, 1u, 1u };
 
-	UpdateBuffers(Offsets, Corners, ViewProj, ScaleMatrix, ThreadGroupCount, (UINT)Offsets.size());
+	UpdateBuffers(Offsets, Corners, ScaleMatrix, ThreadGroupCount, (UINT)Offsets.size());
 	DispatchShaderImpl(ThreadGroupCount);
 }
 
-void FrustumCuller::CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-	const UINT GrassPerChunk, const UINT VisibleChunkCount)
+void FrustumCuller::CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners,	const UINT GrassPerChunk, const UINT VisibleChunkCount)
 {
 	ClearInstanceCount();
 	Graphics::GetSingletonPtr()->GetDeviceContext()->CSSetShader(m_GrassCullingShader, nullptr, 0u);
@@ -101,7 +99,7 @@ void FrustumCuller::CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, con
 	const UINT DispatchY = (VisibleChunkCount + ThreadsY - 1) / ThreadsY;
 	UINT ThreadGroupCount[3] = { DispatchX, DispatchY, 1u };
 
-	UpdateBuffers(Offsets, Corners, ViewProj, DirectX::XMMatrixIdentity(), ThreadGroupCount, VisibleChunkCount, GrassPerChunk);
+	UpdateBuffers(Offsets, Corners, DirectX::XMMatrixIdentity(), ThreadGroupCount, VisibleChunkCount, GrassPerChunk);
 
 	ID3D11DeviceContext* DeviceContext = Graphics::GetSingletonPtr()->GetDeviceContext();
 	const UINT InitialCount = 0u;
@@ -296,8 +294,8 @@ bool FrustumCuller::CreateBufferViews()
 	return true;
 }
 
-void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-	const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk)
+void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners,	const DirectX::XMMATRIX& ScaleMatrix,
+	UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk)
 {
 	assert(Transforms.size() <= MAX_INSTANCE_COUNT);
 
@@ -309,11 +307,11 @@ void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transfor
 	memcpy(MappedResource.pData, Transforms.data(), sizeof(DirectX::XMMATRIX) * Transforms.size());
 	DeviceContext->Unmap(m_TransformsBuffer.Get(), 0u);
 
-	UpdateCBuffer(Corners, ViewProj, ScaleMatrix, ThreadGroupCount, SentInstanceCount, GrassPerChunk);
+	UpdateCBuffer(Corners, ScaleMatrix, ThreadGroupCount, SentInstanceCount, GrassPerChunk);
 }
 
-void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj,
-	const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk)
+void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners,	const DirectX::XMMATRIX& ScaleMatrix,
+	UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk)
 {
 	assert(Offsets.size() <= MAX_GRASS_PER_CHUNK);
 
@@ -325,11 +323,10 @@ void FrustumCuller::UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets,
 	memcpy(MappedResource.pData, Offsets.data(), sizeof(DirectX::XMFLOAT2) * Offsets.size());
 	DeviceContext->Unmap(m_OffsetsBuffer.Get(), 0u);
 
-	UpdateCBuffer(Corners, ViewProj, ScaleMatrix, ThreadGroupCount, SentInstanceCount, GrassPerChunk);
+	UpdateCBuffer(Corners, ScaleMatrix, ThreadGroupCount, SentInstanceCount, GrassPerChunk);
 }
 
-void FrustumCuller::UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ViewProj, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
-	UINT SentInstanceCount, UINT GrassPerChunk)
+void FrustumCuller::UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners,const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk)
 {
 	HRESULT hResult;
 	CBufferData* CBufferDataPtr;
@@ -340,7 +337,7 @@ void FrustumCuller::UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners,
 	CBufferDataPtr = (CBufferData*)MappedResource.pData;
 	memcpy(CBufferDataPtr->Corners, Corners.data(), sizeof(DirectX::XMFLOAT4) * 8);
 	memcpy(CBufferDataPtr->ThreadGroupCount, ThreadGroupCount, sizeof(UINT) * 3);
-	CBufferDataPtr->ViewProj = DirectX::XMMatrixTranspose(ViewProj);
+	CBufferDataPtr->ViewProj = DirectX::XMMatrixTranspose(Application::GetSingletonPtr()->GetMainCamera()->GetViewProjMatrix());
 	CBufferDataPtr->ScaleMatrix = DirectX::XMMatrixTranspose(ScaleMatrix);
 	CBufferDataPtr->SentInstanceCount = SentInstanceCount;
 	CBufferDataPtr->GrassPerChunk = GrassPerChunk;

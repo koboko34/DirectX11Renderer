@@ -64,7 +64,7 @@ void Landscape::SetupAABB()
 void Landscape::Render()
 {	
 	Application* pApp = Application::GetSingletonPtr();
-	pApp->GetFrustumCuller()->DispatchShader(GetChunkOffsets(), m_BoundingBox.Corners, pApp->GetMainCamera()->GetViewProjMatrix(), m_ChunkScaleMatrix);
+	pApp->GetFrustumCuller()->DispatchShader(GetChunkOffsets(), m_BoundingBox.Corners, m_ChunkScaleMatrix);
 	m_ChunkInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	
 	if (m_ChunkInstanceCount == 0u)
