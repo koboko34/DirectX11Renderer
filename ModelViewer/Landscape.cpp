@@ -222,7 +222,7 @@ void Landscape::GenerateGrassOffsets(UINT GrassCount)
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> TranslationDist(-SpacingX / 2.f, SpacingX / 2.f);
+	std::uniform_real_distribution<float> TranslationDist(0.f, SpacingX);
 	std::uniform_real_distribution<float> RotationDist(0.f, 360.f);
 
 	m_GrassOffsets.resize(MAX_GRASS_PER_CHUNK, { 0.f, 0.f });
