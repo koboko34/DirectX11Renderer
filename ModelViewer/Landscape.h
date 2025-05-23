@@ -53,6 +53,7 @@ public:
 
 	void SetShouldRender(bool bNewShouldRender) { m_bShouldRender = bNewShouldRender; }
 	bool ShouldRender() const { return m_bShouldRender; }
+	bool GetShouldRenderBBoxes() const { return m_bShouldRenderBBoxes; }
 
 	float GetHeightDisplacement() const { return m_HeightDisplacement; }
 	void SetHeightDisplacement(float NewHeight);
@@ -60,11 +61,14 @@ public:
 	std::vector<DirectX::XMFLOAT2>& GetGrassOffsets() { return m_GrassOffsets; }
 	const DirectX::XMMATRIX& GetChunkScaleMatrix() const { return m_ChunkScaleMatrix; }
 	UINT GetChunkInstanceCount() const { return m_ChunkInstanceCount; }
+	UINT GetChunkDimension() const { return m_ChunkDimension; }
 
 	std::shared_ptr<TessellatedPlane> GetPlane() { return m_Plane; }
 	std::shared_ptr<Grass> GetGrass() { return m_Grass; }
 
 	AABB& GetBoundingBox() { return m_BoundingBox; }
+
+	ID3D11ShaderResourceView* GetHeightmapSRV() const { return m_HeightmapSRV; }
 
 private:
 	bool CreateBuffers();
@@ -94,6 +98,7 @@ private:
 
 	bool m_bShouldRender;
 	bool m_bVisualiseChunks;
+	bool m_bShouldRenderBBoxes;
 	float m_ChunkSize;
 	float m_HeightDisplacement;
 	UINT m_ChunkDimension;

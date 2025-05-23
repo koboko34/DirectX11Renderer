@@ -26,6 +26,7 @@
 #include "BoxRenderer.h"
 #include "FrustumCuller.h"
 #include "TessellatedPlane.h"
+#include "Grass.h"
 
 Application* Application::m_Instance = nullptr;
 
@@ -70,7 +71,7 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 	bResult = m_Skybox->Init();
 	assert(bResult);
 
-	m_Landscape = std::make_shared<Landscape>(32u, 25.f, 20.f);
+	m_Landscape = std::make_shared<Landscape>(32u, 25.f, 0.f);
 	m_GameObjects.push_back(m_Landscape);
 	bResult = m_Landscape->Init("Textures/perlin_noise.png", 256.f, 64u);
 	assert(bResult);
@@ -121,8 +122,8 @@ bool Application::Initialise(int ScreenWidth, int ScreenHeight, HWND hWnd)
 
 	m_TextureResourceView = static_cast<ID3D11ShaderResourceView*>(ResourceManager::GetSingletonPtr()->LoadTexture(m_QuadTexturePath));
 
-	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.3f, 0.3f, 0.3f, 0.002f, PostProcessFog::FogFormula::ExponentialSquared));
-	m_PostProcesses.back()->Deactivate();
+	m_PostProcesses.emplace_back(std::make_unique<PostProcessFog>(0.8f, 0.8f, 0.8f, 0.007f, PostProcessFog::FogFormula::ExponentialSquared));
+	//m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessPixelation>(8.f));
 	m_PostProcesses.back()->Deactivate();
 	m_PostProcesses.emplace_back(std::make_unique<PostProcessBoxBlur>(30));
@@ -265,11 +266,21 @@ bool Application::Render()
 			}
 		}
 
-		const DirectX::XMMATRIX& Scale = m_Landscape->GetChunkScaleMatrix();
-		const AABB& BBox = m_Landscape->GetBoundingBox();
-		for (const DirectX::XMFLOAT2& o : m_Landscape->GetChunkOffsets())
+		if (m_Landscape->GetShouldRenderBBoxes())
 		{
-			m_BoxRenderer->LoadBoxCorners(BBox, DirectX::XMMatrixMultiply(Scale, DirectX::XMMatrixTranslation(o.x, 0.f, o.y)));
+			const DirectX::XMMATRIX& Scale = m_Landscape->GetChunkScaleMatrix();
+			const AABB& BBox = m_Landscape->GetBoundingBox();
+			for (const DirectX::XMFLOAT2& o : m_Landscape->GetChunkOffsets())
+			{
+				DirectX::XMMATRIX m = DirectX::XMMatrixMultiply(Scale, DirectX::XMMatrixTranslation(o.x, 0.f, o.y));
+				m_BoxRenderer->LoadBoxCorners(BBox, m);
+
+				for (const DirectX::XMFLOAT2& GrassOffset : m_Landscape->GetGrassOffsets())
+				{
+					m_BoxRenderer->LoadBoxCorners(m_Landscape->GetGrass()->GetBoundingBox(),
+						DirectX::XMMatrixMultiply(DirectX::XMMatrixTranslation(o.x, 0.f, o.y), DirectX::XMMatrixTranslation(GrassOffset.x, 0.f, GrassOffset.y))); // doesn't account for height displacement
+				}
+			}
 		}
 	}
 

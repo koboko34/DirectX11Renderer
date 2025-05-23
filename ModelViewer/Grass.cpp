@@ -100,7 +100,15 @@ void Grass::Render()
 	Application* pApp = Application::GetSingletonPtr();
 	Graphics* pGraphics = Graphics::GetSingletonPtr();
 	ID3D11DeviceContext* pContext = pGraphics->GetDeviceContext();
-	pApp->GetFrustumCuller()->CullGrass(m_pLandscape->GetGrassOffsets(), m_BBox.Corners, m_GrassPerChunk, m_pLandscape->GetChunkInstanceCount());
+	pApp->GetFrustumCuller()->CullGrass(
+		m_pLandscape->GetGrassOffsets(),
+		m_BBox.Corners,
+		m_GrassPerChunk,
+		m_pLandscape->GetChunkInstanceCount(),
+		m_pLandscape->GetChunkDimension(),
+		m_pLandscape->GetHeightDisplacement(),
+		m_pLandscape->GetHeightmapSRV()
+	);
 	m_GrassInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
 	
@@ -118,7 +126,6 @@ void Grass::Render()
 	pContext->VSSetShader(m_VertexShader, nullptr, 0u);
 	pContext->VSSetShaderResources(0u, 2u, vsSRVs);
 	pContext->VSSetConstantBuffers(0u, 3u, CBuffers);
-	pContext->VSSetSamplers(0u, 1u, pGraphics->GetSamplerState().GetAddressOf());
 
 	pContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	pContext->PSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
@@ -291,7 +298,7 @@ void Grass::GenerateAABB()
 {
 	for (size_t i = 0; i < _countof(GrassVertices); i++)
 	{
-		m_BBox.Expand({ GrassVertices[i].Position.x, GrassVertices[i].Position.y, 0.f });
+		m_BBox.Expand({ GrassVertices[i].Position.x * 20.f, GrassVertices[i].Position.y * 2.f, GrassVertices[i].Position.x * 20.f }); // could set this based off wind data, but hard coding for now
 	}
 	m_BBox.CalcCorners();
 }

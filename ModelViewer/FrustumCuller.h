@@ -21,6 +21,9 @@ private:
 		UINT SentInstanceCount;
 		UINT ThreadGroupCount[3];
 		UINT GrassPerChunk;
+		UINT PlaneDimension;
+		float HeightDisplacement;
+		float Padding;
 	};
 
 	struct InstanceCountMultiplierBufferData
@@ -45,7 +48,8 @@ public:
 
 	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
 	void DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
-	void CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount);
+	void CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount,
+		UINT PlaneDimension, float HeightDisplacement, ID3D11ShaderResourceView* Heightmap);
 	void ClearInstanceCount();
 	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV, UINT InstanceCountMultiplier = 1u);
 	UINT GetInstanceCount();
@@ -61,10 +65,11 @@ private:
 	bool CreateBufferViews();
 
 	void UpdateBuffers(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners,const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
-		UINT SentInstanceCount, UINT GrassPerChunk = 0u);
+		UINT SentInstanceCount, UINT GrassPerChunk = 0u, UINT PlaneDimension = 0u, float HeightDisplacement = 0.f);
 	void UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
-		UINT SentInstanceCount, UINT GrassPerChunk = 0u);
-	void UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk);
+		UINT SentInstanceCount, UINT GrassPerChunk = 0u, UINT PlaneDimension = 0u, float HeightDisplacement = 0.f);
+	void UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk,
+		UINT PlaneDimension, float HeightDisplacement);
 
 	void DispatchShaderImpl(UINT* ThreadGroupCount);
 

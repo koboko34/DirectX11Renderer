@@ -20,6 +20,7 @@ Landscape::Landscape(UINT ChunkDimension, float ChunkSize, float HeightDisplacem
 	SetScale(ChunkSize);
 	m_ChunkScaleMatrix = DirectX::XMMatrixScaling(ChunkSize, 1.f, ChunkSize);
 	m_bShouldRender = true;
+	m_bShouldRenderBBoxes = true;
 	m_bVisualiseChunks = false;
 	m_HeightmapSRV = nullptr;
 	m_ChunkInstanceCount = 0u;
@@ -105,6 +106,7 @@ void Landscape::RenderControls()
 	}
 
 	ImGui::Checkbox("Should Render?", &m_bShouldRender);
+	ImGui::Checkbox("Should Render Bounding Boxes?", &m_bShouldRenderBBoxes);
 	ImGui::Checkbox("Visualise Chunks?", &m_bVisualiseChunks);
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));

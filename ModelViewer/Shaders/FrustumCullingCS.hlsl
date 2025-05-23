@@ -1,8 +1,11 @@
 #include "Common.hlsl"
 
+SamplerState Sampler : register(s0);
+
 StructuredBuffer<float4x4> Transforms : register(t0);
 StructuredBuffer<float2> Offsets : register(t1);
 StructuredBuffer<float2> CulledOffsets : register(t2);
+Texture2D Heightmap : register(t3);
 
 AppendStructuredBuffer<float4x4> CulledTransforms : register(u0);
 AppendStructuredBuffer<float2> CulledOffsetsAppend : register(u1);
@@ -18,12 +21,15 @@ cbuffer CullData : register(b0)
 	uint SentInstanceCount;
 	uint3 ThreadGroupCounts;
 	uint GrassPerChunk;
+	uint PlaneDimension;
+	float HeightDisplacement;
+	float Padding;
 }
 
 cbuffer InstanceCountMultiplierBuffer : register(b1)
 {
 	uint InstanceCountMultiplier;
-	float3 Padding;
+	float3 MorePadding;
 }
 
 static const uint tx = 32u;
@@ -96,25 +102,17 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 	if (GrassID >= GrassPerChunk || ChunkID >= SentInstanceCount)
 		return;
 	
-	const float Bias = 0.1f;
+	const float Bias = 0.f; // this might be a bit too generous
 	const float3 ChunkOffset = float3(CulledOffsets[ChunkID].x, 0.f, CulledOffsets[ChunkID].y);
 	const float3 GrassOffset = float3(Offsets[GrassID].x, 0.f, Offsets[GrassID].y);
 	const float4 WorldOffset = float4(ChunkOffset + GrassOffset, 0.f);
-	// have to add height displacement here
 	
-	// culling working but not accounting for height displacement yet, passing all blades for now
-	GrassData Grass;
-	Grass.Offset = WorldOffset.xz;
-	Grass.ChunkID = HashFloat2ToUint(CulledOffsets[ChunkID]);
-	Grass.Padding = 0.f;
-			
-	CulledGrassData.Append(Grass);
-	InterlockedAdd(InstanceCount[0], 1u);
-	return;
-
+	const float2 UV = GetHeightmapUV(WorldOffset.xz, PlaneDimension);
+	const float4 Height = float4(0.f, Heightmap.SampleLevel(Sampler, UV, 0.f).r * HeightDisplacement, 0.f, 0.f);
+	
 	for (int i = 0; i < 8; i++)
 	{
-		float4 TransformedCorner = mul(Corners[i] + WorldOffset, ViewProj);
+		float4 TransformedCorner = mul(Corners[i] + WorldOffset + Height, ViewProj);
 
 		if (abs(TransformedCorner.x) <= TransformedCorner.w + Bias && abs(TransformedCorner.y) <= TransformedCorner.w + Bias &&
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))

@@ -57,16 +57,19 @@ VS_Out main(VS_In v)
 	float2 GrassPos = Grass[v.InstanceID].Offset;
 	
 	o.ChunkID = Grass[v.InstanceID].ChunkID;
-	o.HeightAlongBlade = v.Pos.y;
 	
 	// apply random rotation
 	float3 RotatedPos = Rotate(float3(v.Pos.xy, 0.f), float3(0.f, 1.f, 0.f), RandomAngle(GrassPos));
 	
 	// apply height offset
 	o.UV = GetHeightmapUV(GrassPos, PlaneDimension);
-	float Height = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r * HeightDisplacement;
+	float NoiseVal = Heightmap.SampleLevel(Sampler, o.UV, 0.f).r;
+	float Height = NoiseVal * HeightDisplacement;
 	
-	o.WorldPos = RotatedPos + float3(v.Pos, 0.f) + float3(GrassPos.x, Height, GrassPos.y);
+	RotatedPos.y *= lerp(0.1f, 2.f, NoiseVal);
+	o.HeightAlongBlade = RotatedPos.y;
+	
+	o.WorldPos = RotatedPos * 2.f + float3(GrassPos.x, Height, GrassPos.y);
 	
 	// apply wind if not root vertex
 	if (v.Pos.y != 0.f)
@@ -75,7 +78,7 @@ VS_Out main(VS_In v)
 		float Input = dot(GrassPos + Noise, WindDir) - Time * TimeScale;
 		float2 WindOffset = SumOfSines(Input, WindDir, FreqMultiplier, AmpMultiplier, WaveCount, Hash((float) o.ChunkID));
 		WindOffset += PerlinNoise2D(GrassPos * Freq) * Amp;
-		WindOffset *= pow(v.Pos.y, SwayExponent) * WindDir * WindStrength;
+		WindOffset *= pow(RotatedPos.y, SwayExponent) * WindDir * WindStrength;
 		o.WorldPos.xz += WindOffset;
 	
 		float WindAmount = length(WindOffset);
