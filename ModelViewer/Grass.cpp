@@ -124,47 +124,55 @@ void Grass::Render()
 		m_pLandscape->GetHeightmapSRV()
 	);
 	m_GrassInstanceCounts = pApp->GetFrustumCuller()->GetInstanceCounts();
-	pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
 	
 	pGraphics->SetRasterStateBackFaceCull(false);
 
-	// high LOD
 	UINT Strides[] = { sizeof(GrassVertex) };
 	UINT Offsets[] = { 0u };
 	pContext->IASetInputLayout(m_InputLayout.Get());
-	pContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
 
-	ID3D11ShaderResourceView* vsSRVs[] = { m_pLandscape->m_HeightmapSRV, pApp->GetFrustumCuller()->GetCulledGrassDataSRV().Get() };
 	ID3D11Buffer* CBuffers[] = { m_pLandscape->m_LandscapeInfoCBuffer.Get(), m_pLandscape->m_CameraCBuffer.Get(), m_GrassCBuffer.Get() };
 	pContext->VSSetShader(m_VertexShader, nullptr, 0u);
-	pContext->VSSetShaderResources(0u, 2u, vsSRVs);
 	pContext->VSSetConstantBuffers(0u, 3u, CBuffers);
+	pContext->VSSetShaderResources(0u, 1u, &m_pLandscape->m_HeightmapSRV);
 
 	pContext->PSSetShader(m_PixelShader, nullptr, 0u);
 	pContext->PSSetConstantBuffers(0u, 1u, m_pLandscape->m_LandscapeInfoCBuffer.GetAddressOf());
 
-	pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
-	pApp->GetRenderStatsRef().DrawCalls++;
+	// high LOD
+	if (m_GrassInstanceCounts[0] > 0u)
+	{
+		pApp->GetFrustumCuller()->SendInstanceCount(m_ArgsBufferUAV);
 
-	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", m_GrassInstanceCounts[0] * (_countof(GrassVertices) - 2)));
-	pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass", m_GrassInstanceCounts[0]));
+		pContext->IASetIndexBuffer(m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0u);
+		pContext->IASetVertexBuffers(0u, 1u, m_VertexBuffer.GetAddressOf(), Strides, Offsets);
+
+		pContext->VSSetShaderResources(1u, 1u, pApp->GetFrustumCuller()->GetCulledGrassDataSRV().GetAddressOf());
+
+		pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
+		pApp->GetRenderStatsRef().DrawCalls++;
+
+		pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass", m_GrassInstanceCounts[0] * (_countof(GrassVertices) - 2)));
+		pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass", m_GrassInstanceCounts[0]));
+	}
 
 	// low LOD
-	pApp->GetFrustumCuller()->SendGrassLODInstanceCount(m_ArgsBufferUAV);
+	if (m_GrassInstanceCounts[1] > 0u)
+	{
+		pApp->GetFrustumCuller()->SendGrassLODInstanceCount(m_ArgsBufferUAV);
 
-	pContext->IASetIndexBuffer(m_IndexBufferLOD.Get(), DXGI_FORMAT_R32_UINT, 0u);
-	pContext->IASetVertexBuffers(0u, 1u, m_VertexBufferLOD.GetAddressOf(), Strides, Offsets);
+		pContext->IASetIndexBuffer(m_IndexBufferLOD.Get(), DXGI_FORMAT_R32_UINT, 0u);
+		pContext->IASetVertexBuffers(0u, 1u, m_VertexBufferLOD.GetAddressOf(), Strides, Offsets);
 
-	ID3D11ShaderResourceView* SRVs[] = { pApp->GetFrustumCuller()->GetCulledGrassLODDataSRV().Get() };
-	pContext->VSSetShaderResources(1u, 1u, SRVs);
+		pContext->VSSetShaderResources(1u, 1u, pApp->GetFrustumCuller()->GetCulledGrassLODDataSRV().GetAddressOf());
 
-	pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
-	pApp->GetRenderStatsRef().DrawCalls++;
+		pContext->DrawIndexedInstancedIndirect(m_ArgsBuffer.Get(), 0u);
+		pApp->GetRenderStatsRef().DrawCalls++;
 
-	pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass LOD", m_GrassInstanceCounts[1] * (_countof(GrassVerticesLOD) - 2)));
-	pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass LOD", m_GrassInstanceCounts[1]));
+		pApp->GetRenderStatsRef().TrianglesRendered.push_back(std::make_pair("Grass LOD", m_GrassInstanceCounts[1] * (_countof(GrassVerticesLOD) - 2)));
+		pApp->GetRenderStatsRef().InstancesRendered.push_back(std::make_pair("Grass LOD", m_GrassInstanceCounts[1]));
+	}
 
 	ID3D11ShaderResourceView* NullSRVs[] = { nullptr, nullptr };
 	pContext->VSSetShaderResources(0u, 2u, NullSRVs);
@@ -174,7 +182,7 @@ void Grass::RenderControls()
 {
 	ImGui::Text(GetName().c_str());
 	ImGui::Checkbox("Should Render Grass?", &m_bShouldRender);
-	ImGui::SliderFloat("LOD Distance Threshold", &m_LODDistanceThreshold, 0.f, 500.f);
+	ImGui::SliderFloat("LOD Distance Threshold", &m_LODDistanceThreshold, 0.f, 1000.f);
 
 	ImGui::Dummy(ImVec2(0.f, 10.f));
 
