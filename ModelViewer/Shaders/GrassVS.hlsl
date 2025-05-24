@@ -49,6 +49,7 @@ struct VS_Out
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
 	float HeightAlongBlade : TEXCOORD2;
+	uint LOD : TEXCOORD3;
 };
 
 VS_Out main(VS_In v)
@@ -57,6 +58,7 @@ VS_Out main(VS_In v)
 	float2 GrassPos = Grass[v.InstanceID].Offset;
 	
 	o.ChunkID = Grass[v.InstanceID].ChunkID;
+	o.LOD = Grass[v.InstanceID].LOD;
 	
 	// apply random rotation
 	float3 RotatedPos = Rotate(float3(v.Pos.xy, 0.f), float3(0.f, 1.f, 0.f), RandomAngle(GrassPos));

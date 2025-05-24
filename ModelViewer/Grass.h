@@ -3,6 +3,8 @@
 #ifndef GRASS_H
 #define GRASS_H
 
+#include <array>
+
 #include "d3d11.h"
 #include "DirectXMath.h"
 
@@ -57,7 +59,9 @@ private:
 	ID3D11PixelShader* m_PixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VertexBufferLOD;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_IndexBufferLOD;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ArgsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassOffsetsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassCBuffer;
@@ -67,8 +71,9 @@ private:
 	Landscape* m_pLandscape;
 	AABB m_BBox;
 	UINT m_GrassPerChunk;
-	UINT m_GrassInstanceCount;
+	std::array<UINT, 2> m_GrassInstanceCounts;
 	bool m_bShouldRender;
+	float m_LODDistanceThreshold;
 	float m_Freq;
 	float m_Amp;
 	DirectX::XMFLOAT2 m_WindDir;

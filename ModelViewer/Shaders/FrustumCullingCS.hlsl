@@ -10,8 +10,9 @@ Texture2D Heightmap : register(t3);
 AppendStructuredBuffer<float4x4> CulledTransforms : register(u0);
 AppendStructuredBuffer<float2> CulledOffsetsAppend : register(u1);
 AppendStructuredBuffer<GrassData> CulledGrassData : register(u2);
-RWStructuredBuffer<uint> InstanceCount : register(u3);
-RWByteAddressBuffer ArgsBuffer : register(u4);
+AppendStructuredBuffer<GrassData> CulledGrassLODData : register(u3);
+RWStructuredBuffer<uint> InstanceCounts : register(u4);
+RWByteAddressBuffer ArgsBuffer : register(u5);
 
 cbuffer CullData : register(b0)
 {
@@ -23,6 +24,8 @@ cbuffer CullData : register(b0)
 	uint GrassPerChunk;
 	uint PlaneDimension;
 	float HeightDisplacement;
+	float LODDistanceThreshold;
+	float3 CameraPos;
 	float Padding;
 }
 
@@ -50,7 +53,7 @@ void FrustumCull( uint3 DTid : SV_DispatchThreadID )
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
 		{
 			CulledTransforms.Append(t);
-			InterlockedAdd(InstanceCount[0], 1u);
+			InterlockedAdd(InstanceCounts[0], 1u);
 			return;
 		}
 	}
@@ -77,7 +80,7 @@ void FrustumCullOffsets(uint3 DTid : SV_DispatchThreadID)
 			(TransformedCorner.z >= -Bias && TransformedCorner.z <= TransformedCorner.w + Bias))
 		{
 			CulledOffsetsAppend.Append(o.xz);
-			InterlockedAdd(InstanceCount[0], 1u);
+			InterlockedAdd(InstanceCounts[0], 1u);
 			return;
 		}
 	}
@@ -104,6 +107,9 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 	const float2 UV = GetHeightmapUV(WorldOffset.xz, PlaneDimension);
 	const float4 Height = float4(0.f, Heightmap.SampleLevel(Sampler, UV, 0.f).r * HeightDisplacement, 0.f, 0.f);
 	
+	float Dist = distance(CameraPos, WorldOffset.xyz);
+	bool bHighLOD = Dist < LODDistanceThreshold;
+	
 	// breaks slightly when height displacement > 0
 	for (int i = 0; i < 8; i++)
 	{
@@ -115,11 +121,21 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 			GrassData Grass;
 			Grass.Offset = WorldOffset.xz;
 			Grass.ChunkID = HashFloat2ToUint(CulledOffsets[ChunkID]);
-			Grass.Padding = 0.f;
 			
-			CulledGrassData.Append(Grass);
-			InterlockedAdd(InstanceCount[0], 1u);
-			return;
+			if (bHighLOD)
+			{
+				Grass.LOD = 0u;
+				CulledGrassData.Append(Grass);
+				InterlockedAdd(InstanceCounts[0], 1u);
+				return;				
+			}
+			else
+			{
+				Grass.LOD = 1u;
+				CulledGrassLODData.Append(Grass);
+				InterlockedAdd(InstanceCounts[1], 1u);
+				return;
+			}
 		}
 	}
 }
@@ -127,12 +143,18 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 [numthreads(1, 1, 1)]
 void ClearInstanceCount(uint3 DTid : SV_DispatchThreadID)
 {
-	InstanceCount[0] = 0u;
+	InstanceCounts[0] = 0u;
+	InstanceCounts[1] = 0u;
 }
 
 [numthreads(1, 1, 1)]
 void TransferInstanceCount(uint3 DTid : SV_DispatchThreadID)
 {
-	ArgsBuffer.Store(4u, InstanceCount[0]);
+	ArgsBuffer.Store(4u, InstanceCounts[0]);
 }
 
+[numthreads(1, 1, 1)]
+void TransferGrassLODInstanceCount(uint3 DTid : SV_DispatchThreadID)
+{
+	ArgsBuffer.Store(4u, InstanceCounts[1]);
+}

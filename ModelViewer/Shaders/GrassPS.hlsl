@@ -7,6 +7,7 @@ struct PS_In
 	float2 UV : TEXCOORD0;
 	uint ChunkID : TEXCOORD1;
 	float HeightAlongBlade : TEXCOORD2;
+	uint LOD : TEXCOORD3;
 };
 
 static const float3 AOColor		= float3(0.0f,  0.1f, 0.0f);
@@ -16,6 +17,11 @@ static const float3 TipColor	= float3(0.9f,  1.0f, 0.2f);
 
 float4 main(PS_In p) : SV_TARGET
 {
+	if (p.LOD == 1u)
+	{
+		return float4(1.f, 0.f, 0.f, 1.f);
+	}
+	
 	float3 Color = RootColor;
 	
 	float TipThreshold = 2.f;

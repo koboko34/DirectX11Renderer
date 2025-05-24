@@ -23,6 +23,8 @@ private:
 		UINT GrassPerChunk;
 		UINT PlaneDimension;
 		float HeightDisplacement;
+		float LODDistanceThreshold;
+		DirectX::XMFLOAT3 CameraPos;
 		float Padding;
 	};
 
@@ -36,7 +38,7 @@ private:
 	{
 		DirectX::XMFLOAT2 Offset;
 		UINT ChunkID;
-		float Padding;
+		UINT LOD;
 	};
 
 public:
@@ -51,16 +53,18 @@ public:
 	void CullLandscape(ID3D11ShaderResourceView* ChunksOffsetsSRV, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, const UINT NumChunks, UINT PlaneDimension,
 		float HeightDisplacement, ID3D11ShaderResourceView* Heightmap);
 	void CullGrass(ID3D11ShaderResourceView* GrassOffsetsSRV, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount,
-		UINT PlaneDimension, float HeightDisplacement, ID3D11ShaderResourceView* Heightmap);
+		UINT PlaneDimension, float HeightDisplacement, float LODDistanceThreshold, ID3D11ShaderResourceView* Heightmap);
 	void ClearInstanceCount();
 	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV);
-	UINT GetInstanceCount();
+	void SendGrassLODInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV);
+	std::array<UINT, 2> GetInstanceCounts();
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetCulledTransformsBuffer() const { return m_CulledTransformsBuffer; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetCulledOffsetsBuffer() const { return m_CulledOffsetsBuffer; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledTransformsSRV() const { return m_CulledTransformsSRV; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledOffsetsSRV() const { return m_CulledOffsetsSRV; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledGrassDataSRV() const { return m_CulledGrassDataSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledGrassLODDataSRV() const { return m_CulledGrassLODDataSRV; }
 
 private:
 	bool CreateBuffers();
@@ -71,7 +75,7 @@ private:
 	void UpdateBuffers(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount,
 		UINT SentInstanceCount, UINT GrassPerChunk = 0u, UINT PlaneDimension = 0u, float HeightDisplacement = 0.f);
 	void UpdateCBuffer(const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, UINT* ThreadGroupCount, UINT SentInstanceCount, UINT GrassPerChunk,
-		UINT PlaneDimension, float HeightDisplacement);
+		UINT PlaneDimension, float HeightDisplacement, float LODDistanceThreshold = 0.f);
 
 	void DispatchShaderImpl(UINT* ThreadGroupCount);
 
@@ -81,11 +85,13 @@ private:
 	ID3D11ComputeShader* m_GrassCullingShader;
 	ID3D11ComputeShader* m_InstanceCountClearShader;
 	ID3D11ComputeShader* m_InstanceCountTransferShader;
+	ID3D11ComputeShader* m_GrassLODInstanceCountTransferShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_TransformsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_OffsetsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledTransformsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledOffsetsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledGrassDataBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledGrassLODDataBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_StagingBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceCountBuffer;
@@ -94,10 +100,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_CulledTransformsSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_CulledOffsetsSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_CulledGrassDataSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_CulledGrassLODDataSRV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_InstanceCountBufferUAV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledTransformsUAV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledOffsetsUAV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledGrassDataUAV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_CulledGrassLODDataUAV;
 
 	const char* m_csFilename;
 	bool m_bGotInstanceCount;

@@ -10,7 +10,7 @@ struct GrassData
 {
 	float2 Offset;
 	uint ChunkID;
-	float Padding;
+	uint LOD;
 };
 
 float Remap(float Value, float FromMin, float FromMax, float ToMin, float ToMax)
