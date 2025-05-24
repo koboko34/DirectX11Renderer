@@ -61,7 +61,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ArgsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassOffsetsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_GrassCBuffer;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_GrassOffsetsBufferSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_GrassOffsetsSRV;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ArgsBufferUAV;
 
 	Landscape* m_pLandscape;

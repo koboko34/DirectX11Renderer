@@ -48,15 +48,17 @@ public:
 
 	void DispatchShader(const std::vector<DirectX::XMMATRIX>& Transforms, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
 	void DispatchShader(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix = DirectX::XMMatrixIdentity());
-	void CullGrass(const std::vector<DirectX::XMFLOAT2>& Offsets, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount,
+	void CullLandscape(ID3D11ShaderResourceView* ChunksOffsetsSRV, const std::vector<DirectX::XMFLOAT4>& Corners, const DirectX::XMMATRIX& ScaleMatrix, const UINT NumChunks, UINT PlaneDimension,
+		float HeightDisplacement, ID3D11ShaderResourceView* Heightmap);
+	void CullGrass(ID3D11ShaderResourceView* GrassOffsetsSRV, const std::vector<DirectX::XMFLOAT4>& Corners, const UINT GrassPerChunk, const UINT VisibleChunkCount,
 		UINT PlaneDimension, float HeightDisplacement, ID3D11ShaderResourceView* Heightmap);
 	void ClearInstanceCount();
-	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV, UINT InstanceCountMultiplier = 1u);
+	void SendInstanceCount(Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> ArgsBufferUAV);
 	UINT GetInstanceCount();
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetCulledTransformsBuffer() const { return m_CulledTransformsBuffer; }
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledTransformsSRV() const { return m_CulledTransformsSRV; }
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetCulledOffsetsBuffer() const { return m_CulledOffsetsBuffer; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledTransformsSRV() const { return m_CulledTransformsSRV; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledOffsetsSRV() const { return m_CulledOffsetsSRV; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetCulledGrassDataSRV() const { return m_CulledGrassDataSRV; }
 
@@ -85,7 +87,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledOffsetsBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CulledGrassDataBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceCountMultiplierCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_StagingBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_InstanceCountBuffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_TransformsSRV;

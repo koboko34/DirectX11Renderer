@@ -26,12 +26,6 @@ cbuffer CullData : register(b0)
 	float Padding;
 }
 
-cbuffer InstanceCountMultiplierBuffer : register(b1)
-{
-	uint InstanceCountMultiplier;
-	float3 MorePadding;
-}
-
 static const uint tx = 32u;
 static const uint ty = 1u;
 static const uint tz = 1u;
@@ -110,6 +104,7 @@ void FrustumCullGrass(uint3 DTid : SV_DispatchThreadID)
 	const float2 UV = GetHeightmapUV(WorldOffset.xz, PlaneDimension);
 	const float4 Height = float4(0.f, Heightmap.SampleLevel(Sampler, UV, 0.f).r * HeightDisplacement, 0.f, 0.f);
 	
+	// breaks slightly when height displacement > 0
 	for (int i = 0; i < 8; i++)
 	{
 		float4 TransformedCorner = mul(Corners[i] + WorldOffset + Height, ViewProj);
@@ -138,6 +133,6 @@ void ClearInstanceCount(uint3 DTid : SV_DispatchThreadID)
 [numthreads(1, 1, 1)]
 void TransferInstanceCount(uint3 DTid : SV_DispatchThreadID)
 {
-	ArgsBuffer.Store(4u, InstanceCount[0] * InstanceCountMultiplier);
+	ArgsBuffer.Store(4u, InstanceCount[0]);
 }
 

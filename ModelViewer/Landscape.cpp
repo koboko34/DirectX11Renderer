@@ -35,11 +35,12 @@ Landscape::~Landscape()
 bool Landscape::Init(const std::string& HeightMapFilepath, float TessellationScale, UINT GrassDimensionPerChunk)
 {
 	bool Result;
-	FALSE_IF_FAILED(CreateBuffers());
 
 	SetupAABB();
 	GenerateChunkOffsets();
 	GenerateGrassOffsets(GrassDimensionPerChunk);
+
+	FALSE_IF_FAILED(CreateBuffers());
 
 	m_Plane = std::make_shared<TessellatedPlane>();
 	FALSE_IF_FAILED(m_Plane->Init(TessellationScale, this));
@@ -65,7 +66,7 @@ void Landscape::SetupAABB()
 void Landscape::Render()
 {	
 	Application* pApp = Application::GetSingletonPtr();
-	pApp->GetFrustumCuller()->DispatchShader(GetChunkOffsets(), m_BoundingBox.Corners, m_ChunkScaleMatrix);
+	pApp->GetFrustumCuller()->DispatchShader(m_ChunkOffsets, m_BoundingBox.Corners, m_ChunkScaleMatrix);
 	m_ChunkInstanceCount = pApp->GetFrustumCuller()->GetInstanceCount();
 	
 	if (m_ChunkInstanceCount == 0u)
@@ -129,6 +130,27 @@ bool Landscape::CreateBuffers()
 	HRESULT hResult;
 	D3D11_BUFFER_DESC Desc = {};
 
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * m_NumChunks;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = sizeof(DirectX::XMFLOAT2);
+
+	D3D11_SUBRESOURCE_DATA Data = {};
+	Data.pSysMem = m_ChunkOffsets.data();
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateBuffer(&Desc, &Data, &m_ChunkOffsetsBuffer));
+	NAME_D3D_RESOURCE(m_ChunkOffsetsBuffer, "Landscape chunk offsets buffer");
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	SRVDesc.Buffer.NumElements = m_NumChunks;
+
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_ChunkOffsetsBuffer.Get(), &SRVDesc, &m_ChunkOffsetsSRV));
+	NAME_D3D_RESOURCE(m_ChunkOffsetsSRV, "Chunk offsets buffer SRV");
+
+	Desc = {};
 	Desc.Usage = D3D11_USAGE_DYNAMIC;
 	Desc.ByteWidth = sizeof(CullingCBuffer);
 	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -227,8 +249,6 @@ void Landscape::GenerateGrassOffsets(UINT GrassCount)
 	std::uniform_real_distribution<float> TranslationDist(0.f, SpacingX);
 	std::uniform_real_distribution<float> RotationDist(0.f, 360.f);
 
-	m_GrassOffsets.resize(MAX_GRASS_PER_CHUNK, { 0.f, 0.f });
-	int i = 0;
 	for (UINT x = 0; x < GrassCount; ++x)
 	{
 		for (UINT z = 0; z < GrassCount; ++z)
@@ -239,10 +259,9 @@ void Landscape::GenerateGrassOffsets(UINT GrassCount)
 			float WorldX = -HalfWidth + x * SpacingX + RandOffsetX;
 			float WorldZ = -HalfDepth + z * SpacingZ + RandOffsetZ;
 
-			assert(i < MAX_GRASS_PER_CHUNK);
+			assert(m_GrassOffsets.size() < MAX_GRASS_PER_CHUNK);
 
-			m_GrassOffsets[i] = { WorldX, WorldZ };
-			i++;
+			m_GrassOffsets.push_back({ WorldX, WorldZ });
 		}
 	}
 }

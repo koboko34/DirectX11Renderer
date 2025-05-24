@@ -84,6 +84,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_LandscapeInfoCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CullingCBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_CameraCBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_ChunkOffsetsBuffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_ChunkOffsetsSRV;
 
 	std::shared_ptr<TessellatedPlane> m_Plane;
 	std::shared_ptr<Grass> m_Grass;

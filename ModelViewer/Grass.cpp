@@ -101,7 +101,7 @@ void Grass::Render()
 	Graphics* pGraphics = Graphics::GetSingletonPtr();
 	ID3D11DeviceContext* pContext = pGraphics->GetDeviceContext();
 	pApp->GetFrustumCuller()->CullGrass(
-		m_pLandscape->GetGrassOffsets(),
+		m_GrassOffsetsSRV.Get(),
 		m_BBox.Corners,
 		m_GrassPerChunk,
 		m_pLandscape->GetChunkInstanceCount(),
@@ -245,7 +245,7 @@ bool Grass::CreateBuffers()
 
 	Desc.CPUAccessFlags = 0u;
 	Desc.Usage = D3D11_USAGE_IMMUTABLE;
-	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * MAX_GRASS_PER_CHUNK; // TODO: can this just be m_GrassPerChunk?
+	Desc.ByteWidth = sizeof(DirectX::XMFLOAT2) * m_GrassPerChunk;
 	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	Desc.StructureByteStride = sizeof(DirectX::XMFLOAT2);
@@ -258,10 +258,10 @@ bool Grass::CreateBuffers()
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
 	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	SRVDesc.Buffer.NumElements = (UINT)MAX_GRASS_PER_CHUNK; // same here?
+	SRVDesc.Buffer.NumElements = m_GrassPerChunk;
 
-	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GrassOffsetsBuffer.Get(), &SRVDesc, &m_GrassOffsetsBufferSRV));
-	NAME_D3D_RESOURCE(m_GrassOffsetsBufferSRV, "Grass offsets buffer SRV");
+	HFALSE_IF_FAILED(Graphics::GetSingletonPtr()->GetDevice()->CreateShaderResourceView(m_GrassOffsetsBuffer.Get(), &SRVDesc, &m_GrassOffsetsSRV));
+	NAME_D3D_RESOURCE(m_GrassOffsetsSRV, "Grass offsets buffer SRV");
 
 	Desc = {};
 	Desc.ByteWidth = sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS);
